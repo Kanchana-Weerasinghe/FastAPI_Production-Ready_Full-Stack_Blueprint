@@ -1,0 +1,21 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "app.fullname" . }}-api
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      authorization:
+        credentials:
+          name: {{ .Values.existingSecret }}
+          key: METRICS_TOKEN
+{{- end }}

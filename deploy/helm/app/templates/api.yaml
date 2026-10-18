@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}-api
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  {{- if not .Values.api.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      {{- include "app.selector" (dict "root" . "component" "api") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selector" (dict "root" . "component" "api") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "app.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.api.terminationGracePeriodSeconds }}
+      {{- include "app.topologySpread" (dict "root" . "component" "api") | nindent 6 }}
+      containers:
+        - name: api
+          image: {{ include "app.image" (dict "image" .Values.image.api "root" .) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "app.apiEnv" . | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: 8000
+          startupProbe:
+            httpGet: {path: /health/live, port: http}
+            periodSeconds: 3
+            failureThreshold: 20
+          livenessProbe:
+            # Liveness never checks dependencies: a DB outage must not restart every pod.
+            httpGet: {path: /health/live, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          lifecycle:
+            preStop:
+              # Keep serving while the endpoint is removed from load balancers, then drain.
+              exec:
+                command: ["sleep", "{{ .Values.api.preStopSleepSeconds }}"]
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: uploads, mountPath: /app/uploads}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        # Only used with STORAGE_BACKEND=local (single replica / dev clusters); use s3 in production.
+        - name: uploads
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app.fullname" . }}-api
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    {{- include "app.selector" (dict "root" . "component" "api") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+{{- if .Values.api.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "app.fullname" . }}-api
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "app.fullname" . }}-api
+  minReplicas: {{ .Values.api.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+{{- end }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "app.fullname" . }}-api
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.api.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "app.selector" (dict "root" . "component" "api") | nindent 6 }}

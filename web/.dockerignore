@@ -1,0 +1,15 @@
+node_modules
+dist
+docs
+.git
+.vscode
+.tanstack
+*.log
+.env*
+! .env.production
+tests
+playwright.config.ts
+README.md
+.prettierrc
+.prettierignore
+eslint.config.js

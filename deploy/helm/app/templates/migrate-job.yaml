@@ -1,0 +1,49 @@
+{{- if .Values.migrations.enabled }}
+# Runs before every install/upgrade. If it fails, Helm aborts the release and the previous app
+# version keeps serving (migrations must be backward compatible: docs/database/migrations.md).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "app.fullname" . }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selector" (dict "root" . "component" "migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "app.fullname" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "app.image" (dict "image" .Values.image.api "root" .) }}
+          command: ["sh", "-c", "python scripts/backend_pre_start.py && alembic upgrade head"]
+          envFrom:
+            # The hook runs before the release's ConfigMap exists, so it reads the Secret only
+            # (DB_* and MIGRATION_DB_* are there).
+            - secretRef:
+                name: {{ .Values.existingSecret }}
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.config.ENVIRONMENT | quote }}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

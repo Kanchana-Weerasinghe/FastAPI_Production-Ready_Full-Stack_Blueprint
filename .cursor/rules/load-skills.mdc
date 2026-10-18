@@ -1,0 +1,11 @@
+---
+description: Reference and apply custom developer skills for project workflows
+globs: *
+alwaysApply: true
+---
+
+# Agent Skills Integration
+
+When executing tasks, refer to the custom procedural workflows and tech stack guidelines defined in the `.agents/` directory at the project root.
+
+- **Backend & Verification Skills:** Look into `.agents/skills/` to resolve database, testing, or API implementation details.

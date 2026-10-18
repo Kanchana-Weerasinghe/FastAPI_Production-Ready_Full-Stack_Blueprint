@@ -1,0 +1,3 @@
+# Truncated example JWT header ({"alg":"HS256","typ":"JWT"}) in old API docs, not a secret.
+ebacd0b3dcfcb6fad8b7ebab9cf14b53c4a729bd:docs/API_FLOW.md:generic-api-key:172
+5f4875f089052f8e8d43c3a751bff5fffe69f540:docs/API_FLOW.md:generic-api-key:163

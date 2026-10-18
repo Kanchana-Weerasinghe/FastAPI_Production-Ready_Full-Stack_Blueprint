@@ -1,0 +1,9 @@
+dist/
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+.vite/
+src/routeTree.gen.ts
+src/lib/api-types.gen.ts
+.test-results/
+.playwright-report/

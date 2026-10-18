@@ -1,0 +1,29 @@
+# GitOps alternative to the push-based release workflow (for larger teams): Argo CD pulls the chart
+# from Git and keeps the cluster in sync. CI then only builds images and commits the new digest to
+# deploy/helm/app/values-<env>.yaml (e.g. with Argo CD Image Updater or a PR from the release job).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/your-repo.git
+    targetRevision: main
+    path: deploy/helm/app
+    helm:
+      valueFiles:
+        - values-staging.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff: {duration: 30s, factor: 2, maxDuration: 5m}

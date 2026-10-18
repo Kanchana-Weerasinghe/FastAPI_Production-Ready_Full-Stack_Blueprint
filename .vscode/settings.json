@@ -1,0 +1,23 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "code-runner.executorMap": {
+    "python": "uv --directory server run task dev;",
+    "typescript": "pnpm -C web dev;",
+    "typescriptreact": "pnpm -C web dev;"
+  },
+  "code-runner.runInTerminal": true,
+  "code-runner.saveFileBeforeRun": true,
+  "code-runner.clearPreviousOutput": true,
+  "code-runner.showRunIconInEditorTitleMenu": true,
+  "code-runner.ignoreSelection": true,
+  "python.defaultInterpreterPath": "${workspaceFolder}/server/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/server"
+  ],
+  "python.testing.pytestArgs": [
+    "server"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+}

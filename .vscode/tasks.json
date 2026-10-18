@@ -1,0 +1,78 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "web-dev",
+      "type": "shell",
+      "command": "pnpm -C web dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*VITE v.*ready in.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*VITE.*",
+          "endsPattern": ".*ready in.*"
+        }
+      },
+      "presentation": {
+        "group": "dev-group",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Full Stack: Server",
+      "type": "shell",
+      "command": "cd server; uv sync; uv run task dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*Application startup complete.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Uvicorn running.*",
+          "endsPattern": ".*Application startup complete.*"
+        }
+      },
+      "presentation": {
+        "group": "dev-group",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Full Stack: Web",
+      "type": "shell",
+      "command": "pnpm -C web install; pnpm -C web dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*VITE v.*ready in.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*VITE.*",
+          "endsPattern": ".*ready in.*"
+        }
+      },
+      "presentation": {
+        "group": "dev-group",
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "🔥 Run: Full Stack",
+      "dependsOn": [
+        "Full Stack: Server",
+        "Full Stack: Web"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,2268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Architecture, design principles, production-readiness map, and a practical domain-module walkthrough for the FastAPI and React starter."
+    />
+    <title>Development Team Guide | FastAPI Full-Stack Template</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172536;
+        --muted: #536579;
+        --paper: #f4f7fb;
+        --card: #fff;
+        --line: #dce5ef;
+        --navy: #122b45;
+        --blue: #1769aa;
+        --teal: #087f78;
+        --green: #24734b;
+        --amber: #946000;
+        --red: #a13c35;
+        --shadow: 0 18px 50px rgb(27 48 73 / 8%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            ellipse at 15% 0%,
+            rgb(34 122 173 / 10%),
+            transparent 38rem
+          ),
+          var(--paper);
+        font:
+          16px/1.65 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      a:hover {
+        color: #0b4e83;
+      }
+
+      code,
+      pre {
+        font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      }
+
+      code {
+        overflow-wrap: anywhere;
+        color: #174e78;
+        background: #edf4fb;
+        border-radius: 4px;
+        padding: 0.1em 0.35em;
+        font-size: 0.92em;
+      }
+
+      pre {
+        overflow: auto;
+        margin: 0;
+        padding: 1.15rem;
+        color: #e8f1fb;
+        background: #102235;
+        border: 1px solid #23415f;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        tab-size: 4;
+      }
+
+      pre code {
+        color: inherit;
+        background: transparent;
+        padding: 0;
+        overflow-wrap: normal;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        color: white;
+        background:
+          radial-gradient(
+            circle at 85% 12%,
+            rgb(79 202 189 / 24%),
+            transparent 24rem
+          ),
+          linear-gradient(125deg, #10243a 4%, #173e5e 57%, #126f76 120%);
+        padding: 5rem max(1.25rem, calc((100vw - 1160px) / 2)) 4.25rem;
+      }
+
+      .hero::after {
+        position: absolute;
+        right: -5rem;
+        bottom: -14rem;
+        width: 32rem;
+        height: 32rem;
+        border: 1px solid rgb(255 255 255 / 15%);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 3rem rgb(255 255 255 / 3%),
+          0 0 0 6rem rgb(255 255 255 / 3%);
+        content: "";
+        pointer-events: none;
+      }
+
+      .hero-inner,
+      main,
+      footer {
+        width: min(1160px, calc(100% - 2.5rem));
+        margin-inline: auto;
+      }
+
+      .eyebrow {
+        color: #94e3d8;
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 900px;
+        margin: 0.8rem 0 1rem;
+        font-size: clamp(2.25rem, 5vw, 4.5rem);
+        letter-spacing: -0.045em;
+        line-height: 1.05;
+      }
+
+      .hero p {
+        max-width: 780px;
+        margin: 0;
+        color: #d2e1ef;
+        font-size: 1.12rem;
+      }
+
+      .hero-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        margin-top: 1.7rem;
+      }
+
+      .hero-badges span {
+        padding: 0.32rem 0.7rem;
+        color: #ecf8ff;
+        background: rgb(255 255 255 / 9%);
+        border: 1px solid rgb(255 255 255 / 18%);
+        border-radius: 999px;
+        font-size: 0.82rem;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 2rem;
+        padding-block: 2.5rem 5rem;
+      }
+
+      nav {
+        position: sticky;
+        top: 1rem;
+        align-self: start;
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+        padding: 1rem;
+        background: rgb(255 255 255 / 84%);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      nav strong {
+        display: block;
+        margin: 0 0 0.65rem;
+        color: var(--navy);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        display: block;
+        padding: 0.23rem 0;
+        color: var(--muted);
+        font-size: 0.83rem;
+        line-height: 1.4;
+        text-decoration: none;
+      }
+
+      nav a:hover {
+        color: var(--blue);
+      }
+
+      article {
+        min-width: 0;
+      }
+
+      section {
+        scroll-margin-top: 1.25rem;
+        margin-bottom: 1.5rem;
+        padding: clamp(1.2rem, 3vw, 2rem);
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
+
+      h2,
+      h3,
+      h4 {
+        color: var(--navy);
+        line-height: 1.25;
+      }
+
+      h2 {
+        margin: 0 0 1rem;
+        font-size: clamp(1.55rem, 2.5vw, 2.1rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin: 1.7rem 0 0.65rem;
+        font-size: 1.22rem;
+      }
+
+      h4 {
+        margin: 1.2rem 0 0.45rem;
+        font-size: 1rem;
+      }
+
+      p {
+        margin: 0.65rem 0 1rem;
+      }
+
+      ul,
+      ol {
+        padding-left: 1.35rem;
+      }
+
+      li + li {
+        margin-top: 0.32rem;
+      }
+
+      .lede {
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .callout {
+        margin: 1.1rem 0;
+        padding: 0.9rem 1rem;
+        border-left: 4px solid var(--teal);
+        border-radius: 0 10px 10px 0;
+        background: #eef9f7;
+      }
+
+      .callout.warning {
+        border-left-color: #cf8d15;
+        background: #fff8e9;
+      }
+
+      .callout strong {
+        color: var(--navy);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        width: fit-content;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .status.ready {
+        color: #195b39;
+        background: #e5f5eb;
+      }
+
+      .status.partial {
+        color: #785000;
+        background: #fff2d7;
+      }
+
+      .status.context {
+        color: #315a85;
+        background: #e9f2fc;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin-block: 1rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      th,
+      td {
+        padding: 0.72rem 0.78rem;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #27445f;
+        background: #f2f6fa;
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .diagram {
+        overflow-x: auto;
+        padding: 0.75rem;
+        background: linear-gradient(140deg, #f5f9fd, #eef7f6);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      .diagram svg {
+        display: block;
+        width: 100%;
+        min-width: 680px;
+        height: auto;
+      }
+
+      .diagram .node {
+        fill: #fff;
+        stroke: #9bb4cb;
+        stroke-width: 2;
+      }
+
+      .diagram .edge {
+        fill: none;
+        stroke: #5484a7;
+        stroke-width: 2.2;
+        marker-end: url(#arrow);
+      }
+
+      .diagram text {
+        fill: #1c344b;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-size: 15px;
+        font-weight: 650;
+        text-anchor: middle;
+      }
+
+      .diagram .small {
+        fill: #536579;
+        font-size: 12px;
+        font-weight: 450;
+      }
+
+      .request-diagram {
+        overflow-x: auto;
+        margin: 1.4rem 0;
+        padding: 1.2rem;
+        background:
+          radial-gradient(circle at 10% 0%, rgb(23 105 170 / 9%), transparent 24rem),
+          linear-gradient(145deg, #f8fbff, #eef7f5);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+
+      .request-diagram:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+
+      .request-diagram-inner {
+        min-width: 1240px;
+      }
+
+      .request-lane {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(145px, 1fr));
+        gap: 1.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .request-lane + .request-lane {
+        margin-top: 2.25rem;
+        direction: rtl;
+      }
+
+      .request-lane li {
+        position: relative;
+        min-height: 8.2rem;
+        padding: 0.9rem;
+        direction: ltr;
+        background: rgb(255 255 255 / 94%);
+        border: 1px solid #cfdae6;
+        border-top: 3px solid var(--blue);
+        border-radius: 12px;
+        box-shadow: 0 8px 22px rgb(27 48 73 / 6%);
+      }
+
+      .request-lane:first-of-type li:nth-child(n + 5) {
+        border-top-color: var(--teal);
+      }
+
+      .request-lane + .request-lane li:nth-child(-n + 2) {
+        border-top-color: var(--green);
+      }
+
+      .request-lane + .request-lane li:nth-child(n + 3) {
+        border-top-color: var(--amber);
+      }
+
+      .request-lane li:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: -1.25rem;
+        color: var(--teal);
+        content: "→";
+        font-size: 1.3rem;
+        font-weight: 800;
+        transform: translateY(-50%);
+      }
+
+      .request-lane:first-of-type li:last-child::after {
+        top: calc(100% + 0.25rem);
+        right: 50%;
+        content: "↓";
+        transform: translateX(50%);
+      }
+
+      .request-lane + .request-lane li:not(:last-child)::after {
+        right: auto;
+        left: -1.25rem;
+        content: "←";
+      }
+
+      .request-lane + .request-lane li:last-child::after {
+        top: calc(100% + 0.25rem);
+        right: auto;
+        left: 50%;
+        content: "↓";
+        transform: translateX(-50%);
+      }
+
+      .request-stage-number {
+        display: grid;
+        width: 1.7rem;
+        height: 1.7rem;
+        margin-bottom: 0.55rem;
+        place-items: center;
+        color: white;
+        background: var(--navy);
+        border-radius: 50%;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .request-lane strong {
+        display: block;
+        color: var(--navy);
+        font-size: 0.9rem;
+        line-height: 1.35;
+      }
+
+      .request-lane span:last-child {
+        display: block;
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+      }
+
+      .mini-card {
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fbfdff;
+      }
+
+      .mini-card h3,
+      .mini-card h4 {
+        margin-top: 0;
+      }
+
+      .mini-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 2.1rem minmax(0, 1fr);
+        gap: 0.75rem;
+        margin: 1rem 0;
+      }
+
+      .step-number {
+        display: grid;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        color: white;
+        background: var(--teal);
+        border-radius: 50%;
+        font-weight: 750;
+      }
+
+      .step h3 {
+        margin: 0 0 0.25rem;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .small-text {
+        font-size: 0.88rem;
+      }
+
+      footer {
+        padding: 0 0 3rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        nav {
+          position: static;
+          max-height: none;
+        }
+
+        nav div {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 1rem;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .hero {
+          padding-top: 3.5rem;
+        }
+
+        main,
+        .hero-inner,
+        footer {
+          width: min(100% - 1.25rem, 1160px);
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        nav div {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .hero {
+          padding: 2rem;
+          print-color-adjust: exact;
+        }
+
+        main {
+          display: block;
+          width: 100%;
+          padding: 1rem 0;
+        }
+
+        nav {
+          display: none;
+        }
+
+        section {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+
+        pre {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+
+        a {
+          color: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="eyebrow">Engineering handbook · Template guide</div>
+        <h1>FastAPI &amp; React: A Production-Ready Full-Stack Blueprint</h1>
+        <p>
+          This guide explains the problems this FastAPI + React template is
+          designed to solve, the architectural choices it makes, how its 14
+          engineering areas map to a production-minded application, and how to
+          add a new domain entity without weakening those boundaries.
+        </p>
+        <div class="hero-badges" aria-label="Core technology">
+          <span>Python 3.12+</span>
+          <span>FastAPI · SQLAlchemy · PostgreSQL</span>
+          <span>React · TypeScript</span>
+          <span>Modular monolith</span>
+          <span>Docker · Helm · Terraform</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav aria-label="Guide contents">
+        <strong>On this page</strong>
+        <div>
+          <a href="#purpose">Purpose and scope</a>
+          <a href="#technology">Technology</a>
+          <a href="#principles">Principles and patterns</a>
+          <a href="#architecture">Architecture at a glance</a>
+          <a href="#request-workflow">End-to-end request workflow</a>
+          <a href="#scorecard">14-area map</a>
+          <a href="#area-1">1 · Architecture</a>
+          <a href="#area-2">2 · API contracts</a>
+          <a href="#area-3">3 · Data layer</a>
+          <a href="#area-4">4 · Security</a>
+          <a href="#area-5">5 · Reliability</a>
+          <a href="#area-6">6 · Observability</a>
+          <a href="#area-7">7 · Performance</a>
+          <a href="#area-8">8 · Testing</a>
+          <a href="#area-9">9 · CI/CD</a>
+          <a href="#area-10">10 · Infrastructure</a>
+          <a href="#area-11">11 · Configuration</a>
+          <a href="#area-12">12 · Frontend</a>
+          <a href="#area-13">13 · Developer experience</a>
+          <a href="#area-14">14 · Governance</a>
+          <a href="#example">Add a Project entity</a>
+          <a href="#production">Production adoption checklist</a>
+          <a href="#references">Repository references</a>
+        </div>
+      </nav>
+
+      <article>
+        <section id="purpose">
+          <h2>What problem does this template solve?</h2>
+          <p class="lede">
+            A new application should not have to rediscover safe defaults,
+            transaction handling, module boundaries, API error conventions,
+            testing patterns, and deployment mechanics before its team can build
+            product features.
+          </p>
+          <p>
+            The template provides a
+            <strong>working application skeleton</strong> with those
+            cross-cutting concerns already represented. It aims to make the
+            common path explicit: add a business domain, keep its rules close
+            together, expose a stable API, test it against realistic
+            infrastructure, and promote the same built artifact through
+            environments.
+          </p>
+          <div class="callout">
+            <strong>Intended use:</strong> a production-minded baseline for
+            teams building a larger application as a modular monolith. It is not
+            a certification, a turnkey hosted platform, or a claim that one
+            deployment configuration fits every workload.
+          </div>
+          <div class="grid">
+            <div class="mini-card">
+              <h3>It helps prevent</h3>
+              <ul>
+                <li>
+                  Business logic scattered across global
+                  route/service/repository folders.
+                </li>
+                <li>
+                  Services committing partial state or raising HTTP errors from
+                  domain code.
+                </li>
+                <li>
+                  Unbounded list queries and unstable client error contracts.
+                </li>
+                <li>
+                  Fragile retries for writes and lost side effects after
+                  database commits.
+                </li>
+                <li>
+                  Tests accidentally resetting a developer or shared database.
+                </li>
+                <li>
+                  Deployments that silently rely on placeholder domains or
+                  infrastructure.
+                </li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>It does not decide for every product</h3>
+              <ul>
+                <li>
+                  Tenant isolation strategy, regulatory obligations, or data
+                  residency.
+                </li>
+                <li>
+                  Identity-provider selection, product-specific authorization
+                  policy, or SLOs.
+                </li>
+                <li>
+                  Capacity, cache invalidation, read replicas, and
+                  business-specific workflows.
+                </li>
+                <li>
+                  Managed Kubernetes, DNS, WAF, certificate, or monitoring
+                  ownership.
+                </li>
+                <li>
+                  Whether a future domain should become a separate service.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="technology">
+          <h2>Technology</h2>
+          <p class="lede">
+            This solution combines a modern Python backend, a React frontend,
+            and a production-oriented toolchain for API delivery, persistence,
+            observability, testing, and deployment.
+          </p>
+          <div class="grid">
+            <div class="mini-card">
+              <h3>Backend and API</h3>
+              <ul>
+                <li>Python 3.12+</li>
+                <li>FastAPI for asynchronous API development</li>
+                <li>Uvicorn and Gunicorn for serving the application</li>
+                <li>Pydantic and Pydantic Settings for validation and config</li>
+                <li>SQLAlchemy 2.0 with asyncpg for database access</li>
+                <li>PostgreSQL as the main relational database</li>
+                <li>Alembic for database migrations</li>
+                <li>Redis and ARQ for background jobs and task execution</li>
+                <li>SlowAPI for rate limiting</li>
+                <li>JWT, bcrypt, pyotp, cryptography, and email validation for security</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>Frontend and UX</h3>
+              <ul>
+                <li>React 19 with TypeScript</li>
+                <li>Vite for development and production builds</li>
+                <li>TanStack Router for file-based routing</li>
+                <li>TanStack Query and React Form for server state and forms</li>
+                <li>Zod for schema validation on the client</li>
+                <li>Axios for API HTTP requests</li>
+                <li>Tailwind CSS for styling</li>
+                <li>Lucide React for icons and UI polish</li>
+                <li>Sonner for user notifications</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>Quality, observability, and delivery</h3>
+              <ul>
+                <li>Pytest, pytest-asyncio, and coverage tooling for backend testing</li>
+                <li>Vitest, Testing Library, Playwright, and MSW for frontend validation</li>
+                <li>Ruff, ESLint, Prettier, and mypy for quality checks</li>
+                <li>Sentry for application monitoring and error reporting</li>
+                <li>Prometheus and OpenTelemetry for metrics and tracing</li>
+                <li>Docker and NGINX for local runtime and deployment support</li>
+                <li>Helm and Terraform for infrastructure orchestration and provisioning</li>
+                <li>GitHub Actions and task runners for automation and developer workflow</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="principles">
+          <h2>Design principles and patterns</h2>
+          <p class="lede">
+            This section describes design principles demonstrated by the
+            implementation: DDD-inspired domain modeling, SOLID, separation of
+            concerns, dependency inversion, and patterns used to connect
+            application code to infrastructure.
+          </p>
+          <div class="callout">
+            <strong>Scope:</strong> this template applies selected DDD
+            building blocks, including domain-owned modules, domain records,
+            value objects, and domain validation. It does not claim that every
+            module is a fully modeled bounded context with aggregates and a
+            formally documented ubiquitous language.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Principle / pattern</th>
+                  <th>How it appears here</th>
+                  <th>Why use it</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Modular monolith</td>
+                  <td>
+                    Business domains live in
+                    <code>server/app/modules/&lt;domain&gt;</code>; one
+                    application is deployed.
+                  </td>
+                  <td>
+                    Preserves clear ownership and testable boundaries without
+                    premature network and operational complexity.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Layered / inward dependencies</td>
+                  <td>
+                    Router → application use case → domain/ports; infrastructure
+                    implements ports, and the composition root wires adapters.
+                  </td>
+                  <td>
+                    Business rules stay independent from HTTP, SQLAlchemy, and
+                    vendor clients.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Dependency injection</td>
+                  <td>
+                    Per-domain containers are composed in
+                    <code>app/container.py</code>; routes use provider paths.
+                  </td>
+                  <td>
+                    Dependencies are visible, replaceable, and controllable in
+                    tests.
+                  </td>
+                </tr>
+                <tr>
+                  <td>DDD: domain modeling</td>
+                  <td>
+                    Domain-owned modules group related business capabilities.
+                    Domain records and value objects live separately from
+                    transport schemas and ORM models; for example,
+                    <code>UploadFileName</code> validates a filename and
+                    extension before storage handling.
+                  </td>
+                  <td>
+                    Keeps business vocabulary and validation rules close to
+                    the capability they govern, rather than coupling them to
+                    HTTP or persistence.
+                  </td>
+                </tr>
+                <tr>
+                  <td>SOLID: Single Responsibility Principle</td>
+                  <td>
+                    Routers handle HTTP translation, application services
+                    coordinate workflows, domain types represent business
+                    concepts, and repositories handle persistence.
+                  </td>
+                  <td>
+                    Gives each component a focused reason to change and makes
+                    responsibilities easier to test independently.
+                  </td>
+                </tr>
+                <tr>
+                  <td>SOLID: Open/Closed Principle</td>
+                  <td>
+                    Use cases depend on ports, such as
+                    <code>TodoRepositoryPort</code>, so an adapter can be
+                    replaced or extended without rewriting the application
+                    workflow.
+                  </td>
+                  <td>
+                    Supports new infrastructure implementations while keeping
+                    application behavior stable.
+                  </td>
+                </tr>
+                <tr>
+                  <td>SOLID: Liskov Substitution Principle</td>
+                  <td>
+                    Concrete adapters and test fakes must preserve the
+                    behavior and type expectations of the protocol they
+                    implement.
+                  </td>
+                  <td>
+                    Lets callers use alternate implementations without
+                    changing their expected outcomes.
+                  </td>
+                </tr>
+                <tr>
+                  <td>SOLID: Interface Segregation Principle</td>
+                  <td>
+                    Application ports describe collaborator capabilities,
+                    such as repository operations or email sending, rather
+                    than exposing concrete infrastructure objects.
+                  </td>
+                  <td>
+                    Avoids forcing consumers to depend on unrelated
+                    infrastructure methods.
+                  </td>
+                </tr>
+                <tr>
+                  <td>SOLID: Dependency Inversion Principle</td>
+                  <td>
+                    High-level application services depend on protocols;
+                    low-level adapters implement those protocols and are wired
+                    by the composition root.
+                  </td>
+                  <td>
+                    Business workflows stay independent of SQLAlchemy and
+                    vendor-specific implementations.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Separation of concerns and inward dependencies</td>
+                  <td>
+                    The request path separates HTTP routing, application
+                    workflows, domain concepts, and infrastructure
+                    persistence. Cross-module workflows use public
+                    application/service APIs rather than private repositories.
+                  </td>
+                  <td>
+                    Limits change propagation and makes module responsibilities
+                    and dependencies easier to understand.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ports and adapters</td>
+                  <td>
+                    Application ports define required persistence or
+                    integration behavior; repository and integration adapters
+                    implement those contracts and are connected in the
+                    composition root.
+                  </td>
+                  <td>
+                    Makes application workflows testable without requiring
+                    production infrastructure and isolates implementation
+                    details.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Repository and mapping pattern</td>
+                  <td>
+                    Persistence repositories implement application contracts
+                    and map between SQLAlchemy models and
+                    persistence-independent records.
+                  </td>
+                  <td>
+                    Keeps database queries and ORM mapping out of use cases.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Cross-cutting concerns</td>
+                  <td>
+                    Middleware, shared dependencies, and exception handlers
+                    centralize request IDs, logging context, request limits,
+                    authentication, authorization, CSRF checks, rate limits,
+                    transaction scope, and RFC 9457 error translation.
+                  </td>
+                  <td>
+                    Applies consistent policies across endpoints without
+                    duplicating infrastructure logic in every feature.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Transaction-first integrity</td>
+                  <td>
+                    Writes are executed inside a request-scoped unit of work,
+                    with success committed once and errors rolled back.
+                  </td>
+                  <td>
+                    Prevents partial updates, reduces race-related bugs, and
+                    keeps database state consistent with business intent.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Explicit contracts</td>
+                  <td>
+                    FastAPI schemas, Pydantic validation, and typed client models
+                    define payloads and responses before logic runs.
+                  </td>
+                  <td>
+                    Encourages predictable APIs, earlier validation, and safer
+                    cross-team integration.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Idempotent writes</td>
+                  <td>
+                    POST and PATCH endpoints can use
+                    <code>Idempotency-Key</code> handling and replay-safe response
+                    storage.
+                  </td>
+                  <td>
+                    Makes retries safe for clients and reduces duplicate side
+                    effects during network interruptions and browser reloads.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Secure by default</td>
+                  <td>
+                    JWT-based auth, password hashing, CSRF protection, ownership
+                    checks, rate limiting, and request validation are part of the
+                    platform baseline.
+                  </td>
+                  <td>
+                    Security is treated as a default requirement rather than a
+                    late-stage add-on.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Async effects and outbox flow</td>
+                  <td>
+                    Business events are persisted with the transaction and
+                    dispatched after commit by ARQ workers.
+                  </td>
+                  <td>
+                    Keeps local data integrity while allowing reliable external
+                    follow-up work without breaking transactional guarantees.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Observability and recovery</td>
+                  <td>
+                    Structured logs, OpenTelemetry tracing, Sentry reporting, and
+                    health-focused middleware help understand runtime behavior.
+                  </td>
+                  <td>
+                    Makes operators and developers able to diagnose failures
+                    quickly and maintain production confidence.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Frontend/backend alignment</td>
+                  <td>
+                    Zod schemas, React Query flows, and versioned API contracts
+                    keep the UI and backend synchronized.
+                  </td>
+                  <td>
+                    Reduces mismatches between client assumptions and server
+                    reality and speeds up feature delivery.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="small-text muted">
+            Request transactions, error translation, retry safety, migrations
+            and API contracts are explained in the request workflow and the
+            relevant engineering-area sections below.
+          </p>
+        </section>
+
+        <section id="architecture">
+          <h2>Architecture at a glance</h2>
+          <p>
+            The composition root wires infrastructure adapters to application
+            ports and use cases. Module boundaries are checked by tests; a
+            module can call another module's public application API, not its
+            private repository or router.
+          </p>
+          <div class="diagram">
+            <svg
+              viewBox="0 0 920 360"
+              role="img"
+              aria-labelledby="architecture-title architecture-desc"
+            >
+              <title id="architecture-title">
+                Application dependency and request flow
+              </title>
+              <desc id="architecture-desc">
+                React calls versioned FastAPI routes, which call application
+                use cases. Use cases apply domain rules and depend on repository
+                ports implemented by SQLAlchemy adapters. PostgreSQL is managed
+                by the request unit of work, with outbox events dispatched after
+                commit.
+              </desc>
+              <defs>
+                <marker
+                  id="arrow"
+                  markerWidth="9"
+                  markerHeight="9"
+                  refX="7"
+                  refY="3"
+                  orient="auto"
+                >
+                  <path d="M0,0 L0,6 L8,3 z" fill="#5484a7"></path>
+                </marker>
+              </defs>
+              <rect
+                class="node"
+                x="20"
+                y="132"
+                width="140"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="90" y="161">React client</text>
+              <text class="small" x="90" y="184">Routes · Query · Zod</text>
+              <rect
+                class="node"
+                x="205"
+                y="132"
+                width="150"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="280" y="161">FastAPI routes</text>
+              <text class="small" x="280" y="184">/v1 · /v2 · validation</text>
+              <rect
+                class="node"
+                x="405"
+                y="132"
+                width="150"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="480" y="161">Use case</text>
+              <text class="small" x="480" y="184">domain rules · ports</text>
+              <rect
+                class="node"
+                x="610"
+                y="55"
+                width="145"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="682" y="84">Persistence adapter</text>
+              <text class="small" x="682" y="107">implements repo port</text>
+              <rect
+                class="node"
+                x="800"
+                y="55"
+                width="105"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="852" y="84">Postgres</text>
+              <text class="small" x="852" y="107">one UoW</text>
+              <rect
+                class="node"
+                x="610"
+                y="235"
+                width="145"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="682" y="264">Outbox event</text>
+              <text class="small" x="682" y="287">same transaction</text>
+              <rect
+                class="node"
+                x="800"
+                y="235"
+                width="105"
+                height="70"
+                rx="12"
+              ></rect>
+              <text x="852" y="264">ARQ worker</text>
+              <text class="small" x="852" y="287">retry · DLQ</text>
+              <path class="edge" d="M160 167 H198"></path>
+              <path class="edge" d="M355 167 H398"></path>
+              <path class="edge" d="M555 151 C580 151 585 90 603 90"></path>
+              <path class="edge" d="M755 90 H793"></path>
+              <path class="edge" d="M530 202 C570 225 575 270 603 270"></path>
+              <path class="edge" d="M755 270 H793"></path>
+              <path class="edge" d="M852 235 V132"></path>
+            </svg>
+          </div>
+          <p class="small-text muted">
+            Database sessions, error mapping, logging, security middleware, and
+            API registration are application-level infrastructure. The browser
+            never talks directly to repositories.
+          </p>
+        </section>
+
+        <section id="request-workflow">
+          <h2>End-to-end request workflow</h2>
+          <p class="lede">
+            This follows an authenticated create/update request from the client
+            to PostgreSQL and back. A client may send an
+            <code>Idempotency-Key</code> on POST or PATCH to make retries safe.
+          </p>
+          <p class="small-text muted">
+            On narrow screens, scroll the diagram horizontally. It is keyboard
+            focusable for users who navigate without a pointer.
+          </p>
+
+          <div
+            class="request-diagram"
+            role="group"
+            tabindex="0"
+            aria-label="Fourteen-stage request flow, read left to right across the first row, then right to left across the second row"
+          >
+            <div class="request-diagram-inner">
+              <ol
+                class="request-lane"
+                aria-label="Inbound request stages one through seven"
+              >
+                <li>
+                  <span class="request-stage-number">1</span>
+                  <strong>Client request</strong>
+                  <span>Method, URL, body, cookies and headers.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">2</span>
+                  <strong>Idempotency gate</strong>
+                  <span>Optional claim, replay or retry conflict.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">3</span>
+                  <strong>Core middleware</strong>
+                  <span>Request ID, size limit, transaction scope.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">4</span>
+                  <strong>CSRF middleware</strong>
+                  <span>Reject unsafe cookie requests without a valid token.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">5</span>
+                  <strong>Route and validation</strong>
+                  <span>Match endpoint, rate-limit and validate input.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">6</span>
+                  <strong>Authentication and access</strong>
+                  <span>Resolve user, permissions and ownership.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">7</span>
+                  <strong>Application use case</strong>
+                  <span>Coordinate the requested business operation.</span>
+                </li>
+              </ol>
+              <ol
+                class="request-lane"
+                start="8"
+                aria-label="Business, persistence and response stages eight through fourteen"
+              >
+                <li>
+                  <span class="request-stage-number">8</span>
+                  <strong>Domain rules</strong>
+                  <span>Entities, value objects and policies.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">9</span>
+                  <strong>Application port</strong>
+                  <span>Describe the persistence need without SQL details.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">10</span>
+                  <strong>Infrastructure adapter</strong>
+                  <span>Map records and execute async persistence operations.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">11</span>
+                  <strong>PostgreSQL</strong>
+                  <span>Read/write within the request transaction.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">12</span>
+                  <strong>HTTP result mapping</strong>
+                  <span>Serialize response or RFC 9457 error.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">13</span>
+                  <strong>Transaction decision</strong>
+                  <span>Commit success; roll back error responses.</span>
+                </li>
+                <li>
+                  <span class="request-stage-number">14</span>
+                  <strong>Response completion</strong>
+                  <span>Return request ID and store an eligible replay result.</span>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <h3>What each stage does</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Component</th>
+                  <th>Responsibility and why it exists</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>Client</td>
+                  <td>
+                    Sends the requested operation and user input. Cookies,
+                    CSRF headers, idempotency keys and conditional headers
+                    provide session security, safe retries and concurrency
+                    protection where applicable.
+                  </td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Idempotency middleware</td>
+                  <td>
+                    For keyed POST/PATCH requests, claims a key in a separate
+                    short transaction. It replays a completed result, rejects
+                    key/body mismatches, and prevents concurrent duplicate
+                    execution; without a key the request passes through.
+                  </td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>Core middleware</td>
+                  <td>
+                    Binds a trusted request ID and logging context, enforces
+                    the declared body-size limit, measures the request, and
+                    opens the one database scope used by the endpoint.
+                  </td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td>CSRF middleware</td>
+                  <td>
+                    Checks unsafe requests authenticated by cookies before the
+                    route executes. This blocks cross-site state changes that
+                    could otherwise ride on a browser's automatically sent
+                    session cookie.
+                  </td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>Router and request validation</td>
+                  <td>
+                    Selects the versioned endpoint, applies rate limits, and
+                    validates path/query/body data against Pydantic schemas.
+                    Invalid transport input is rejected before application
+                    logic runs.
+                  </td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>Authentication and authorization dependencies</td>
+                  <td>
+                    Resolve the current user, check permissions and resource
+                    ownership. Centralizing these checks gives routes a
+                    consistent access-control policy before invoking a
+                    use case.
+                  </td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td>Application use case/service</td>
+                  <td>
+                    Coordinates the business operation, obtains needed facts,
+                    calls domain behavior, and uses ports or other modules'
+                    public application APIs. It should not know HTTP schemas,
+                    SQLAlchemy models or concrete adapters.
+                  </td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td>Domain model and policy</td>
+                  <td>
+                    Entities protect state transitions; value objects validate
+                    meaningful values; policies express business decisions.
+                    These rules remain executable without a database or web
+                    request so they are easy to review and test.
+                  </td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td>Application port</td>
+                  <td>
+                    Defines the capability the use case needs as a Python
+                    protocol. The dependency points inward, so persistence can
+                    be replaced without changing business logic.
+                  </td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td>Infrastructure adapter</td>
+                  <td>
+                    Implements the port, translates between domain/application
+                    records and ORM rows, and owns SQLAlchemy query details.
+                    It flushes when required but never commits.
+                  </td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td>PostgreSQL</td>
+                  <td>
+                    Executes reads and writes under the shared request
+                    transaction. Constraints provide final protection against
+                    races such as duplicate values that a prior policy check
+                    cannot prevent alone.
+                  </td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td>Response serialization and error handlers</td>
+                  <td>
+                    The route maps successful application results to response
+                    schemas and headers. Central handlers turn validation,
+                    domain/application and unexpected failures into RFC 9457
+                    Problem Details without exposing internal exceptions.
+                  </td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td>Unit of work boundary</td>
+                  <td>
+                    The core middleware commits once when the final response is
+                    successful and rolls back error responses, discarding
+                    success-only callbacks. Explicit persistence on selected
+                    security failures is a narrow exception.
+                  </td>
+                </tr>
+                <tr>
+                  <td>14</td>
+                  <td>Response completion</td>
+                  <td>
+                    Adds <code>X-Request-ID</code> for client/log correlation.
+                    The idempotency layer stores responses below 500 and
+                    releases 5xx results. The response wrapper preserves
+                    after-commit work, which runs after the body is sent.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="area-1">
+          <h2>1 · Architecture and code organization</h2>
+          <p>
+            <span class="status ready">Layered migration complete</span>
+          </p>
+          <p>
+            Backend modules under <code>server/app/modules/</code> separate
+            domain records and rules, application use cases and ports, HTTP
+            schemas/routes, and infrastructure persistence adapters. Existing
+            module application workflows use repository ports and map between
+            SQLAlchemy models and domain/application records in their
+            infrastructure adapters. Architecture tests enforce inward
+            dependencies and keep HTTP and persistence concerns out of
+            application/domain code. The app is a
+            <strong>modular monolith</strong>: modules communicate through
+            public application APIs and run and deploy together.
+          </p>
+          <p>
+            This favors code ownership, local calls, and simple transactions
+            while the domain is still changing. Extract a service only when an
+            independent scaling, release, reliability, or team-ownership need
+            justifies the distributed-systems costs.
+          </p>
+          <h3>Developer rule</h3>
+          <p>
+            Domain code must not import FastAPI, Pydantic, SQLAlchemy, shared
+            infrastructure, or other modules. Application workflows depend on
+            contracts in <code>application/ports/</code>, never concrete
+            adapters. Routes own HTTP validation/serialization; adapters map
+            domain/application records to ORM models. Cross-module calls use
+            another module's public application API. Let the composition root
+            wire providers. Document material architectural changes as ADRs.
+          </p>
+        </section>
+
+        <section id="area-2">
+          <h2>2 · API design and contracts</h2>
+          <p><span class="status ready">Strong baseline</span></p>
+          <p>
+            The API uses URL major versions (<code>/v1</code>,
+            <code>/v2</code>), RFC 9457 Problem Details with stable error codes,
+            Pydantic validation, camelCase JSON aliases, capped offset
+            pagination, cursor pagination for suitable feeds, allow-listed
+            filters/sorting, idempotency keys, and ETags/If-Match on versioned
+            resources.
+          </p>
+          <p>
+            OpenAPI is checked in CI, generated TypeScript types are checked for
+            drift, and API breaking changes are compared against the target
+            branch. Request bodies are capped in middleware and ingress
+            configuration.
+          </p>
+          <h3>When adding an endpoint</h3>
+          <ul>
+            <li>
+              Use resource-oriented paths and define the success/error contract
+              and stable codes.
+            </li>
+            <li>
+              Apply the repository's page-size limit; use a cursor for large
+              append-heavy lists.
+            </li>
+            <li>
+              Require idempotency keys on operations where clients may retry
+              side effects.
+            </li>
+            <li>
+              Regenerate <code>server/openapi.json</code> and
+              <code>web/src/lib/api-types.gen.ts</code>.
+            </li>
+            <li>
+              Update <code>docs/API_FLOW.md</code> and include
+              authorization/negative tests.
+            </li>
+          </ul>
+        </section>
+
+        <section id="area-3">
+          <h2>3 · Data layer</h2>
+          <p><span class="status ready">Strong baseline</span></p>
+          <p>
+            SQLAlchemy 2 async models inherit audit, soft-delete, and
+            optimistic-version columns from <code>BaseModel</code>. Alembic
+            migrations, PostgreSQL constraints, query filters, connection
+            pooling, slow-query logging, statement timeouts, and a distinct
+            migration/runtime-role pattern are represented.
+          </p>
+          <p>
+            Use one transaction per request/use case. Do not commit from a
+            service or repository. Review generated migrations, add indexes for
+            real query patterns, use the expand/contract approach, and update
+            <code>docs/DATABASE_DESIGN.md</code> after schema changes.
+          </p>
+          <h3>Product decisions still needed</h3>
+          <ul>
+            <li>
+              Choose row-, schema-, or database-level tenant isolation where
+              applicable.
+            </li>
+            <li>
+              Measure connection demand before raising HPA, worker concurrency,
+              or pool limits.
+            </li>
+            <li>
+              Design read replicas and retention around consistency, latency,
+              and legal needs.
+            </li>
+            <li>
+              Prove backup restoration and point-in-time recovery against your
+              RPO/RTO.
+            </li>
+          </ul>
+        </section>
+
+        <section id="area-4">
+          <h2>4 · Security</h2>
+          <p>
+            <span class="status partial"
+              >Useful controls; security review remains
+              application-specific</span
+            >
+          </p>
+          <p>
+            The starter includes short-lived access cookies, rotating opaque
+            refresh tokens, revocation, optional MFA, verification/reset tokens,
+            password hashing, CSRF checks, role permissions, centralized
+            ownership checks, rate limits, request-size limits,
+            trusted-host/CORS configuration, safe secret validation, redacted
+            logs, audit events, dependency scanning, Bandit, secret scanning,
+            container scanning, and image signing.
+          </p>
+          <p>
+            Prometheus scraping can use a bearer secret via
+            <code>METRICS_TOKEN</code>; the metrics endpoint must remain private
+            or require a configured token. The test suite checks missing,
+            incorrect, and correct credentials. This endpoint is not a
+            substitute for network restrictions.
+          </p>
+          <div class="callout warning">
+            An application must decide whether to delegate authentication to
+            OIDC, add tenant-aware authorization, harden account recovery, and
+            run feature-specific threat modelling and penetration tests. Do not
+            infer GDPR/HIPAA compliance from these controls.
+          </div>
+        </section>
+
+        <section id="area-5">
+          <h2>5 · Reliability and resilience</h2>
+          <p><span class="status ready">Strong baseline</span></p>
+          <p>
+            Liveness is separate from dependency-aware readiness. Shutdown
+            drains requests before pooled clients close. Outbound HTTP has
+            configured timeouts, retry/backoff, and circuit breaker behavior.
+            ARQ runs scheduled/queued work; the PostgreSQL transactional outbox
+            retries at-least-once delivery and dead-letters exhausted events.
+          </p>
+          <p>
+            SLO targets, burn-rate alerts, runbooks, and disaster-recovery
+            procedures are documented. Teams must choose service-specific SLOs,
+            verify that alert owners can respond, and run recovery drills rather
+            than treating written RPO/RTO values as evidence.
+          </p>
+        </section>
+
+        <section id="area-6">
+          <h2>6 · Observability</h2>
+          <p><span class="status ready">Implemented foundation</span></p>
+          <p>
+            Structured JSON logs include request and trace context, with common
+            secret/PII redaction. Prometheus exposes request rate, errors,
+            duration, pool saturation, and outbox backlog metrics. OpenTelemetry
+            instruments FastAPI, SQLAlchemy, and HTTP clients with sampling.
+            Sentry is release-tagged and scrubs request credentials/data.
+            Dashboard, alerts, and operational runbooks are checked in.
+          </p>
+          <p>
+            Configure an OTLP collector, Sentry DSN, metrics
+            authentication/network policy, log access, retention, and alert
+            destinations per environment. Avoid high-cardinality labels such as
+            user IDs.
+          </p>
+        </section>
+
+        <section id="area-7">
+          <h2>7 · Performance and scalability</h2>
+          <p>
+            <span class="status partial"
+              >Scalable mechanisms; benchmark your workload</span
+            >
+          </p>
+          <p>
+            API/worker processes are stateless, DB pools are configurable,
+            queries have pagination limits, uploads use private object storage
+            in production examples, and Helm provides resource requests/limits,
+            topology spread, and autoscaling. CPU-intensive password hashing is
+            sent off the event loop. A scheduled staging k6 smoke test checks
+            latency and error thresholds.
+          </p>
+          <p>
+            A smoke load test is not a capacity study. Establish production
+            traffic shape, payload sizes, queue lag tolerance, database
+            connection budget, cache invalidation rules, and autoscaling
+            behavior with representative data before selecting instance sizes.
+          </p>
+        </section>
+
+        <section id="area-8">
+          <h2>8 · Testing strategy</h2>
+          <p>
+            <span class="status ready"
+              >Broad baseline; extend with domain cases</span
+            >
+          </p>
+          <p>
+            Pytest covers unit, integration, and architecture behavior.
+            Integration tests use PostgreSQL via Testcontainers and roll back
+            test transactions. Backend coverage has a 90% gate;
+            security-sensitive code has scheduled mutation testing. Vitest/RTL
+            cover frontend behavior; Playwright E2E exercises browser flows. CI
+            now runs Chromium E2E against a disposable Compose API stack and
+            checks Helm/Terraform.
+          </p>
+          <p>
+            Backend tests refuse a <code>TEST_DB_HOST</code> override because
+            suite setup recreates the schema; Docker must be available. Keep E2E
+            pointed only at a disposable local/CI environment. Add
+            cross-tenant/ownership denial, concurrency, failure, and
+            authorization tests for every new feature.
+          </p>
+        </section>
+
+        <section id="area-9">
+          <h2>9 · CI/CD and release management</h2>
+          <p>
+            <span class="status ready"
+              >Pipeline included; repository governance is external
+              configuration</span
+            >
+          </p>
+          <p>
+            Pull requests run backend/frontend lint, types, tests, OpenAPI drift
+            checks, migration round-trip, dependency and static analysis, secret
+            scanning, image scans, frontend budgets, browser E2E, and
+            Helm/Terraform validation. Release builds images once, adds
+            SBOM/provenance, signs images, deploys the same digests to staging
+            and then protected production, and runs smoke checks.
+          </p>
+          <p>
+            Configure branch protection, CODEOWNERS enforcement, environment
+            approvals, OIDC cloud trust, staging/production variables, and
+            release permissions in GitHub. A workflow file cannot activate those
+            repository-level policies by itself.
+          </p>
+        </section>
+
+        <section id="area-10">
+          <h2>10 · Infrastructure and deployment</h2>
+          <p>
+            <span class="status partial"
+              >Secure deployment example; cloud platform prerequisites
+              remain</span
+            >
+          </p>
+          <p>
+            Docker images use multi-stage builds and non-root users. Helm
+            provides API, worker, web, migration jobs, probes, network policies,
+            resource settings, and autoscaling. Terraform examples provision an
+            AWS VPC, private managed Postgres/Redis, S3 storage, and secrets. CI
+            validates chart rendering and Terraform configuration.
+          </p>
+          <p>
+            The EKS cluster, DNS, ingress controller, certificate automation,
+            External Secrets Operator, and monitoring operators are assumed
+            platform services. Terraform now requires a workload security group
+            and an environment-specific remote-state backend. Release deployment
+            rejects empty/example domain and bucket inputs.
+          </p>
+          <p>
+            Start with
+            <a href="operations/deployment.md">the deployment runbook</a>.
+            Review network access, KMS policies, DB roles, image repositories,
+            bucket lifecycle, autoscaling, WAF, and rollbacks with your platform
+            team.
+          </p>
+        </section>
+
+        <section id="area-11">
+          <h2>11 · Configuration management</h2>
+          <p>
+            <span class="status ready"
+              >Typed settings and fail-closed production defaults</span
+            >
+          </p>
+          <p>
+            Pydantic Settings reads environment configuration, validates types
+            and rejects insecure deployed secrets/defaults. Local configuration
+            examples are separate from production Kubernetes Secrets, which are
+            expected to come from a secrets manager. Feature flags support
+            controlled release of risky features.
+          </p>
+          <p>
+            Do not commit real <code>.env</code> files. Keep staging and
+            production credentials distinct, rotate secrets with a tested
+            rollout, and confirm every new setting has a safe default or a
+            startup validation rule.
+          </p>
+        </section>
+
+        <section id="area-12">
+          <h2>12 · Frontend</h2>
+          <p>
+            <span class="status ready"
+              >Production-oriented frontend foundation</span
+            >
+          </p>
+          <p>
+            React 19 and TypeScript are arranged by route and feature. TanStack
+            Router handles route-based code splitting, TanStack Query manages
+            server state, Zod validates client input, and Axios sends
+            HttpOnly-cookie sessions with CSRF headers. Error boundaries,
+            Sentry, accessibility checks, Lighthouse budgets, and unit/E2E
+            tooling are configured.
+          </p>
+          <p>
+            Keep API types generated from OpenAPI. Product teams own page-level
+            usability, accessibility acceptance, localization, consent, CDN
+            policy, and any real-user metrics strategy.
+          </p>
+        </section>
+
+        <section id="area-13">
+          <h2>13 · Developer experience</h2>
+          <p><span class="status ready">Strong starter workflow</span></p>
+          <p>
+            Docker Compose provides a local full stack. Task commands cover
+            backend and frontend development, checks, migration, API generation,
+            and tests. <code>scripts/new_module.py</code>
+            scaffolds a domain and registers it. Onboarding, coding standards,
+            ADRs, pull-request templates, CODEOWNERS, pre-commit guidance, and
+            editor tasks make the intended workflow discoverable.
+          </p>
+          <p>
+            Generated files are a starting point, not unquestionable code:
+            review authorization, ordering/filter allow-lists, database indexes,
+            status transitions, and error behavior for the new domain.
+          </p>
+        </section>
+
+        <section id="area-14">
+          <h2>14 · Governance, compliance, and data privacy</h2>
+          <p>
+            <span class="status partial"
+              >Useful privacy controls; not a compliance certification</span
+            >
+          </p>
+          <p>
+            The repository includes data classification, retention guidance,
+            account deletion and export flows, field encryption for sensitive
+            secrets such as MFA seeds, append-oriented audit records,
+            least-privilege guidance, access-review practices, and dependency
+            licence checks.
+          </p>
+          <p>
+            The organization must decide the lawful basis, consent, data
+            residency, retention periods, subject-request process, incident
+            reporting, access evidence, encryption keys, and processor
+            agreements applicable to its customers. HIPAA, GDPR, CCPA, and
+            similar obligations require a full organizational and deployment
+            assessment.
+          </p>
+        </section>
+
+        <section id="example">
+          <h2>Worked example · add a <code>Project</code> entity</h2>
+          <p class="lede">
+            The example creates a project owned by the authenticated user, with
+            a name, standard audit/version fields, paginated listing, and
+            ownership-checked read/update/delete operations. It demonstrates the
+            template workflow; generated code must be reviewed and adapted to
+            your domain.
+          </p>
+
+          <p class="small-text muted">
+            The request lifecycle is shown once in
+            <a href="#request-workflow">End-to-end request workflow</a>. The
+            steps below focus on implementing the module; they do not repeat the
+            runtime path.
+          </p>
+
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <h3>Generate the domain scaffold</h3>
+              <pre><code>cd server
+uv run python scripts/new_module.py projects</code></pre>
+              <p>
+                The layered generator creates
+                <code>app/modules/projects/</code> with <code>domain/</code>,
+                <code>application/ports/</code>,
+                <code>application/use_cases/</code>,
+                <code>infrastructure/persistence/</code>, HTTP schemas/routes,
+                DI wiring, and focused unit-test skeletons. It also registers
+                the ORM model, container, and versioned router. Review all
+                generated changes before continuing.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <h3>Define domain value and entity</h3>
+              <p>
+                Domain classes are plain Python and must not import HTTP,
+                SQLAlchemy, or infrastructure. The name value object owns the
+                normalization and length invariant. The entity carries its
+                identity and owner; it is not the SQLAlchemy row.
+              </p>
+              <pre><code>@dataclass(frozen=True, slots=True)
+class ProjectName:
+    value: str
+
+    def __post_init__(self) -&gt; None:
+        normalized = self.value.strip()
+        if not normalized or len(normalized) &gt; 200:
+            raise ProjectNameInvalid("Name must contain 1–200 characters")
+        object.__setattr__(self, "value", normalized)
+
+
+@dataclass(frozen=True, slots=True)
+class Project:
+    id: UUID
+    user_id: UUID
+    name: ProjectName</code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <h3>Define request and response schemas</h3>
+              <p>
+                Keep the transport schema separate from both domain and
+                persistence types. Pydantic validates the HTTP shape; the
+                <code>ProjectName</code> value object still enforces the
+                business invariant when the use case is called from another
+                entry point.
+              </p>
+              <pre><code>from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
+from uuid import UUID
+
+
+class ProjectCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=4000)
+
+
+class ProjectUpdate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=4000)
+
+
+class Project(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
+    id: UUID
+    name: str
+    description: str | None
+    created_at: datetime
+    updated_at: datetime</code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <h3>Put domain decisions in policies</h3>
+              <p>
+                A policy is a pure decision with explicit facts. For example,
+                the create-project use case asks its repository port whether
+                this owner already has the normalized name, then applies the
+                domain policy. Keep fetching facts out of the policy and keep
+                HTTP status mapping out of the domain.
+              </p>
+              <pre><code>def ensure_project_name_available(name: str, *, already_exists: bool) -&gt; None:
+    if already_exists:
+        raise ProjectNameAlreadyExists(name)
+
+# In CreateProject.execute:
+name = ProjectName(requested_name)
+exists = await repository.exists_by_name(user_id, name.value)
+ensure_project_name_available(name.value, already_exists=exists)
+return await repository.add(Project.create(user_id=user_id, name=name))</code></pre>
+              <p class="small-text muted">
+                A database uniqueness constraint is still required to close the
+                race between the check and insert. Translate the resulting
+                conflict to a stable application error.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">5</div>
+            <div>
+              <h3>Use ports to orchestrate external checks</h3>
+              <p>
+                Define a protocol in
+                <code>application/ports/eligibility.py</code> for any remote
+                decision, inject it into <code>CreateProject</code>, and provide
+                its adapter in the module container. The use case decides what
+                to do with the result; the adapter owns HTTP, timeouts, and
+                provider-specific response parsing.
+              </p>
+              <pre><code>class ProjectEligibility(Protocol):
+    async def may_create(self, owner_id: UUID) -&gt; bool: ...
+
+# In the use case, before persistence:
+if not await eligibility.may_create(user_id):
+    raise ProjectCreationNotAllowed()</code></pre>
+              <p>
+                Set explicit timeouts and define retry/failure behavior. Do not
+                keep a database transaction open while waiting on a slow
+                provider; use the outbox for post-commit side effects.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">6</div>
+            <div>
+              <h3>Implement and wire the persistence adapter</h3>
+              <p>
+                Keep the SQLAlchemy <code>Projects</code> model in
+                <code>infrastructure/persistence/models.py</code>. Implement the
+                application repository port in
+                <code>infrastructure/persistence/repository.py</code>, map ORM
+                rows to domain entities on reads, and map entities to rows on
+                writes. Never return ORM models from the application boundary.
+              </p>
+              <pre><code>repository = providers.Factory(
+    SqlAlchemyProjectRepository,
+    session=db.provided.scoped_session,
+)
+create_project = providers.Factory(
+    CreateProject,
+    repository=repository,
+    eligibility=eligibility_checker,
+)</code></pre>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">7</div>
+            <div>
+              <h3>Expose a versioned, ownership-protected API</h3>
+              <p>
+                The scaffold provides the create route. Add
+                list/get/patch/delete routes only when required, following the
+                same rule: validate at the HTTP boundary, call an application
+                use case, and use the centralized ownership dependency for
+                resource access. Apply rate limits and scope list queries to the
+                current user.
+              </p>
+              <pre><code>POST   /v2/projects/       scaffolded: create a project (201)
+GET    /v2/projects/       list the current user's projects
+GET    /v2/projects/{id}   get an owned project
+PATCH  /v2/projects/{id}   update an owned project
+DELETE /v2/projects/{id}   soft-delete an owned project (204)</code></pre>
+              <p>Example request:</p>
+              <pre><code>{
+  "name": "Website refresh",
+  "description": "Plan the public site redesign."
+}</code></pre>
+              <p>
+                The API accepts the same field names in snake_case; output
+                aliases are camelCase. For a new domain, verify the generated
+                endpoint paths and response shapes in OpenAPI rather than
+                assuming the example is the final contract.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">8</div>
+            <div>
+              <h3>Create and review the migration</h3>
+              <pre><code>cd server
+uv run alembic revision --autogenerate -m "create projects"
+# Review the generated upgrade() and downgrade() before applying.
+uv run task upgrade</code></pre>
+              <p>
+                Verify foreign keys, indexes, uniqueness, nullability, server
+                defaults, and lock/rewriting impact. For a non-null field on a
+                large existing table, use expand/backfill/contract rather than a
+                single disruptive migration. Update
+                <code>docs/DATABASE_DESIGN.md</code>.
+              </p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">9</div>
+            <div>
+              <h3>Test behavior and regenerate contracts</h3>
+              <ul>
+                <li>
+                  Unit-test value objects and policies; test use cases with fake
+                  ports and adapter mappings separately.
+                </li>
+                <li>
+                  Integration-test create/list/get/update/delete and invalid
+                  input.
+                </li>
+                <li>
+                  Prove another user's project returns not-found/forbidden per
+                  policy.
+                </li>
+                <li>
+                  Test pagination caps, idempotent replay, and stale ETag
+                  conflict behavior.
+                </li>
+                <li>
+                  Update <code>docs/API_FLOW.md</code> and database
+                  documentation.
+                </li>
+              </ul>
+              <pre><code>cd server
+uv run task test
+uv run task openapi
+
+cd ../web
+pnpm gen:api
+pnpm build
+pnpm test</code></pre>
+              <p>
+                Run backend tests with Docker available: pytest uses a throwaway
+                Postgres Testcontainers instance and refuses an externally
+                configured
+                <code>TEST_DB_HOST</code>.
+              </p>
+            </div>
+          </div>
+
+          <div class="callout">
+            <strong>Frontend follow-through:</strong> add a Project Zod model,
+            query/mutation hooks, feature components and authenticated routes
+            only if this product needs a UI. Keep API request/response types
+            generated from OpenAPI; keep page-specific behavior in
+            <code>web/src/features/</code>.
+          </div>
+        </section>
+
+        <section id="production">
+          <h2>Production adoption checklist</h2>
+          <div class="grid">
+            <div class="mini-card">
+              <h3>Before the first feature</h3>
+              <ul>
+                <li>
+                  Decide domain boundaries, ownership, tenant isolation, and
+                  identity-provider needs.
+                </li>
+                <li>
+                  Replace project name, email provider, allowed origins,
+                  error-doc URLs, and branding.
+                </li>
+                <li>
+                  Choose data classifications, retention, audit scope, and
+                  deletion guarantees.
+                </li>
+                <li>
+                  Define the first API compatibility and migration policy with
+                  the team.
+                </li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>Before staging</h3>
+              <ul>
+                <li>
+                  Provision Terraform state bucket/lock table and platform
+                  prerequisites.
+                </li>
+                <li>
+                  Set workload security groups, domains, image repositories, and
+                  upload buckets.
+                </li>
+                <li>
+                  Provision Secrets Manager values and a least-privilege DB
+                  app/migration role.
+                </li>
+                <li>
+                  Configure OIDC, DNS/TLS, ingress/WAF, OTLP, Sentry, and
+                  Prometheus access.
+                </li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>Before production</h3>
+              <ul>
+                <li>
+                  Enforce protected branches, required reviews, CODEOWNERS, and
+                  production approvals.
+                </li>
+                <li>
+                  Run threat modelling, security testing, and
+                  workload-representative load tests.
+                </li>
+                <li>
+                  Prove migrations, rollback behavior, graceful drain, and
+                  incident runbooks.
+                </li>
+                <li>
+                  Restore a backup and measure actual RPO/RTO; retain drill
+                  evidence.
+                </li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <h3>Continuously</h3>
+              <ul>
+                <li>
+                  Review error budgets, alert quality, slow queries, pool
+                  saturation, and queue lag.
+                </li>
+                <li>
+                  Patch dependencies and base images; rotate secrets and review
+                  access.
+                </li>
+                <li>
+                  Revisit SLOs, capacity, retention, privacy obligations, and
+                  recovery readiness.
+                </li>
+                <li>
+                  Promote the same signed image digest; do not rebuild for
+                  production.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="references">
+          <h2>Repository references</h2>
+          <ul>
+            <li><a href="../README.md">Project README and quick start</a></li>
+            <li><a href="onboarding.md">Developer onboarding</a></li>
+            <li><a href="adr/README.md">Architecture Decision Records</a></li>
+            <li><a href="API_FLOW.md">API contract and endpoint flows</a></li>
+            <li><a href="DATABASE_DESIGN.md">Database design</a></li>
+            <li>
+              <a href="operations/deployment.md"
+                >Deployment guide and prerequisites</a
+              >
+            </li>
+            <li>
+              <a href="operations/observability.md"
+                >Observability configuration</a
+              >
+            </li>
+            <li><a href="operations/slo.md">SLOs and alerting</a></li>
+            <li>
+              <a href="operations/disaster-recovery.md"
+                >Backup and disaster recovery</a
+              >
+            </li>
+            <li><a href="security/testing.md">Security testing guide</a></li>
+            <li>
+              <a href="../server/scripts/new_module.py"
+                >Domain module generator</a
+              >
+            </li>
+          </ul>
+          <p class="small-text muted">
+            This guide describes repository patterns and workflows;
+            environment-specific values, external platform services, and
+            application policies must be confirmed by the owning engineering and
+            security teams.
+          </p>
+        </section>
+      </article>
+    </main>
+    <footer>
+      FastAPI Full-Stack Clean Architecture · Development team reference · Keep
+      this guide aligned with code, ADRs, and deployment workflows.
+    </footer>
+  </body>
+</html>

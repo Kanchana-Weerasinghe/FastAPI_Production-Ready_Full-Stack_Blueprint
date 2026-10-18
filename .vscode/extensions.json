@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "formulahendry.code-runner",
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "tanstack.vscode-tanstack-router",
+    "ms-azuretools.vscode-docker",
+    "tamasfe.even-better-toml",
+    "vitest.explorer"
+  ]
+}

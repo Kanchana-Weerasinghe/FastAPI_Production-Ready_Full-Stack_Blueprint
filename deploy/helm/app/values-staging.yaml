@@ -1,0 +1,20 @@
+# Staging mirrors production topology at a smaller size (parity), with its own data and secrets.
+config:
+  ENVIRONMENT: staging
+  APP_DOMAIN: staging.app.example.com
+  CORS_ORIGINS: https://staging.app.example.com
+  FRONTEND_URL: https://staging.app.example.com
+  S3_BUCKET: your-app-uploads-staging
+  OTEL_TRACES_SAMPLE_RATIO: "0.5"
+existingSecret: app-secrets-staging
+api:
+  replicas: 2
+  autoscaling: {enabled: true, minReplicas: 2, maxReplicas: 4, targetCPUUtilizationPercentage: 70}
+  pdb: {minAvailable: 1}
+worker:
+  replicas: 1
+web:
+  replicas: 1
+ingress:
+  host: staging.app.example.com
+  tlsSecretName: app-tls-staging

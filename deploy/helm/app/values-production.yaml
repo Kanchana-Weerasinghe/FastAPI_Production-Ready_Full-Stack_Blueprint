@@ -1,0 +1,8 @@
+config:
+  ENVIRONMENT: production
+existingSecret: app-secrets
+api:
+  autoscaling: {enabled: true, minReplicas: 3, maxReplicas: 12, targetCPUUtilizationPercentage: 65}
+  pdb: {minAvailable: 2}
+metrics:
+  serviceMonitor: {enabled: true, interval: 30s}

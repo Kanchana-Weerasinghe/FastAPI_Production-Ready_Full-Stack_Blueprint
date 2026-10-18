@@ -1,0 +1,45 @@
+@import url("https://fonts.googleapis.com/css2?family=Borel&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-brand-100: #eeeeee;
+  --color-brand-200: #d1d1d1;
+  --color-brand-300: #393e46;
+  --color-brand-400: #00adb5;
+  --color-brand-600: #222831;
+  --color-brand-900: #1a1a1a;
+
+  --font-borel: "Borel", cursive;
+  --font-mono: "Roboto Mono", monospace;
+
+  --animate-fade-in-up: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  --animate-slide-down: slide-down 0.3s ease-out both;
+}
+
+:root {
+  background-color: var(--color-brand-100);
+  font-family: var(--font-mono);
+}

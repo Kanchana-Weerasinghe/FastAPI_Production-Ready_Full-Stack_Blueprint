@@ -1,0 +1,15 @@
+# Only what the image needs is copied explicitly; this keeps the build context small and secret-free.
+.venv
+**/__pycache__
+**/*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.coverage
+.htmlcov
+coverage.xml
+uploads/
+tests/
+docs/
+.env*
+!.env.example

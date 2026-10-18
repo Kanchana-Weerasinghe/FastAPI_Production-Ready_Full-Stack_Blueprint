@@ -1,0 +1,81 @@
+# Prometheus alerting rules implementing docs/operations/slo.md (99.9% availability, latency, outbox delivery).
+# Multi-window, multi-burn-rate alerts (Google SRE workbook): page on fast burn, ticket on slow burn.
+groups:
+  - name: api-slo
+    rules:
+      - record: api:request_errors:ratio_rate5m
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          / clamp_min(sum(rate(http_requests_total{route!~"/health.*|/metrics"}[5m])), 1e-9)
+      - record: api:request_errors:ratio_rate30m
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[30m]))
+          / clamp_min(sum(rate(http_requests_total{route!~"/health.*|/metrics"}[30m])), 1e-9)
+      - record: api:request_errors:ratio_rate1h
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[1h]))
+          / clamp_min(sum(rate(http_requests_total{route!~"/health.*|/metrics"}[1h])), 1e-9)
+      - record: api:request_errors:ratio_rate6h
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[6h]))
+          / clamp_min(sum(rate(http_requests_total{route!~"/health.*|/metrics"}[6h])), 1e-9)
+
+      - alert: HighErrorBudgetBurn
+        # 14.4x burn rate of a 0.1% budget = 2% of the 28-day budget in 1 hour.
+        expr: api:request_errors:ratio_rate1h > (14.4 * 0.001) and api:request_errors:ratio_rate5m > (14.4 * 0.001)
+        labels: {severity: page}
+        annotations:
+          summary: "API is burning its error budget fast ({{ $value | humanizePercentage }} 5xx)"
+          runbook_url: "docs/operations/runbooks/high-error-rate.md"
+
+      - alert: SlowErrorBudgetBurn
+        expr: api:request_errors:ratio_rate6h > (6 * 0.001) and api:request_errors:ratio_rate30m > (6 * 0.001)
+        labels: {severity: ticket}
+        annotations:
+          summary: "API error budget burning steadily"
+          runbook_url: "docs/operations/runbooks/high-error-rate.md"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{route!~"/health.*|/metrics"}[5m]))) > 1
+        for: 15m
+        labels: {severity: page}
+        annotations:
+          summary: "p99 latency above 1s for 15 minutes"
+          runbook_url: "docs/operations/runbooks/high-latency.md"
+
+      - alert: DatabasePoolSaturated
+        expr: sum(db_pool_connections_in_use) / clamp_min(sum(db_pool_size), 1) > 0.9
+        for: 10m
+        labels: {severity: ticket}
+        annotations:
+          summary: "DB connection pool above 90% utilisation"
+          runbook_url: "docs/operations/runbooks/high-latency.md"
+
+  - name: background-delivery
+    rules:
+      - alert: OutboxBacklog
+        expr: max(outbox_oldest_pending_age_seconds) > 600
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "Oldest pending outbox event is {{ $value | humanizeDuration }} old (worker down or provider failing)"
+          runbook_url: "docs/operations/runbooks/outbox-backlog.md"
+
+      - alert: OutboxDeadLetters
+        expr: max(outbox_dead_events) > 0
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $value }} outbox events are dead-lettered"
+          runbook_url: "docs/operations/runbooks/outbox-backlog.md"
+
+  - name: availability
+    rules:
+      - alert: TargetDown
+        expr: up{job="api"} == 0
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "API scrape target {{ $labels.instance }} is down"
+          runbook_url: "docs/operations/runbooks/dependency-down.md"

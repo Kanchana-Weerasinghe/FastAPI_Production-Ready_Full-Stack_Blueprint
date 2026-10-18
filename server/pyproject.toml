@@ -1,0 +1,156 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "FastAPI Template by aps08 | https://github.com/aps08"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "bcrypt>=5.0.0",
+    "dependency-injector>=4.49.0",
+    "email-validator>=2.3.0",
+    "fastapi[standard]>=0.135.3",
+    "structlog>=25.1.0",
+    "pydantic-settings>=2.13.1",
+    "pyjwt>=2.12.1",
+    "python-multipart>=0.0.26",
+    "slowapi>=0.1.9",
+    "sqlalchemy[asyncio]>=2.0.49",
+    "uvicorn>=0.44.0",
+    "redis>=5.2",
+    "pyotp>=2.9",
+    "cryptography>=44",
+    "arq>=0.26",
+    "boto3>=1.35",
+    "sentry-sdk[fastapi]>=2.20",
+    "prometheus-client>=0.21",
+    "opentelemetry-instrumentation-fastapi>=0.66b1",
+    "opentelemetry-instrumentation-sqlalchemy>=0.66b1",
+    "opentelemetry-instrumentation-httpx>=0.66b1",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.1",
+    "gunicorn>=23",
+]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "faker>=40.19.1",
+    "mypy>=1.20.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.10",
+    "taskipy>=1.14.0",
+    "testcontainers[postgres]>=4.15.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "app"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::Warning",
+]
+
+[tool.taskipy.tasks]
+dev = "fastapi dev"
+worker = "arq app.worker.WorkerSettings"
+seed = "python scripts/seed_dev.py"
+openapi = "python scripts/export_openapi.py"
+upgrade = "alembic upgrade head"
+downgrade = "alembic downgrade -1"
+format = "ruff format . && ruff check --fix ."
+check = "ruff check . && ruff format --check ."
+type-check = "mypy ."
+cov-html = "pytest --cov=app --cov-report=html"
+cov = "pytest --cov=app --cov-report=term-missing --cov-report=xml"
+test = "pytest -v"
+
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "PT",  # flake8-pytest-style
+]
+ignore = [
+    "F821",  # undefined name (forward references)
+    "UP037", # ruff: noqa: UP037
+    "UP046", # ruff: noqa: UP046
+    "UP047", # ruff: noqa: UP047
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults (common in FastAPI)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = ["E402"]
+"tests/conftest.py" = ["ARG001", "E402"]
+# Path parameters are consumed by dependencies such as check_ownership(...), not the handler body.
+"app/modules/*/router.py" = ["ARG001"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mutmut]
+# Mutation testing on security-critical code only (weekly job): surviving mutants = missing tests.
+paths_to_mutate = ["app/core/security.py", "app/core/csrf.py", "app/modules/auth/service.py", "app/modules/auth/dependencies.py"]
+tests_dir = ["tests/"]
+
+[tool.coverage.run]
+source = ["app"]
+# SQLAlchemy's asyncio layer runs code in greenlets; without this, coverage loses track after a switch.
+concurrency = ["greenlet", "thread"]
+# Adapters that only run against real external services (S3, Redis/ARQ) are verified in
+# staging/smoke tests rather than by unit coverage.
+omit = ["tests/*", "**/__init__.py", "app/worker.py", "app/shared/storage_s3.py", "app/shared/tasks.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+
+[tool.coverage.html]
+directory = ".htmlcov"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+exclude = []
+
+
+[[tool.mypy.overrides]]
+module = "app.modules.*.models"
+disable_error_code = ["name-defined"]
+
+[[tool.mypy.overrides]]
+module = "tests.mocks.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.conftest"
+disable_error_code = ["arg-type"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.fastapi]
+entrypoint = "app.main:app"

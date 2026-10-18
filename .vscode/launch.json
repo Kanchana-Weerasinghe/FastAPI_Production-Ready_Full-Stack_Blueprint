@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "configurations": [
+    {
+      "name": "🐍 Debug: Server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "args": [
+        "dev"
+      ],
+      "jinja": true,
+      "cwd": "${workspaceFolder}/server",
+      "python": "${workspaceFolder}/server/.venv/Scripts/python.exe",
+      "env": {
+        "PYTHON": "app"
+      },
+      "subProcess": true,
+      "showReturnValue": true
+    },
+    {
+      "name": "🌐 Debug: Web",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/web",
+      "preLaunchTask": "web-dev"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🔥 Debug: Full Stack",
+      "configurations": [
+        "🐍 Debug: Server",
+        "🌐 Debug: Web"
+      ]
+    }
+  ]
+}

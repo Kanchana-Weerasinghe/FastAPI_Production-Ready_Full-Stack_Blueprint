@@ -1,0 +1,11 @@
+---
+description: Global repository rules and architecture patterns
+globs: *
+alwaysApply: true
+---
+
+# Global Context Alignment
+
+Before writing, modifying, or refactoring any code in this workspace, you must read and adhere strictly to the guidelines, technology stack configurations, and coding standards defined in the root `AGENTS.md` file.
+
+- **Source of Truth:** If there is any discrepancy between your default training data and the patterns specified in `AGENTS.md`, the rules in `AGENTS.md` always take precedence.

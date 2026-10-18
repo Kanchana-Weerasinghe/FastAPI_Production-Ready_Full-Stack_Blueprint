@@ -1,0 +1,61 @@
+# Install once:  uvx pre-commit install --hook-type pre-commit --hook-type pre-push
+# Run manually:  uvx pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # Local hooks use the versions pinned in server/uv.lock and web/pnpm-lock.yaml.
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --directory server ruff format
+        language: system
+        types: [python]
+        files: ^server/
+        pass_filenames: false
+
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --directory server ruff check --fix
+        language: system
+        types: [python]
+        files: ^server/
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy
+        entry: uv run --directory server mypy .
+        language: system
+        types: [python]
+        files: ^server/
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: prettier
+        name: prettier
+        entry: pnpm --dir web format
+        language: system
+        files: ^web/
+        pass_filenames: false
+
+      - id: eslint
+        name: eslint
+        entry: pnpm --dir web lint
+        language: system
+        files: ^web/.*\.(ts|tsx)$
+        pass_filenames: false

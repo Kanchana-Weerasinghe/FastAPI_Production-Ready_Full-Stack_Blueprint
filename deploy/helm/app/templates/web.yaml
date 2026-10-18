@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}-web
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicas }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "app.selector" (dict "root" . "component" "web") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app.selector" (dict "root" . "component" "web") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: {type: RuntimeDefault}
+      {{- include "app.topologySpread" (dict "root" . "component" "web") | nindent 6 }}
+      containers:
+        - name: web
+          image: {{ include "app.image" (dict "image" .Values.image.web "root" .) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: API_ORIGIN
+              value: {{ .Values.web.env.API_ORIGIN | quote }}
+            - name: API_UPSTREAM
+              value: "http://{{ include "app.fullname" . }}-api:8000"
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: nginx-cache, mountPath: /var/cache/nginx}
+            - {name: nginx-conf, mountPath: /etc/nginx/conf.d}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+        - {name: nginx-cache, emptyDir: {}}
+        # The rendered template is written here at start-up.
+        - {name: nginx-conf, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app.fullname" . }}-web
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  selector:
+    {{- include "app.selector" (dict "root" . "component" "web") | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

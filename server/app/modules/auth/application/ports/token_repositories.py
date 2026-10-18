@@ -1,0 +1,29 @@
+"""Persistence contracts for session and single-use authentication tokens."""
+
+from datetime import datetime
+from typing import Protocol
+from uuid import UUID
+
+from app.modules.auth.domain.entities import OneTimeToken, RefreshToken
+
+
+class RefreshTokenRepositoryPort(Protocol):
+    async def add(self, token: RefreshToken) -> RefreshToken: ...
+
+    async def get_by_hash(self, token_hash: str) -> RefreshToken | None: ...
+
+    async def revoke_family(self, family_id: UUID) -> None: ...
+
+    async def revoke_all_for_user(self, user_id: UUID) -> None: ...
+
+    async def rotate(self, token_id: UUID, replacement_id: UUID, at: datetime) -> None: ...
+
+
+class OneTimeTokenRepositoryPort(Protocol):
+    async def add(self, token: OneTimeToken) -> OneTimeToken: ...
+
+    async def get_usable(self, token_hash: str, purpose: str) -> OneTimeToken | None: ...
+
+    async def invalidate_for_user(self, user_id: UUID, purpose: str) -> None: ...
+
+    async def mark_used(self, token_id: UUID, at: datetime) -> None: ...

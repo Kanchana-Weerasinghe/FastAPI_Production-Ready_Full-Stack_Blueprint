@@ -1,0 +1,150 @@
+# Production-like single-host stack: `cp .env.example .env`, fill in the secrets, `docker compose up --build`.
+# For real production use the Helm chart (deploy/helm) on a managed Kubernetes cluster with managed
+# Postgres/Redis (deploy/terraform). Postgres and Redis are not published to the host on purpose.
+
+x-api-env: &api-env
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_USERNAME: ${DB_USERNAME:-app}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
+  DB_NAME: ${DB_NAME:-app}
+  ENVIRONMENT: production
+  APP_VERSION: ${APP_VERSION:-0.0.0-local}
+  SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (see .env.example)}
+  FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?Set FIELD_ENCRYPTION_KEY in .env (see .env.example)}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+  AUTOSEND_API_KEY: ${AUTOSEND_API_KEY:-}
+  # Docker bridge networks: lets the server trust X-Forwarded-For set by the nginx container.
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12}
+  # Shared counters so limits hold across all gunicorn workers and replicas.
+  RATE_LIMIT_STORAGE_URI: redis://redis:6379/0
+  REDIS_URL: redis://redis:6379/1
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todo-db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
+      POSTGRES_DB: ${DB_NAME:-app}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: todo-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-off migration step: the API only starts after it succeeded (replicas never race to migrate).
+  migrate:
+    build:
+      context: ./server
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    command: ["sh", "-c", "python scripts/backend_pre_start.py && alembic upgrade head"]
+    environment: *api-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  server:
+    build:
+      context: ./server
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    container_name: todo-backend
+    environment: *api-env
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    build:
+      context: ./server
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    container_name: todo-worker
+    command: ["arq", "app.worker.WorkerSettings"]
+    environment: *api-env
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      disable: true
+    depends_on:
+      server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      args:
+        # The browser calls the API directly on :8000 in this setup.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    container_name: todo-frontend
+    environment:
+      API_ORIGIN: ${VITE_API_URL:-http://localhost:8000}
+      API_UPSTREAM: http://server:8000
+    ports:
+      - "3000:8080"
+    depends_on:
+      - server
+
+  # Optional local monitoring: docker compose --profile observability up
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    profiles: ["observability"]
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - server
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    profiles: ["observability"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  uploads:

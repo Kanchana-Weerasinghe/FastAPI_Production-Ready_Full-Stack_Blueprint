@@ -1,0 +1,73 @@
+{
+  "uid": "api-overview",
+  "title": "API Overview (RED + saturation)",
+  "schemaVersion": 39,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request rate by route",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (route) (rate(http_requests_total{route!~\"/health.*|/metrics\"}[5m]))", "legendFormat": "{{route}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error ratio (5xx) vs SLO",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "api:request_errors:ratio_rate5m", "legendFormat": "5xx ratio (5m)" },
+        { "expr": "vector(0.001)", "legendFormat": "SLO budget (0.1%)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" } }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latency p50 / p95 / p99",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/health.*|/metrics\"}[5m])))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/health.*|/metrics\"}[5m])))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{route!~\"/health.*|/metrics\"}[5m])))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Slowest routes (p95)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "topk(5, histogram_quantile(0.95, sum by (le, route) (rate(http_request_duration_seconds_bucket[5m]))))", "legendFormat": "{{route}}" }],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "DB pool utilisation",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(db_pool_connections_in_use) / clamp_min(sum(db_pool_size), 1)", "legendFormat": "in use / size" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Outbox backlog",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "max(outbox_pending_events)", "legendFormat": "pending" },
+        { "expr": "max(outbox_dead_events)", "legendFormat": "dead" },
+        { "expr": "max(outbox_oldest_pending_age_seconds)", "legendFormat": "oldest pending age (s)" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2476 @@
+{
+  "components": {
+    "schemas": {
+      "Attachment": {
+        "description": "Full attachment schema including the unique identifier.",
+        "properties": {
+          "createdAt": {
+            "description": "Upload timestamp",
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "downloadUrl": {
+            "description": "Authenticated, ownership-checked download path",
+            "readOnly": true,
+            "title": "Downloadurl",
+            "type": "string"
+          },
+          "fileName": {
+            "description": "Original name of the uploaded file",
+            "title": "Filename",
+            "type": "string"
+          },
+          "fileSize": {
+            "description": "Size of the file in bytes",
+            "title": "Filesize",
+            "type": "integer"
+          },
+          "fileType": {
+            "description": "MIME type of the file",
+            "title": "Filetype",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique attachment identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Last modification timestamp",
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileName",
+          "fileSize",
+          "fileType",
+          "createdAt",
+          "updatedAt",
+          "id",
+          "downloadUrl"
+        ],
+        "title": "Attachment",
+        "type": "object"
+      },
+      "AttachmentListResponse": {
+        "properties": {
+          "founds": {
+            "description": "The list of retrieved items",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "title": "Founds",
+            "type": "array"
+          },
+          "searchOptions": {
+            "$ref": "#/components/schemas/SearchOptions",
+            "description": "Pagination metadata"
+          }
+        },
+        "required": [
+          "founds",
+          "searchOptions"
+        ],
+        "title": "AttachmentListResponse",
+        "type": "object"
+      },
+      "AuditLog": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actorid"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ipAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ipaddress"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          },
+          "resourceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourceid"
+          },
+          "resourceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resourcetype"
+          },
+          "userAgent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useragent"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "actorId",
+          "action",
+          "resourceType",
+          "resourceId",
+          "outcome",
+          "ipAddress",
+          "userAgent",
+          "requestId",
+          "details"
+        ],
+        "title": "AuditLog",
+        "type": "object"
+      },
+      "AuditLogPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "title": "AuditLogPage",
+        "type": "object"
+      },
+      "BaseListResponse_UserAdminView_": {
+        "properties": {
+          "founds": {
+            "description": "The list of retrieved items",
+            "items": {
+              "$ref": "#/components/schemas/UserAdminView"
+            },
+            "title": "Founds",
+            "type": "array"
+          },
+          "searchOptions": {
+            "$ref": "#/components/schemas/SearchOptions",
+            "description": "Pagination metadata"
+          }
+        },
+        "required": [
+          "founds",
+          "searchOptions"
+        ],
+        "title": "BaseListResponse[UserAdminView]",
+        "type": "object"
+      },
+      "Body_upload_attachment_v2_attachments__post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_v2_attachments__post",
+        "type": "object"
+      },
+      "EmailRequest": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "EmailRequest",
+        "type": "object"
+      },
+      "EvaluatedFlags": {
+        "description": "Flags as evaluated for the current user (what the web app uses).",
+        "properties": {
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Flags",
+            "type": "object"
+          }
+        },
+        "required": [
+          "flags"
+        ],
+        "title": "EvaluatedFlags",
+        "type": "object"
+      },
+      "FeatureFlag": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "rolloutPercentage": {
+            "title": "Rolloutpercentage",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "description",
+          "enabled",
+          "rolloutPercentage",
+          "roles"
+        ],
+        "title": "FeatureFlag",
+        "type": "object"
+      },
+      "FeatureFlagUpdate": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "default": false,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "rolloutPercentage": {
+            "default": 100,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Rolloutpercentage",
+            "type": "integer"
+          }
+        },
+        "title": "FeatureFlagUpdate",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "MfaCode": {
+        "properties": {
+          "code": {
+            "description": "6-digit code from the authenticator app",
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "MfaCode",
+        "type": "object"
+      },
+      "MfaSetupResponse": {
+        "properties": {
+          "otpauthUri": {
+            "description": "otpauth:// URI to render as a QR code",
+            "title": "Otpauthuri",
+            "type": "string"
+          },
+          "secret": {
+            "description": "Base32 TOTP secret (for manual entry)",
+            "title": "Secret",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret",
+          "otpauthUri"
+        ],
+        "title": "MfaSetupResponse",
+        "type": "object"
+      },
+      "MfaVerify": {
+        "properties": {
+          "code": {
+            "description": "6-digit code from the authenticator app",
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "mfaToken": {
+            "title": "Mfatoken",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfaToken",
+          "code"
+        ],
+        "title": "MfaVerify",
+        "type": "object"
+      },
+      "PasswordChange": {
+        "properties": {
+          "currentPassword": {
+            "minLength": 1,
+            "title": "Currentpassword",
+            "type": "string"
+          },
+          "newPassword": {
+            "description": "8 characters to 72 bytes",
+            "minLength": 8,
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "PasswordChange",
+        "type": "object"
+      },
+      "PasswordReset": {
+        "properties": {
+          "newPassword": {
+            "description": "8 characters to 72 bytes",
+            "minLength": 8,
+            "title": "Newpassword",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "title": "PasswordReset",
+        "type": "object"
+      },
+      "SearchOptions": {
+        "description": "Metadata describing the pagination state of a list response.",
+        "properties": {
+          "ordering": {
+            "description": "Active sort order",
+            "title": "Ordering",
+            "type": "string"
+          },
+          "page": {
+            "description": "Current page number",
+            "title": "Page",
+            "type": "integer"
+          },
+          "pageSize": {
+            "description": "Items per page",
+            "title": "Pagesize",
+            "type": "integer"
+          },
+          "totalCount": {
+            "description": "Total number of items matching the query",
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "ordering",
+          "totalCount"
+        ],
+        "title": "SearchOptions",
+        "type": "object"
+      },
+      "SignIn": {
+        "description": "Schema for user login requests.",
+        "properties": {
+          "email": {
+            "description": "User's registered email address",
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "User's password",
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignIn",
+        "type": "object"
+      },
+      "SignInResponse": {
+        "description": "Sign-in result. When `mfa_required` is true no session was created; call /v1/auth/mfa/verify.",
+        "properties": {
+          "mfaRequired": {
+            "default": false,
+            "title": "Mfarequired",
+            "type": "boolean"
+          },
+          "mfaToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Short-lived challenge token for /v1/auth/mfa/verify",
+            "title": "Mfatoken"
+          }
+        },
+        "title": "SignInResponse",
+        "type": "object"
+      },
+      "SignUp": {
+        "description": "Schema for new user registration requests.",
+        "properties": {
+          "email": {
+            "description": "Unique email address for the new account",
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "8 characters to 72 bytes",
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "SignUp",
+        "type": "object"
+      },
+      "Todo": {
+        "description": "Full Todo item schema including system-generated fields and relationships.",
+        "properties": {
+          "attachments": {
+            "default": [],
+            "description": "List of files attached to this task",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
+          "createdAt": {
+            "description": "Timestamp when the task was created",
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed description of the task",
+            "title": "Description"
+          },
+          "id": {
+            "description": "Unique task identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "isCompleted": {
+            "default": false,
+            "description": "Whether the task has been finished",
+            "title": "Iscompleted",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "The title of the task",
+            "title": "Title",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Timestamp when the task was last modified",
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Owner's user identifier",
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "version": {
+            "description": "Optimistic-locking version (also sent as the ETag header)",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "id",
+          "userId",
+          "createdAt",
+          "updatedAt",
+          "version"
+        ],
+        "title": "Todo",
+        "type": "object"
+      },
+      "TodoCreate": {
+        "description": "Schema for creating a new Todo item.",
+        "properties": {
+          "attachmentIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional list of attachment IDs to link to this task",
+            "title": "Attachmentids"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Detailed description of the task",
+            "title": "Description"
+          },
+          "isCompleted": {
+            "default": false,
+            "description": "Whether the task has been finished",
+            "title": "Iscompleted",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "The title of the task",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "TodoCreate",
+        "type": "object"
+      },
+      "TodoListItem": {
+        "description": "Simplified Todo schema for list views to optimize payload size.",
+        "properties": {
+          "createdAt": {
+            "description": "Creation timestamp",
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique task identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "isCompleted": {
+            "description": "Completion status",
+            "title": "Iscompleted",
+            "type": "boolean"
+          },
+          "title": {
+            "description": "Task title",
+            "title": "Title",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Last update timestamp",
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "isCompleted",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "TodoListItem",
+        "type": "object"
+      },
+      "TodoListResponse": {
+        "properties": {
+          "founds": {
+            "description": "The list of retrieved items",
+            "items": {
+              "$ref": "#/components/schemas/TodoListItem"
+            },
+            "title": "Founds",
+            "type": "array"
+          },
+          "searchOptions": {
+            "$ref": "#/components/schemas/SearchOptions",
+            "description": "Pagination metadata"
+          }
+        },
+        "required": [
+          "founds",
+          "searchOptions"
+        ],
+        "title": "TodoListResponse",
+        "type": "object"
+      },
+      "TodoUpdate": {
+        "description": "Schema for updating an existing Todo item. All fields are optional.",
+        "properties": {
+          "attachmentIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New list of attachment IDs to link",
+            "title": "Attachmentids"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Updated description",
+            "title": "Description"
+          },
+          "isCompleted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Updated completion status",
+            "title": "Iscompleted"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Updated title",
+            "title": "Title"
+          }
+        },
+        "title": "TodoUpdate",
+        "type": "object"
+      },
+      "TokenRequest": {
+        "properties": {
+          "token": {
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "TokenRequest",
+        "type": "object"
+      },
+      "User": {
+        "description": "Public user profile schema.",
+        "properties": {
+          "email": {
+            "description": "User's email address",
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "emailVerified": {
+            "default": false,
+            "description": "Whether the email address has been verified",
+            "title": "Emailverified",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Unique user identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mfaEnabled": {
+            "default": false,
+            "description": "Whether TOTP multi-factor authentication is enabled",
+            "title": "Mfaenabled",
+            "type": "boolean"
+          },
+          "role": {
+            "default": "user",
+            "description": "Authorization role",
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "description": "User's unique username",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username"
+        ],
+        "title": "User",
+        "type": "object"
+      },
+      "UserAdminView": {
+        "description": "User fields visible to administrators.",
+        "properties": {
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Account creation time",
+            "title": "Createdat"
+          },
+          "email": {
+            "description": "User's email address",
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "emailVerified": {
+            "default": false,
+            "description": "Whether the email address has been verified",
+            "title": "Emailverified",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Unique user identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lockedUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Login lockout expiry, if locked",
+            "title": "Lockeduntil"
+          },
+          "mfaEnabled": {
+            "default": false,
+            "description": "Whether TOTP multi-factor authentication is enabled",
+            "title": "Mfaenabled",
+            "type": "boolean"
+          },
+          "role": {
+            "default": "user",
+            "description": "Authorization role",
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "description": "User's unique username",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username"
+        ],
+        "title": "UserAdminView",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "FastAPI Template",
+    "version": "0.0.1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "deprecated": true,
+        "description": "Backward-compatible alias of the readiness probe.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check (alias of /health/ready)",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "description": "The process is up and the event loop responds. Never checks dependencies (avoids restart storms).",
+        "operationId": "liveness_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Liveness Health Live Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness Probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Ready to take traffic: dependencies reachable and not shutting down. Failing removes the pod from rotation.",
+        "operationId": "readiness_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Readiness Health Ready Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness Probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/auth/mfa/disable": {
+      "post": {
+        "description": "Turns MFA off; requires a current authenticator code.",
+        "operationId": "mfa_disable_v1_auth_mfa_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disable MFA",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/mfa/enable": {
+      "post": {
+        "description": "Activates MFA after verifying a code from the authenticator app.",
+        "operationId": "mfa_enable_v1_auth_mfa_enable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enable MFA",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/mfa/setup": {
+      "post": {
+        "description": "Generates a TOTP secret to add to an authenticator app; confirm it with /mfa/enable.",
+        "operationId": "mfa_setup_v1_auth_mfa_setup_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Start MFA Setup",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/mfa/verify": {
+      "post": {
+        "description": "Exchanges an MFA challenge token and a TOTP code for a session.",
+        "operationId": "mfa_verify_v1_auth_mfa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerify"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete MFA Signin",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/password/change": {
+      "post": {
+        "description": "Changes the password, signs out all other sessions and refreshes this one.",
+        "operationId": "change_password_v1_auth_password_change_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/password/forgot": {
+      "post": {
+        "description": "Emails a single-use reset link if the account exists. Always returns 202.",
+        "operationId": "forgot_password_v1_auth_password_forgot_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Password Reset",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/password/reset": {
+      "post": {
+        "description": "Sets a new password using a reset token; signs the user out everywhere.",
+        "operationId": "reset_password_v1_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordReset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "description": "Rotates the refresh token cookie and issues a new access token.",
+        "operationId": "refresh_v1_auth_refresh_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Refresh Session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/signin": {
+      "post": {
+        "description": "Verifies credentials and starts a session, or returns an MFA challenge when TOTP is enabled.",
+        "operationId": "signin_v1_auth_signin_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "User Signin",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/signout": {
+      "post": {
+        "description": "Revokes the current session and clears the session cookies. Idempotent.",
+        "operationId": "signout_v1_auth_signout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "User Signout",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/signout-all": {
+      "post": {
+        "description": "Revokes every session of the current user on every device.",
+        "operationId": "signout_all_v1_auth_signout_all_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sign Out Everywhere",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/signup": {
+      "post": {
+        "description": "Registers a new user account and emails a verification link.",
+        "operationId": "signup_v1_auth_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUp"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "User Signup",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-email": {
+      "post": {
+        "description": "Confirms the email address using the single-use token from the verification email.",
+        "operationId": "verify_email_v1_auth_verify_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-email/resend": {
+      "post": {
+        "description": "Sends a new verification link (previous links stop working).",
+        "operationId": "resend_verification_v1_auth_verify_email_resend_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Resend Verification Email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v2/attachments/": {
+      "get": {
+        "description": "Retrieves a paginated list of all attachments owned by the current user.",
+        "operationId": "get_user_attachments_v2_attachments__get",
+        "parameters": [
+          {
+            "description": "The page number to retrieve",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 1,
+              "description": "The page number to retrieve",
+              "title": "Page"
+            }
+          },
+          {
+            "description": "Number of items per page (max 100)",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 10,
+              "description": "Number of items per page (max 100)",
+              "title": "Pagesize"
+            }
+          },
+          {
+            "description": "Field to sort by. Prefix with '-' for descending order",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "-created_at",
+              "description": "Field to sort by. Prefix with '-' for descending order",
+              "title": "Ordering"
+            }
+          },
+          {
+            "description": "Filter by partial file name match",
+            "in": "query",
+            "name": "fileName",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by partial file name match",
+              "title": "Filename"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Attachments",
+        "tags": [
+          "attachments"
+        ]
+      },
+      "post": {
+        "description": "Uploads a file and creates an unlinked attachment record.",
+        "operationId": "upload_attachment_v2_attachments__post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_v2_attachments__post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Attachment",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/v2/attachments/{_file_id}": {
+      "delete": {
+        "description": "Deletes an attachment record; the stored file is removed after the transaction commits.",
+        "operationId": "delete_attachment_v2_attachments___file_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": " File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Attachment",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/v2/attachments/{_file_id}:download": {
+      "get": {
+        "description": "Downloads the file (always as an attachment, never rendered inline): redirects to a short-lived\npre-signed URL with object storage, or streams it from local storage.",
+        "operationId": "download_attachment_v2_attachments___file_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": " File Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Attachment",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/v2/audit-logs/": {
+      "get": {
+        "description": "Searches the audit trail, newest first. Requires the `audit:read` permission.",
+        "operationId": "list_audit_logs_v2_audit_logs__get",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page's `nextCursor`",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor from the previous page's `nextCursor`",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "description": "Items per page",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Exact action, e.g. auth.signin.failed",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact action, e.g. auth.signin.failed",
+              "title": "Action"
+            }
+          },
+          {
+            "description": "Filter by acting user",
+            "in": "query",
+            "name": "actorId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by acting user",
+              "title": "Actorid"
+            }
+          },
+          {
+            "description": "success or failure",
+            "in": "query",
+            "name": "outcome",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "success or failure",
+              "title": "Outcome"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audit Logs (admin)",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/v2/feature-flags/": {
+      "get": {
+        "description": "All flags with their configuration. Requires `flags:manage`.",
+        "operationId": "list_flags_v2_feature_flags__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureFlag"
+                  },
+                  "title": "Response List Flags V2 Feature Flags  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Feature Flags (admin)",
+        "tags": [
+          "feature-flags"
+        ]
+      }
+    },
+    "/v2/feature-flags/me": {
+      "get": {
+        "description": "Flags evaluated for the current user; the web app uses this to show or hide features.",
+        "operationId": "my_flags_v2_feature_flags_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluatedFlags"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "My Feature Flags",
+        "tags": [
+          "feature-flags"
+        ]
+      }
+    },
+    "/v2/feature-flags/{key}": {
+      "put": {
+        "description": "Creates or changes a flag (audited). Requires `flags:manage`.",
+        "operationId": "upsert_flag_v2_feature_flags__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z0-9][a-z0-9_.-]{1,99}$",
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureFlagUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureFlag"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create or Update Feature Flag (admin)",
+        "tags": [
+          "feature-flags"
+        ]
+      }
+    },
+    "/v2/todos/": {
+      "get": {
+        "description": "Retrieves a paginated list of todos for the current user.",
+        "operationId": "get_todo_list_v2_todos__get",
+        "parameters": [
+          {
+            "description": "The page number to retrieve",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 1,
+              "description": "The page number to retrieve",
+              "title": "Page"
+            }
+          },
+          {
+            "description": "Number of items per page (max 100)",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 10,
+              "description": "Number of items per page (max 100)",
+              "title": "Pagesize"
+            }
+          },
+          {
+            "description": "Field to sort by. Prefix with '-' for descending order",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "-created_at",
+              "description": "Field to sort by. Prefix with '-' for descending order",
+              "title": "Ordering"
+            }
+          },
+          {
+            "description": "Filter by partial title match",
+            "in": "query",
+            "name": "title",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by partial title match",
+              "title": "Title"
+            }
+          },
+          {
+            "description": "Filter by exact task ID",
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by exact task ID",
+              "title": "Id"
+            }
+          },
+          {
+            "description": "Filter by active/archived status",
+            "in": "query",
+            "name": "isActive",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": true,
+              "description": "Filter by active/archived status",
+              "title": "Isactive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Todos",
+        "tags": [
+          "todos"
+        ]
+      },
+      "post": {
+        "description": "Creates a new todo item and links it to the authenticated user.",
+        "operationId": "create_todo_v2_todos__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Todo",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/v2/todos/{_todo_id}": {
+      "delete": {
+        "description": "Permanently removes a todo item from the system.",
+        "operationId": "delete_todo_v2_todos___todo_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_todo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": " Todo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Todo",
+        "tags": [
+          "todos"
+        ]
+      },
+      "patch": {
+        "description": "Updates a todo. Send `If-Match` with the ETag from GET to avoid overwriting concurrent changes.",
+        "operationId": "update_todo_v2_todos___todo_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_todo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": " Todo Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ETag from GET (e.g. W/\"3\"); 412 if the todo changed",
+            "in": "header",
+            "name": "if-match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ETag from GET (e.g. W/\"3\"); 412 if the todo changed",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Todo",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/v2/todos/{_todo_id}:archive": {
+      "post": {
+        "description": "Toggles the 'is_active' status of a specific todo.",
+        "operationId": "toggle_archive_todo_v2_todos___todo_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_todo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": " Todo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Toggle Archive Status",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/v2/todos/{todo_id}": {
+      "get": {
+        "description": "Retrieves a todo with its attachments. The `ETag` header carries its version for `If-Match`.",
+        "operationId": "get_todo_v2_todos__todo_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "todo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Todo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Todo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Todo",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/v2/user/me": {
+      "delete": {
+        "description": "Deletes the current user's account, clears the session and, after commit, removes their files.",
+        "operationId": "delete_me_v2_user_me_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Delete Current User",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "description": "Returns the profile information of the currently authenticated user.",
+        "operationId": "get_me_v2_user_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Current User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v2/user/me/export": {
+      "get": {
+        "description": "Downloads all personal data stored about the current user as JSON (data portability).",
+        "operationId": "export_my_data_v2_user_me_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "Downloadable JSON export"
+          }
+        },
+        "summary": "Export My Data",
+        "tags": [
+          "privacy"
+        ]
+      }
+    },
+    "/v2/users/": {
+      "get": {
+        "description": "Lists all user accounts. Requires the `users:read_all` permission (admin role).",
+        "operationId": "list_users_v2_users__get",
+        "parameters": [
+          {
+            "description": "The page number to retrieve",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 1,
+              "description": "The page number to retrieve",
+              "title": "Page"
+            }
+          },
+          {
+            "description": "Number of items per page (max 100)",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": 10,
+              "description": "Number of items per page (max 100)",
+              "title": "Pagesize"
+            }
+          },
+          {
+            "description": "Field to sort by. Prefix with '-' for descending order",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "-created_at",
+              "description": "Field to sort by. Prefix with '-' for descending order",
+              "title": "Ordering"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseListResponse_UserAdminView_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Users (admin)",
+        "tags": [
+          "users"
+        ]
+      }
+    }
+  }
+}

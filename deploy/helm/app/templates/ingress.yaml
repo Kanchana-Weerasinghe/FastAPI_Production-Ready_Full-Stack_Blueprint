@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    # Security headers for API responses (the web image sets its own, incl. CSP).
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # API and SPA share one origin: no CORS, SameSite cookies just work.
+          {{- range $prefix := list "/v1" "/v2" }}
+          - path: {{ $prefix }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "app.fullname" $ }}-api
+                port: {name: http}
+          {{- end }}
+          # /metrics and /health are not exposed publicly (scraped/probed inside the cluster).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "app.fullname" . }}-web
+                port: {name: http}
+{{- end }}
