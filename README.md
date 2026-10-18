@@ -1,15 +1,18 @@
-# 🚀Full-Stack Clean Architecture: Production Best Practices with ⚡FastAPI, ⚛️React, and 🐘PostgreSQL
+# FastAPI & React: A Production-Ready Full-Stack Blueprint
 
-This repository is an example of how to set up a clean full-stack architecture using **⚛️React + TypeScript** for the frontend, **⚡FastAPI** for the backend, and **🐘PostgreSQL** for the database. It serves as a high-performance, production-ready template that combines the speed of modern frameworks with a robust, scalable architecture.
+An async FastAPI and React starter built as a modular monolith, with domain-oriented modules, explicit application boundaries, PostgreSQL persistence, and production-minded tooling. Use it as a practical foundation to build on—not as a claim that one architecture or deployment fits every product.
 
 ## Table of Contents
 
 - [Configured for Any Agentic IDE you like](#configured-for-any-agentic-ide-you-like)
 - [What is Clean Architecture?](#what-is-clean-architecture)
+- [Design Principles and Patterns](#design-principles-and-patterns)
 - [Backend Architecture](#backend-architecture)
 - [Frontend Architecture](#frontend-architecture)
+- [Technology Stack](#technology-stack)
 - [File Structure](#file-structure)
 - [Getting Started](#getting-started)
+- [Install Dependencies for Local Development](#install-dependencies-for-local-development)
 - [Debugging](#debugging)
 - [Bonus - What you can learn](#bonus---what-you-can-learn)
 - [Have Improvements or Questions?](#have-improvements-or-questions)
@@ -31,12 +34,30 @@ This project is configured to work seamlessly with modern AI-powered coding assi
 
 ## What is Clean Architecture?
 
-Clean Architecture is a software design philosophy that separates concerns into distinct layers. Relative to people and development teams, it means:
+Clean Architecture keeps business workflows from depending directly on delivery mechanisms and infrastructure. In this solution, HTTP routes call application use cases; application code relies on domain concepts and ports; and infrastructure adapters implement those ports. The composition root wires the concrete implementations together.
 
-- **Clarity of Intent**: You can understand what the application does just by looking at its structure, without getting bogged down by framework details.
-- **Isolation**: Business rules are kept independent of the UI, database, or external APIs.
-- **Maintainability**: Changes in one area (like swapping a UI library or upgrading a database) do not ripple through the entire codebase.
-- **Testability**: Core logic (unit tests) can be tested without needing the UI, database, or web server to be running. (Note: Backend integration tests start their own throwaway Postgres container, so Docker must be running; web E2E tests require the backend to be running).
+This separation gives the project clearer ownership boundaries and lets application behavior be tested with fakes instead of requiring every external service. Backend integration tests still use a throwaway PostgreSQL container, so Docker must be running for those tests; frontend E2E tests require the backend.
+
+## Design Principles and Patterns
+
+The architecture applies the following principles in the codebase:
+
+| Principle or pattern | How it is used |
+| --- | --- |
+| **DDD-inspired domain modeling** | Business capabilities are grouped into domain-owned modules. Domain records, value objects, and domain validation are separated from HTTP schemas and ORM models. For example, `UploadFileName` validates attachment filename metadata. |
+| **Selective DDD scope** | The project uses practical DDD building blocks; it does not claim that every module is a fully modeled bounded context with aggregates and a formally documented ubiquitous language. |
+| **Modular monolith** | Domains have internal boundaries but are deployed together as one application. Cross-module workflows use public service/application APIs rather than importing another module's private repository or container. |
+| **Separation of concerns** | Routers translate HTTP, application services coordinate workflows, domain types represent business concepts, and infrastructure adapters handle persistence and external integrations. |
+| **SOLID** | Components have focused responsibilities (SRP); use cases depend on application ports rather than concrete adapters (OCP/DIP); small protocols describe required collaborator behavior (ISP); and implementations or test fakes are expected to honor those contracts (LSP). |
+| **Dependency injection** | Per-module Dependency Injector containers declare providers, while the root composition container wires shared infrastructure and module collaborators. |
+| **Ports and adapters** | Application protocols define required persistence and integration behavior. SQLAlchemy repositories and other adapters implement the contracts, keeping infrastructure replaceable and workflows testable. |
+| **Repository and mapping patterns** | Persistence adapters encapsulate queries and map ORM state to persistence-independent records, keeping SQLAlchemy details outside application workflows. |
+| **Unit of Work / transaction boundary** | Request middleware owns the transaction: successful requests commit once, error responses roll back, and application services/repositories do not commit. After-commit callbacks run only after successful commit. |
+| **Cross-cutting concerns** | Shared middleware, dependencies, and error handlers apply request IDs, structured logging context, request limits, authentication and authorization, CSRF checks, rate limiting, transaction handling, and RFC 9457 error translation consistently. |
+| **Reliable writes and side effects** | Supported writes can use idempotency keys to make retries safe. Outbox events and after-commit dispatch keep external work from running for rolled-back database changes. |
+| **Defense in depth and observability** | Input validation, auth, ownership checks, CSRF protections, and rate limits provide layered controls. Structured logs, OpenTelemetry, Prometheus metrics, and Sentry reporting help diagnose runtime behavior. |
+
+For the detailed architecture walkthrough, request lifecycle, 14-area readiness map, and worked module example, see the [Development Team Guide](docs/production-template-guide1.html).
 
 ## Backend Architecture
 
@@ -59,10 +80,11 @@ Clean Architecture is a software design philosophy that separates concerns into 
 
 The backend (`server/`) is built with **FastAPI (Async)** and **Python** as a **modular monolith**: code is grouped by business domain, with HTTP routes, application use cases, domain rules, ports, and infrastructure adapters separated inside each module.
 
-- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `todos`, `attachments`) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Generate a layered module with `cd server && uv run python scripts/new_module.py <name>`.
+- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `todos`, `attachments`) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd server && uv run python scripts/new_module.py <name>`.
 - **Shared (`app/shared/`)**: Reusable building blocks: base repository/service/model, pagination schemas, file storage, integrations.
-- **Core (`app/core/`)**: Config, database and unit of work, domain errors and RFC 9457 error handlers, security, logging, middleware.
+- **Core (`app/core/`)**: Config, database and unit of work, domain errors and RFC 9457 error handlers, security, logging, and middleware for cross-cutting request concerns.
 - **Composition root (`app/container.py`, `app/api.py`, `app/models.py`)**: Wires modules together, mounts routers per API version, registers models for Alembic.
+- **Public module API**: Cross-module workflows use a module's public service/application API rather than reaching into its private repository, router, or container.
 - **Architecture decisions (`docs/adr/`)**: Why the key choices were made.
 - **Migrations (`migrations/`)**: Alembic database migration scripts.
 - **Tests (`tests/`)**: Pytest suite including unit tests (`tests/unit/`), integration tests (`tests/integrations/`), and mock repository implementations (`tests/mocks/`).
@@ -98,6 +120,24 @@ The frontend (`web/`) is built with **React 19 + TypeScript** and **Vite**. It i
 - **Assets (`src/assets/`, `public/`)**: Static files, images, icons, and global styles.
 - **Tests (`tests/`)**: Playwright E2E tests (`tests/e2e/`), Vitest unit tests (`tests/unit/`), and mock handlers (`tests/mocks/`).
 
+## Technology Stack
+
+The repository combines application frameworks with testing, operations, and delivery tools. Some capabilities—such as the observability profile and infrastructure deployment examples—are optional or require environment-specific setup.
+
+| Area | Technologies |
+| --- | --- |
+| **Backend** | Python 3.12+, FastAPI, Uvicorn, Gunicorn, Pydantic, Pydantic Settings, Dependency Injector |
+| **Data and background work** | PostgreSQL, SQLAlchemy 2 async, asyncpg, Alembic, Redis, ARQ |
+| **Security and API operations** | PyJWT, bcrypt, pyotp, cryptography, email-validator, SlowAPI, multipart upload support |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, TanStack Router, TanStack Query, TanStack Form, TanStack Store, Zod, Axios |
+| **Backend quality and tests** | Pytest, pytest-asyncio, pytest-cov, Ruff, mypy |
+| **Frontend quality and tests** | Vitest, Testing Library, Playwright, MSW, ESLint, Prettier |
+| **Observability** | Structlog, OpenTelemetry, Prometheus client, Sentry; Prometheus and Grafana are available through the optional Docker Compose observability profile |
+| **Runtime and deployment** | Docker, Docker Compose, NGINX, Helm, Terraform for AWS, and an Argo CD example |
+| **Automation and security checks** | GitHub Actions, pre-commit, Dependabot, Bandit, pip-audit, pnpm audit, Gitleaks, and Trivy |
+
+For versions, component responsibilities, and the architectural context behind these choices, see the [Technology section in the Development Team Guide](docs/production-template-guide1.html#technology).
+
 ## Other directories and files
 
 Here is a breakdown of the key folders and files in this repository:
@@ -130,6 +170,28 @@ Before running or debugging, make sure to:
 
 1. **Open the Project**: Open the root folder in **VS Code** (or your compatible IDE).
 2. **Install Extensions**: Accept the prompt to install recommended extensions defined in `.vscode/extensions.json` (such as the Python extension and Code Runner).
+
+## Install Dependencies for Local Development
+
+There is no `requirements.txt` in this project. Backend dependencies are declared in `server/pyproject.toml` and locked in `server/uv.lock`; frontend dependencies are declared in `web/package.json` and locked in `web/pnpm-lock.yaml`. Install them with their respective package managers:
+
+```powershell
+# Backend: Python 3.12+ and uv
+cd server
+uv sync
+```
+
+```powershell
+# Frontend: Node.js and Corepack-enabled pnpm
+cd web
+corepack pnpm install --frozen-lockfile
+```
+
+`uv sync` creates the backend virtual environment and installs the project dependencies, including its development dependency group. `--frozen-lockfile` installs the frontend versions recorded in the lockfile without changing it.
+
+For local development, start the backend from `server/` with `uv run task dev` and the frontend from `web/` with `corepack pnpm dev`. Run `uv run task test` from `server/` for backend tests (Docker is required for the PostgreSQL test container), or `corepack pnpm test:cov` from `web/` for frontend unit tests and coverage.
+
+For the containerized stack, configure the root `.env` as described below instead.
 
 You have multiple ways to run the code:
 
