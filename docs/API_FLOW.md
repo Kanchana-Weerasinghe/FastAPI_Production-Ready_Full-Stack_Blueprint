@@ -43,16 +43,6 @@
   - [Update Todo (PATCH `/v2/todos/{_todo_id}`)](#update-todo)
   - [Delete Todo (DELETE `/v2/todos/{_todo_id}`)](#delete-todo)
 
-- **Feature Flag Endpoints**
-
-  - [My Feature Flags (GET `/v2/feature-flags/me`)](#my-feature-flags)
-  - [List Feature Flags (admin) (GET `/v2/feature-flags/`)](#list-feature-flags)
-  - [Create or Update Feature Flag (admin) (PUT `/v2/feature-flags/{key}`)](#upsert-feature-flag)
-
-- **Privacy Endpoints**
-
-  - [Export My Data (GET `/v2/user/me/export`)](#export-my-data)
-
 - **Audit Endpoints**
 
   - [List Audit Logs (admin) (GET `/v2/audit-logs/`)](#list-audit-logs)
@@ -61,13 +51,6 @@
 
   - [Liveness Probe (GET `/health/live`)](#liveness-probe)
   - [Readiness Probe (GET `/health/ready`)](#readiness-probe)
-
-- **Attachments Endpoints**
-
-  - [Upload Attachment (POST `/v2/attachments/`)](#upload-attachment)
-  - [Delete Attachment (DELETE `/v2/attachments/{_file_id}`)](#delete-attachment)
-  - [List Attachments (GET `/v2/attachments/`)](#list-attachments)
-  - [Download Attachment (GET `/v2/attachments/{_file_id}:download`)](#download-attachment)
 
 ---
 
@@ -2214,7 +2197,7 @@
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v2/todos/` | POST | True | Creates a new todo item and links it to the authenticated user. Optionally links pre-uploaded attachment IDs. |
+| `/v2/todos/` | POST | True | Creates a new todo item owned by the authenticated user. |
 
 > <details>
 > <summary>Request body</summary>
@@ -2224,16 +2207,12 @@
 > - `title` (string, **Required**): The title of the task.
 > - `description` (string, *Optional*, default: `null`): Detailed description of the task.
 > - `isCompleted` (boolean, *Optional*, default: `false`): Whether the task has been finished.
-> - `attachmentIds` (array of UUIDs, *Optional*, default: `null`, accepts alternative alias: `attachment_ids`): Optional list of pre-uploaded attachment IDs to link to this task.
 >
 > ```json
 > {
 >   "title": "Complete code review",
 >   "description": "Review pull request #142 for the todo webapp",
->   "isCompleted": false,
->   "attachmentIds": [
->     "5fa85f64-5717-4562-b3fc-2c963f66afa7"
->   ]
+>   "isCompleted": false
 > }
 > ```
 > </details>
@@ -2262,7 +2241,7 @@
 > }
 > ```
 >
-> **422 Unprocessable Entity** (If title is missing or attachmentIds are in invalid format):
+> **422 Unprocessable Entity** (If title is missing or a field has an invalid format):
 > ```json
 > {
 >   "type": "https://errors.example.com/validation_failed",
@@ -2294,7 +2273,6 @@
 >     Router[Todos Router]
 >     Service[TodoService.add]
 >     Repo[TodoRepository.add]
->     AttachmentRepo[AttachmentRepository.update_attribute]
 >     DB[(PostgreSQL)]
 >
 >     Client -->|1. POST /v2/todos/| Router
@@ -2303,12 +2281,8 @@
 >     Repo -->|4. INSERT| DB
 >     DB -->|5. Success| Repo
 >     Repo -->|6. Todo Model| Service
->     Service -->|7. Update attachments with todo_id| AttachmentRepo
->     AttachmentRepo -->|8. UPDATE todo_id| DB
->     DB -->|9. Success| AttachmentRepo
->     AttachmentRepo -->|10. Success| Service
->     Service -->|11. 201 Created| Router
->     Router -->|12. 201 Created| Client
+>     Service -->|7. 201 Created| Router
+>     Router -->|8. 201 Created| Client
 >
 >     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
 >     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
@@ -2319,7 +2293,7 @@
 >     class Client client
 >     class Router route
 >     class Service service
->     class Repo,AttachmentRepo repo
+>     class Repo repo
 >     class DB db
 > ```
 >
@@ -2435,7 +2409,7 @@
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v2/todos/{todo_id}` | GET | True | Retrieves a todo with its attachments. Responds with `ETag: W/"<version>"` for use in `If-Match`. |
+| `/v2/todos/{todo_id}` | GET | True | Retrieves a todo. Responds with `ETag: W/"<version>"` for use in `If-Match`. |
 
 > <details>
 > <summary>Request body</summary>
@@ -2457,17 +2431,6 @@
 >   "description": "Review pull request #142 for the todo webapp",
 >   "isCompleted": false,
 >   "userId": "d7e393b4-19dc-43ab-9a31-6ab9256123cb",
->   "attachments": [
->     {
->       "id": "5fa85f64-5717-4562-b3fc-2c963f66afa7",
->       "fileName": "api_spec.pdf",
->       "downloadUrl": "/v2/attachments/<id>:download",
->       "fileSize": 1048576,
->       "fileType": "application/pdf",
->       "createdAt": "2026-05-24T18:00:00Z",
->       "updatedAt": "2026-05-24T18:00:00Z"
->     }
->   ],
 >   "createdAt": "2026-05-24T18:00:00Z",
 >   "updatedAt": "2026-05-24T18:30:00Z"
 > }
@@ -2520,8 +2483,8 @@
 >     Client -->|1. GET /v2/todos/id| Router
 >     Router -->|2. Check ownership & fetch| Auth
 >     Auth -->|3. Valid & Owned| Service
->     Service -->|4. Fetch eager loading attachments & SELECT| DB
->     DB -->|5. Todo + Attachments data| Service
+>     Service -->|4. SELECT todo| DB
+>     DB -->|5. Todo data| Service
 >     Service -->|6. Serialize to Todo schema| Router
 >     Router -->|7. 200 OK| Client
 >
@@ -2562,13 +2525,11 @@
 > - `title` (string, *Optional*, default: `null`): Updated title.
 > - `description` (string, *Optional*, default: `null`): Updated description.
 > - `isCompleted` (boolean, *Optional*, default: `null`): Updated completion status.
-> - `attachmentIds` (array of UUIDs, *Optional*, default: `null`, accepts alternative alias: `attachment_ids`): New list of attachment IDs to link to this task.
 >
 > ```json
 > {
 >   "title": "Complete code review v2",
->   "isCompleted": true,
->   "attachmentIds": []
+>   "isCompleted": true
 > }
 > ```
 > </details>
@@ -2623,7 +2584,6 @@
 >     Auth[check_ownership Dependency]
 >     Service[TodoService.patch]
 >     Repo[TodoRepository.patch]
->     AttachmentRepo[AttachmentRepository.update_attribute]
 >     DB[(PostgreSQL)]
 >
 >     Client -->|1. PATCH /v2/todos/id| Router
@@ -2633,12 +2593,8 @@
 >     Repo -->|5. UPDATE| DB
 >     DB -->|6. Success| Repo
 >     Repo -->|7. Updated Todo| Service
->     Service -->|8. Update attachments with todo_id| AttachmentRepo
->     AttachmentRepo -->|9. UPDATE todo_id| DB
->     DB -->|10. Success| AttachmentRepo
->     AttachmentRepo -->|11. Success| Service
->     Service -->|12. 200 OK| Router
->     Router -->|13. 200 OK| Client
+>     Service -->|8. 200 OK| Router
+>     Router -->|9. 200 OK| Client
 >
 >     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
 >     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
@@ -2649,7 +2605,7 @@
 >     class Client client
 >     class Router route
 >     class Service service
->     class Repo,AttachmentRepo repo
+>     class Repo repo
 >     class Auth auth
 >     class DB db
 > ```
@@ -2759,955 +2715,6 @@
 
 ---
 
-## Attachments Endpoints
-
-### <a id="upload-attachment"></a>Upload Attachment
-
-<details>
-<summary>Upload Attachment (POST /v2/attachments/)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/attachments/` | POST | True | Uploads a file via multipart form-data. Saves the file to disk and records metadata in the database. |
-
-> <details>
-> <summary>Request payload details (multipart/form-data)</summary>
->
-> **Fields:**
->
-> - `file` (UploadFile, **Required**): The binary file content to be uploaded.
->
-> ```markdown
-> Form Field:
->
-> - file: Binary file content
->
-> ```
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> {
->   "id": "5fa85f64-5717-4562-b3fc-2c963f66afa7",
->   "fileName": "api_spec.pdf",
->   "downloadUrl": "/v2/attachments/<id>:download",
->   "fileSize": 1048576,
->   "fileType": "application/pdf",
->   "createdAt": "2026-05-24T18:00:00Z",
->   "updatedAt": "2026-05-24T18:00:00Z"
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (If not signed in):
-> ```json
-> {
->   "type": "https://errors.example.com/unauthenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Missing credentials or invalid session token",
->   "instance": "<request path>",
->   "code": "unauthenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **422 Unprocessable Entity** (If no file is attached in the multipart form request):
-> ```json
-> {
->   "type": "https://errors.example.com/validation_failed",
->   "title": "Validation Failed",
->   "status": 422,
->   "detail": "Input validation failed.",
->   "instance": "<request path>",
->   "code": "validation_failed",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a",
->   "errors": [
->     {
->       "field": "file",
->       "message": "Field required",
->       "type": "missing"
->     }
->   ]
-> }
-> ```
->
-> **400 Bad Request** (If the file name is missing or the extension is not in `ALLOWED_FILE_EXTENSIONS`):
-> ```json
-> {
->   "type": "https://errors.example.com/bad_request",
->   "title": "Bad Request",
->   "status": 400,
->   "detail": "File type not allowed",
->   "instance": "<request path>",
->   "code": "bad_request",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **413 Content Too Large** (If the request body exceeds `MAX_REQUEST_BODY_BYTES` or the file exceeds `MAX_UPLOAD_SIZE_BYTES`, 10 MiB by default):
-> ```json
-> {
->   "type": "https://errors.example.com/payload_too_large",
->   "title": "Content Too Large",
->   "status": 413,
->   "detail": "Request body too large",
->   "instance": "<request path>",
->   "code": "payload_too_large",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Attachments Router]
->     Service[AttachmentService.add_attachment]
->     LocalStorage[Local Uploads Dir]
->     DB[(PostgreSQL)]
->
->     Client -->|1. POST /v2/attachments/| Router
->     Router -->|2. Multipart Form File| Service
->     Service -->|3. Write file to disk| LocalStorage
->     LocalStorage -->|4. File written| Service
->     Service -->|5. INSERT attachment record| DB
->     DB -->|6. Success| Service
->     Service -->|7. Serialize to Attachment schema| Router
->     Router -->|8. 201 Created| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef file fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class LocalStorage file
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-
-### <a id="delete-attachment"></a>Delete Attachment
-
-<details>
-<summary>Delete Attachment (DELETE /v2/attachments/{_file_id})</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/attachments/{_file_id}` | DELETE | True | Deletes a specific file from physical disk and removes its record from the database. |
-
-> <details>
-> <summary>Request body</summary>
->
-> No request body payload.
->
-> ```json
-> null
-> ```
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> null
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (If not signed in):
-> ```json
-> {
->   "type": "https://errors.example.com/unauthenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Missing credentials or invalid session token",
->   "instance": "<request path>",
->   "code": "unauthenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **404 Not Found** (If attachment file ID does not exist or belongs to another user):
-> ```json
-> {
->   "type": "https://errors.example.com/not_found",
->   "title": "Not Found",
->   "status": 404,
->   "detail": "Attachment not found",
->   "instance": "<request path>",
->   "code": "not_found",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Attachments Router]
->     Auth[check_ownership Dependency]
->     Service[AttachmentService.remove]
->     LocalStorage[Local Uploads Dir]
->     DB[(PostgreSQL)]
->
->     Client -->|1. DELETE /v2/attachments/id| Router
->     Router -->|2. Check ownership & fetch| Auth
->     Auth -->|3. Valid & Owned| Service
->     Service -->|4. DELETE FROM attachments| DB
->     DB -->|5. Success| Service
->     Service -->|6. Delete file physically| LocalStorage
->     LocalStorage -->|7. File deleted| Service
->     Service -->|8. 204 No Content| Router
->     Router -->|9. 204 No Content| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef file fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#000
->     classDef auth fill:#fbe9e7,stroke:#d84315,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class LocalStorage file
->     class Auth auth
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-
-### <a id="list-attachments"></a>List Attachments
-
-<details>
-<summary>List Attachments (GET /v2/attachments/)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/attachments/` | GET | True | Retrieves a paginated list of all file attachments owned by the currently authenticated user. |
-
-> <details>
-> <summary>Query parameters (Request context)</summary>
->
-> **Query Parameters:**
->
-> - `page` (integer, *Optional*, default: `1`): The page number to retrieve. Must be >= 1.
-> - `pageSize` (integer, *Optional*, default: `10`, max: `100`): Number of items per page. Values above `MAX_PAGE_SIZE` return 422.
-> - `ordering` (string, *Optional*, default: `"-created_at"`): Field to sort by, prefix with `'-'` for descending order. Allowed: `created_at`, `updated_at`, `file_name`, `file_size`. Other fields return 422.
-> - `fileName` (string, *Optional*, accepts alternative alias: `file_name`): Filter by partial case-insensitive file name match.
->
-> ```json
-> {
->   "page": 1,
->   "pageSize": 10,
->   "ordering": "-createdAt",
->   "fileName": "optional_name_match"
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> {
->   "founds": [
->     {
->       "id": "5fa85f64-5717-4562-b3fc-2c963f66afa7",
->       "fileName": "api_spec.pdf",
->       "downloadUrl": "/v2/attachments/<id>:download",
->       "fileSize": 1048576,
->       "fileType": "application/pdf",
->       "createdAt": "2026-05-24T18:00:00Z",
->       "updatedAt": "2026-05-24T18:00:00Z"
->     }
->   ],
->   "searchOptions": {
->     "page": 1,
->     "pageSize": 10,
->     "ordering": "-createdAt",
->     "totalCount": 1
->   }
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (If not signed in):
-> ```json
-> {
->   "type": "https://errors.example.com/unauthenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Missing credentials or invalid session token",
->   "instance": "<request path>",
->   "code": "unauthenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Attachments Router]
->     Service[AttachmentService.get_list]
->     Repo[AttachmentRepository.get_list]
->     DB[(PostgreSQL)]
->
->     Client -->|1. GET /v2/attachments/| Router
->     Router -->|2. Inject query & auth| Service
->     Service -->|3. Fetch paginated list| Repo
->     Repo -->|4. SELECT with Filters/Pagination| DB
->     DB -->|5. Results & totalCount| Repo
->     Repo -->|6. Founds list & searchOptions| Service
->     Service -->|7. Serialize to AttachmentListResponse| Router
->     Router -->|8. 200 OK| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef repo fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class Repo repo
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-
-### <a id="download-attachment"></a>Download Attachment
-
-<details>
-<summary>Download Attachment (GET /v2/attachments/{_file_id}:download)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/attachments/{_file_id}:download` | GET | True | After the ownership check: with `STORAGE_BACKEND=local` streams the file (`Content-Disposition: attachment`, `nosniff`); with `s3` responds **307** to a short-lived pre-signed URL (`S3_PRESIGNED_URL_EXPIRE_SECONDS`). |
-
-> <details>
-> <summary>Request body</summary>
->
-> No request body payload.
->
-> ```json
-> null
-> ```
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```markdown
-> Binary file stream (e.g. application/octet-stream, application/pdf, image/png)
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (If not signed in):
-> ```json
-> {
->   "type": "https://errors.example.com/unauthenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Missing credentials or invalid session token",
->   "instance": "<request path>",
->   "code": "unauthenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **404 Not Found** (If attachment metadata is missing or file is missing on the disk):
-> ```json
-> {
->   "type": "https://errors.example.com/not_found",
->   "title": "Not Found",
->   "status": 404,
->   "detail": "File not found on disk",
->   "instance": "<request path>",
->   "code": "not_found",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Attachments Router]
->     Auth[check_ownership Dependency]
->     LocalStorage[Local Uploads Dir]
->
->     Client -->|1. GET /v2/attachments/id:download| Router
->     Router -->|2. Check ownership & fetch| Auth
->     Auth -->|3. Valid & Owned| Router
->     Router -->|4. Check file exists on disk| LocalStorage
->     LocalStorage -->|5. File exists| Router
->     Router -->|6. Return FileResponse stream| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef file fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#000
->     classDef auth fill:#fbe9e7,stroke:#d84315,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class LocalStorage file
->     class Auth auth
-> ```
->
-> </div>
-> </details>
-
-</details>
-
-## Feature Flag Endpoints
-
-### <a id="my-feature-flags"></a>My Feature Flags
-
-<details>
-<summary>My Feature Flags (GET /v2/feature-flags/me)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/feature-flags/me` | GET | True | Flags evaluated for the current user (enabled → role targeting → deterministic percentage bucket). The web app uses it to show or hide features. |
-
-> <details>
-> <summary>Request body</summary>
->
-> No request body.
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> {
->   "flags": {
->     "new-editor": true,
->     "beta-export": false
->   }
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (No valid session, or the session was revoked):
-> ```json
-> {
->   "type": "https://errors.example.com/not_authenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Not authenticated",
->   "instance": "<request path>",
->   "code": "not_authenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **429 Too Many Requests** (More than 120/minute per client IP):
-> ```json
-> {
->   "type": "https://errors.example.com/rate_limited",
->   "title": "Too Many Requests",
->   "status": 429,
->   "detail": "Too many requests. Please try again later.",
->   "instance": "<request path>",
->   "code": "rate_limited",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Feature Flags Router]
->     Service[FeatureFlagService]
->     Repo[Repositories]
->     DB[(PostgreSQL)]
->
->     Client -->|1. GET /v2/feature-flags/me| Router
->     Router -->|2. evaluate_all(user)| Service
->     Service -->|3. Cached flag snapshot (30 s)| Repo
->     Repo -->|4. SELECT feature_flags (on cache miss)| DB
->     Router -->|5. 200 evaluated flags| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef repo fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class Repo repo
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-### <a id="list-feature-flags"></a>List Feature Flags (admin)
-
-<details>
-<summary>List Feature Flags (admin) (GET /v2/feature-flags/)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/feature-flags/` | GET | True (`flags:manage`) | All flags with their configuration. |
-
-> <details>
-> <summary>Request body</summary>
->
-> No request body.
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> [
->   {
->     "key": "new-editor",
->     "description": "New todo editor",
->     "enabled": true,
->     "rolloutPercentage": 25,
->     "roles": [
->       "admin"
->     ]
->   }
-> ]
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (No valid session, or the session was revoked):
-> ```json
-> {
->   "type": "https://errors.example.com/not_authenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Not authenticated",
->   "instance": "<request path>",
->   "code": "not_authenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **403 Forbidden** (Role lacks `flags:manage`):
-> ```json
-> {
->   "type": "https://errors.example.com/forbidden",
->   "title": "Forbidden",
->   "status": 403,
->   "detail": "You do not have permission to perform this action",
->   "instance": "<request path>",
->   "code": "forbidden",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **429 Too Many Requests** (More than 60/minute per client IP):
-> ```json
-> {
->   "type": "https://errors.example.com/rate_limited",
->   "title": "Too Many Requests",
->   "status": 429,
->   "detail": "Too many requests. Please try again later.",
->   "instance": "<request path>",
->   "code": "rate_limited",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Feature Flags Router]
->     Service[FeatureFlagService]
->     Repo[Repositories]
->     DB[(PostgreSQL)]
->
->     Client -->|1. GET /v2/feature-flags/| Router
->     Router -->|2. require_permission + list_all| Service
->     Service -->|3. All flags| Repo
->     Repo -->|4. SELECT feature_flags| DB
->     Router -->|5. 200 flags| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef repo fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class Repo repo
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-### <a id="upsert-feature-flag"></a>Create or Update Feature Flag (admin)
-
-<details>
-<summary>Create or Update Feature Flag (admin) (PUT /v2/feature-flags/{key})</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/feature-flags/{key}` | PUT | True (`flags:manage`) | Creates or changes a flag; recorded in the audit log and effective within 30 seconds on every instance. |
-
-> <details>
-> <summary>Request body</summary>
->
-> **Fields:**
->
-> - `key` (path, **Required**): lowercase letters, digits, `_`, `.`, `-` (2-100 chars).
-> - `enabled` (boolean, *Optional*, default `false`).
-> - `rolloutPercentage` (integer 0-100, *Optional*, default `100`, alias `rollout_percentage`).
-> - `roles` (string[], *Optional*): roles that always get the feature when enabled.
-> - `description` (string, *Optional*, max 500).
-> - Header `X-CSRF-Token` (**Required**).
->
-> ```json
-> {
->   "enabled": true,
->   "rolloutPercentage": 25,
->   "roles": [
->     "admin"
->   ],
->   "description": "New todo editor"
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> {
->   "key": "new-editor",
->   "description": "New todo editor",
->   "enabled": true,
->   "rolloutPercentage": 25,
->   "roles": [
->     "admin"
->   ]
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (No valid session, or the session was revoked):
-> ```json
-> {
->   "type": "https://errors.example.com/not_authenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Not authenticated",
->   "instance": "<request path>",
->   "code": "not_authenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **403 Forbidden** (Role lacks `flags:manage`):
-> ```json
-> {
->   "type": "https://errors.example.com/forbidden",
->   "title": "Forbidden",
->   "status": 403,
->   "detail": "You do not have permission to perform this action",
->   "instance": "<request path>",
->   "code": "forbidden",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **403 Forbidden** (Session cookie present but `X-CSRF-Token` header missing or wrong):
-> ```json
-> {
->   "type": "https://errors.example.com/csrf_failed",
->   "title": "Forbidden",
->   "status": 403,
->   "detail": "Missing or invalid X-CSRF-Token header",
->   "instance": "<request path>",
->   "code": "csrf_failed",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **422 Unprocessable Entity** (Request body fails validation):
-> ```json
-> {
->   "type": "https://errors.example.com/validation_failed",
->   "title": "Validation Failed",
->   "status": 422,
->   "detail": "Input validation failed.",
->   "instance": "<request path>",
->   "code": "validation_failed",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a",
->   "errors": [
->     {
->       "field": "code",
->       "message": "String should match pattern '^\\d{6}$'",
->       "type": "string_pattern_mismatch"
->     }
->   ]
-> }
-> ```
->
-> **429 Too Many Requests** (More than 30/minute per client IP):
-> ```json
-> {
->   "type": "https://errors.example.com/rate_limited",
->   "title": "Too Many Requests",
->   "status": 429,
->   "detail": "Too many requests. Please try again later.",
->   "instance": "<request path>",
->   "code": "rate_limited",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Feature Flags Router]
->     Service[FeatureFlagService]
->     Repo[Repositories]
->     DB[(PostgreSQL)]
->
->     Client -->|1. PUT /v2/feature-flags/{key}| Router
->     Router -->|2. require_permission + upsert| Service
->     Service -->|3. Insert/update flag, audit entry| Repo
->     Repo -->|4. UPSERT feature_flags / INSERT audit_logs| DB
->     Router -->|5. 200 flag| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef repo fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class Repo repo
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
-## Privacy Endpoints
-
-### <a id="export-my-data"></a>Export My Data
-
-<details>
-<summary>Export My Data (GET /v2/user/me/export)</summary>
-
-| URL | Method | Auth Required | Description |
-| :--- | :--- | :--- | :--- |
-| `/v2/user/me/export` | GET | True | Downloads all personal data stored about the current user as a JSON file (GDPR art. 15/20, CCPA right to know). Audited. Erasure is `DELETE /v2/user/me`. |
-
-> <details>
-> <summary>Request body</summary>
->
-> No request body.
-> </details>
->
-> <details>
-> <summary>Response body</summary>
->
-> ```json
-> {
->   "exported_at": "2026-10-16T10:00:00+00:00",
->   "profile": {
->     "id": "d7e3...",
->     "email": "user@example.com",
->     "username": "K3J9X2QW",
->     "role": "user",
->     "emailVerified": true,
->     "mfaEnabled": false
->   },
->   "todos": [
->     "..."
->   ],
->   "attachments": [
->     "..."
->   ],
->   "security_events": [
->     {
->       "at": "2026-10-16T09:00:00+00:00",
->       "action": "auth.signin.succeeded",
->       "outcome": "success",
->       "ip_address": "203.0.113.7",
->       "user_agent": "Mozilla/5.0 ..."
->     }
->   ]
-> }
-> ```
-> </details>
->
-> <details>
-> <summary>Error body</summary>
->
-> **401 Unauthorized** (No valid session, or the session was revoked):
-> ```json
-> {
->   "type": "https://errors.example.com/not_authenticated",
->   "title": "Unauthenticated",
->   "status": 401,
->   "detail": "Not authenticated",
->   "instance": "<request path>",
->   "code": "not_authenticated",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **429 Too Many Requests** (More than 3/hour per client IP):
-> ```json
-> {
->   "type": "https://errors.example.com/rate_limited",
->   "title": "Too Many Requests",
->   "status": 429,
->   "detail": "Too many requests. Please try again later.",
->   "instance": "<request path>",
->   "code": "rate_limited",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
-> </details>
-
-> <details>
-> <summary>Flow Diagram</summary>
->
-> <div align="center">
->
-> ```mermaid
-> flowchart TD
->     Client([Client Frontend])
->     Router[Privacy Router]
->     Service[PrivacyService]
->     Repo[Repositories]
->     DB[(PostgreSQL)]
->
->     Client -->|1. GET /v2/user/me/export| Router
->     Router -->|2. PrivacyService.export| Service
->     Service -->|3. Todos, attachments, audit events via module services| Repo
->     Repo -->|4. SELECT ... WHERE user| DB
->     Router -->|5. 200 JSON attachment| Client
->
->     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
->     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
->     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
->     classDef repo fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
->     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
->
->     class Client client
->     class Router route
->     class Service service
->     class Repo repo
->     class DB db
-> ```
->
-> </div>
-> </details>
-
-</details>
-
----
 ## Audit Endpoints
 
 ### <a id="list-audit-logs"></a>List Audit Logs (admin)

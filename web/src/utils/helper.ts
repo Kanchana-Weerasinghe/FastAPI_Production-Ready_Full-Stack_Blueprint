@@ -1,5 +1,3 @@
-import { apiBaseUrl } from "../lib/config";
-
 /**
  * Extracts a human-readable error message from an unknown error object.
  *
@@ -12,35 +10,6 @@ export const getErrorMessage = (error: unknown): string | undefined => {
     return (error as { message: string }).message;
   }
   return undefined;
-};
-
-/**
- * Formats a byte count into a human-readable string (e.g., "1.2 MB").
- *
- * @param bytes - The number of bytes to format.
- * @returns A formatted string with the appropriate unit.
- */
-export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
-
-/**
- * Maximum allowed file size for uploads (50MB).
- */
-export const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
-/**
- * Validates if a file's size is within the allowed limit.
- *
- * @param file - The File object to check.
- * @returns True if valid, false otherwise.
- */
-export const validateFileSize = (file: File): boolean => {
-  return file.size <= MAX_FILE_SIZE;
 };
 
 /**
@@ -61,14 +30,4 @@ export const formatDate = (dateString: string | Date): string => {
   const displayHours = hours % 12 || 12;
 
   return `${month} ${day} ${year}, ${displayHours}:${minutes} ${ampm}`;
-};
-
-/**
- * Generates the full backend download URL for a specific attachment.
- *
- * @param fileId - The unique identifier of the file.
- * @returns The absolute URL for downloading the file.
- */
-export const getDownloadUrl = (fileId: string): string => {
-  return `${apiBaseUrl()}/v2/attachments/${fileId}:download`;
 };

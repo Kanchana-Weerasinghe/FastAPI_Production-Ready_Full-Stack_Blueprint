@@ -11,10 +11,6 @@ export const NAV_ITEMS = [
     to: "/archives",
   },
   {
-    label: "Attachments",
-    to: "/attachments",
-  },
-  {
     label: "Account",
     to: "/account",
   },

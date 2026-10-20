@@ -3,11 +3,8 @@ from redis.asyncio import Redis
 
 from app.core.config import config
 from app.core.database import Database, UnitOfWork
-from app.modules.attachments.container import AttachmentsContainer
 from app.modules.audit.container import AuditContainer
 from app.modules.auth.container import AuthContainer
-from app.modules.flags.container import FlagsContainer
-from app.modules.privacy.container import PrivacyContainer
 from app.modules.todos.container import TodosContainer
 from app.modules.users.container import UsersContainer
 
@@ -68,16 +65,8 @@ class Container(containers.DeclarativeContainer):
     # --- Modules --------------------------------------------------------------------------------
     audit = providers.Container(AuditContainer, db=db)
     users = providers.Container(UsersContainer, db=db, uow=uow, storage=file_storage, audit_service=audit.service)
-    attachments = providers.Container(AttachmentsContainer, db=db, uow=uow, storage=file_storage)
-    todos = providers.Container(TodosContainer, db=db, attachment_service=attachments.service)
+    todos = providers.Container(TodosContainer, db=db)
     auth = providers.Container(
         AuthContainer, db=db, uow=uow, user_service=users.service, email_client=mailer, audit_service=audit.service
-    )
-    flags = providers.Container(FlagsContainer, db=db, audit_service=audit.service)
-    privacy = providers.Container(
-        PrivacyContainer,
-        todo_service=todos.service,
-        attachment_service=attachments.service,
-        audit_service=audit.service,
     )
     # [scaffold:container-providers]

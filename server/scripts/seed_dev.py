@@ -46,7 +46,7 @@ async def main() -> None:
             )
             session.add(user)
             await session.flush()
-            for title in ("Try the API docs at /docs", "Upload an attachment", "Archive a finished todo"):
+            for title in ("Try the API docs at /docs", "Mark a todo as completed", "Archive a finished todo"):
                 session.add(Todos(user_id=user.id, title=title, created_by=username, updated_by=username))
             print(f"created: {email} / {DEMO_PASSWORD} ({role})")
     await db.close()

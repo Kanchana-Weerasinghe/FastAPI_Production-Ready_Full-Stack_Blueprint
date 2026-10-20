@@ -44,23 +44,6 @@ erDiagram
         boolean is_completed "Completion status flag"
     }
 
-    attachments {
-        uuid id PK "Primary Key (gen_random_uuid())"
-        boolean is_active "Active status flag"
-        boolean is_deleted "Soft-delete flag"
-        timestamptz created_at "Creation timestamp"
-        timestamptz updated_at "Last update timestamp"
-        varchar created_by "Username of creator"
-        varchar updated_by "Username of modifier"
-        int version "Optimistic-locking version"
-        uuid user_id FK "Foreign Key to users.id"
-        uuid todo_id FK "Foreign Key to todos.id (Nullable)"
-        text file_name "Original file name"
-        text storage_key "Private storage key (owner_id/uuid.ext)"
-        bigint file_size "File size in bytes"
-        text file_type "MIME content type"
-    }
-
     refresh_tokens {
         uuid id PK "Primary Key (gen_random_uuid())"
         boolean is_active "Active status flag"
@@ -146,19 +129,7 @@ erDiagram
         timestamptz expires_at "Expiry (IDEMPOTENCY_TTL_HOURS)"
     }
 
-    feature_flags {
-        uuid id PK "Primary Key (gen_random_uuid())"
-        varchar key "Unique flag key"
-        text description "What the flag controls"
-        boolean enabled "Master switch"
-        int rollout_percentage "0-100 deterministic user bucket"
-        jsonb roles "Roles always included when enabled"
-        int version "Optimistic-locking version"
-    }
-
     users ||--o{ todos : "has/owns"
-    users ||--o{ attachments : "uploads/owns"
-    todos ||--o{ attachments : "contains"
     users ||--o{ refresh_tokens : "sessions"
     users ||--o{ one_time_tokens : "verification/reset links"
 ```
@@ -203,7 +174,6 @@ Stores user account profiles and credentials.
 
 - **Relationships:**
   - Has many `todos` (1:N, cascading deletes - if a user is deleted, all their todos are removed).
-  - Has many `attachments` (1:N, cascading deletes - if a user is deleted, all their file records are removed).
 
 ---
 
@@ -220,30 +190,10 @@ Stores individual task items created by users.
 
 - **Relationships:**
   - Belongs to one `user`.
-  - Has many `attachments` (1:N, if the todo is deleted, linked attachments have their `todo_id` set to `NULL`).
 
 ---
 
-### 4. `attachments` Table
-
-Stores metadata for uploaded file attachments linked to users and/or specific todo tasks.
-
-| Column | Type | Constraints | Description & Comment |
-| :--- | :--- | :--- | :--- |
-| `user_id` | `UUID` | FK (`users.id`), Not Null, Indexed | Link to the user who uploaded and owns this attachment. Deletes cascade (`ondelete="CASCADE"`). |
-| `todo_id` | `UUID` | FK (`todos.id`), Nullable, Indexed | Optional link to the specific todo task this file belongs to. Set to `NULL` if todo is deleted. |
-| `file_name` | `TEXT` | Not Null | Base name of the uploaded file (e.g. `report.pdf`), kept only as display/download metadata; directory parts sent by the client are stripped. |
-| `storage_key` | `TEXT` | Not Null | Server-generated key of the stored file, relative to the upload root (`<user_id>/<uuid><ext>`). Never derived from the client file name, so uploads cannot traverse paths or overwrite each other, and never exposed publicly: files are served only through the ownership-checked download endpoint. Renamed from `file_url` in migration `3f1a9c2b7d10`. |
-| `file_size` | `BIGINT` | Not Null | Size of the file in bytes, stored as a 64-bit integer to prevent overflow on large files. |
-| `file_type` | `TEXT` | Not Null | MIME type derived from the file extension (falling back to the client-declared type), e.g. `application/pdf`. Not trusted for rendering: downloads are always sent as attachments with `nosniff`. |
-
-- **Relationships:**
-  - Belongs to one `user`.
-  - Belongs to one optional `todo`.
-
----
-
-### 5. `refresh_tokens` Table
+### 4. `refresh_tokens` Table
 
 One row per issued refresh token (one per device session, rotated on every refresh). See `docs/adr/0008-session-tokens.md`.
 
@@ -263,7 +213,7 @@ One row per issued refresh token (one per device session, rotated on every refre
 
 ---
 
-### 6. `one_time_tokens` Table
+### 5. `one_time_tokens` Table
 
 Single-use, expiring tokens sent by email for email verification and password reset.
 
@@ -280,7 +230,7 @@ Single-use, expiring tokens sent by email for email verification and password re
 
 ---
 
-### 7. `outbox_events` Table
+### 6. `outbox_events` Table
 
 Transactional outbox: side effects and integration events written in the same transaction as the business change and delivered by the worker (see `docs/adr/0010-background-jobs-and-outbox.md`).
 
@@ -296,7 +246,7 @@ Transactional outbox: side effects and integration events written in the same tr
 
 ---
 
-### 8. `audit_logs` Table
+### 7. `audit_logs` Table
 
 Append-only trail of security-relevant and administrative actions (see `docs/adr/0011-observability.md`). The application never updates or deletes rows.
 
@@ -314,7 +264,7 @@ Append-only trail of security-relevant and administrative actions (see `docs/adr
 
 ---
 
-### 9. `idempotency_keys` Table
+### 8. `idempotency_keys` Table
 
 Responses of `POST`/`PATCH` requests sent with an `Idempotency-Key` header, so retries replay the original result instead of repeating the side effect (see `app/shared/idempotency.py`).
 
@@ -331,14 +281,4 @@ Responses of `POST`/`PATCH` requests sent with an `Idempotency-Key` header, so r
 
 ---
 
-### 10. `feature_flags` Table
-
-Runtime feature switches for dark launches, gradual rollouts and kill switches without a deploy (`app/modules/flags`).
-
-| Column | Type | Constraints | Description & Comment |
-| :--- | :--- | :--- | :--- |
-| `key` | `VARCHAR(100)` | Unique, Not Null, Indexed | Identifier used in code (`require_flag("new-editor")`) and by the web app. |
-| `description` | `TEXT` | Not Null, default `''` | What the flag controls and when it can be removed (flags are temporary). |
-| `enabled` | `BOOLEAN` | Not Null, default `false` | Master switch; off means off for everyone (kill switch). |
-| `rollout_percentage` | `INTEGER` | Not Null, default `100` | Share of users (0-100) who get the feature, by a stable hash of flag key and user id, so users don't flip in and out as the percentage grows. |
-| `roles` | `JSONB` | Not Null, default `[]` | Roles that always get the feature when enabled (e.g. internal dogfooding by admins). |
+> Migration `e7b3c9a1f052` dropped the former `attachments` and `feature_flags` tables when those example modules were removed; its downgrade recreates them empty.

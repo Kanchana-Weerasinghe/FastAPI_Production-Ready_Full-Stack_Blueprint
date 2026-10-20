@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { Route as RootRoute } from "@/routes/__root";
 import { Route as ArchivesRoute } from "@/routes/_authenticated/archives";
-import { Route as AttachmentsRoute } from "@/routes/_authenticated/attachments";
 import { Route as TodoEditRoute } from "@/routes/_authenticated/todo/$todoId/edit";
 import { Route as TodoIndexRoute } from "@/routes/_authenticated/todo/$todoId/index";
 import { Route as TodoNewRoute } from "@/routes/_authenticated/todo/new";
@@ -16,9 +15,6 @@ describe("Route Configurations", () => {
 
     expect(ArchivesRoute).toBeDefined();
     expect(ArchivesRoute.options.component).toBeDefined();
-
-    expect(AttachmentsRoute).toBeDefined();
-    expect(AttachmentsRoute.options.component).toBeDefined();
 
     expect(TodoEditRoute).toBeDefined();
     expect(TodoEditRoute.options.component).toBeDefined();

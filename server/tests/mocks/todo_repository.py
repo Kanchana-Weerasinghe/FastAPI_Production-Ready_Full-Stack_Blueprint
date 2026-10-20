@@ -9,7 +9,7 @@ from app.modules.todos.schemas import FindTodo
 
 
 class MockTodoRepository:
-    """Mock repository for TodoRepository to test TodoService and AttachmentService in isolation."""
+    """Mock repository for TodoRepository to test TodoService in isolation."""
 
     def __init__(self) -> None:
         self.todos_db: list[Todos] = []

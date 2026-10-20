@@ -4,7 +4,7 @@ Keep personal data only as long as needed for its purpose (GDPR storage limitati
 
 | Data | Retention | Enforcement |
 | :--- | :--- | :--- |
-| Account, todos, attachments | Until the user deletes them or the account | User actions (`DELETE` endpoints) |
+| Account, todos | Until the user deletes them or the account | User actions (`DELETE` endpoints) |
 | Inactive accounts | Define per product (e.g. notify after 24 months, delete after 36) | Add a scheduled job when the policy is agreed |
 | Refresh tokens | Expiry + 7 days (revoked: revocation + 7 days) | Worker job |
 | Email verification / password reset tokens | Expiry/use + 7 days | Worker job |

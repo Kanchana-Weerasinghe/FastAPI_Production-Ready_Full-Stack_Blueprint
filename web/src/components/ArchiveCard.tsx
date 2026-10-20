@@ -51,7 +51,7 @@ export function ArchiveCard({ todo, onRestore, onDelete }: ArchiveCardProps) {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={() => onDelete(todo.id)}
         title="Permanently Delete?"
-        description="You are are going to permanently delete this todo along with all assets and attachments. You won't be able to restore this."
+        description="You are are going to permanently delete this todo. You won't be able to restore this."
         confirmLabel="Delete Forever"
         variant="danger"
       />

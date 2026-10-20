@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-10-16
 
+> **Amendment (2026-10-20):** the `privacy` (data export) and `flags` (feature flags) modules were removed to keep the template minimal. Account deletion (`DELETE /v2/user/me`) remains the erasure path. Re-introduce an audited export endpoint and a feature-flag capability when a product needs them; the decisions below describe the intended design.
+
 ## Context
 
 A production service holding personal data must honour data-subject rights, limit storage, control who can access what, decouple releases from deploys, and keep its dependency licences and supply chain in check.

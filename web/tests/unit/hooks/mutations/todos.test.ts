@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import {
   useCreateTodo,
   useDeleteTodo,
-  useRemoveAttachment,
   useToggleArchiveTodo,
   useUpdateTodo,
 } from "@/hooks/mutations/todos";
@@ -75,20 +74,6 @@ describe("useToggleArchiveTodo", () => {
     });
 
     result.current.mutate("todo-1");
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-  });
-});
-
-describe("useRemoveAttachment", () => {
-  it("succeeds when removing an attachment by file ID", async () => {
-    const { result } = renderHook(() => useRemoveAttachment("todo-1"), {
-      wrapper: createWrapper(),
-    });
-
-    result.current.mutate("att-1");
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);

@@ -35,18 +35,17 @@ All test files are located under `server/tests/` and are organized as follows:
 ## Example: Unit Test
 
 ```python
-async def test_add_todo_without_attachments(
+async def test_add_todo_persists_record(
     todo_service: TodoService,
     mock_todo_repository: MockTodoRepository,
 ) -> None:
-    """Test that creating a Todo task without specifying attachment IDs persists the Todo correctly."""
+    """Test that creating a Todo task persists the Todo correctly."""
     todo_data = TodoCreate(
         title="Buy groceries",
         description="Milk and bread",
         is_completed=False,
-        attachment_ids=None,
     )
-    todo = await todo_service.add(todo_data)
+    todo = await todo_service.add(todo_data.model_dump())
     assert len(mock_todo_repository.todos_db) == 1
     assert mock_todo_repository.todos_db[0].title == "Buy groceries"
     assert mock_todo_repository.todos_db[0].id == todo.id

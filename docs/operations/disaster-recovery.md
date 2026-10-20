@@ -5,7 +5,7 @@
 | Data | RPO (max data loss) | RTO (max downtime) | How |
 | :--- | :--- | :--- | :--- |
 | PostgreSQL | 5 minutes | 1 hour | Managed Postgres (RDS/Cloud SQL/Azure) with continuous WAL archiving → point-in-time recovery (PITR), daily snapshots, 35-day retention |
-| Object storage (attachments) | 0 (versioned) | 1 hour | S3 versioning + replication to a second region, lifecycle rules for old versions |
+| Object storage (uploaded files, when a module uses `FileStorage`) | 0 (versioned) | 1 hour | S3 versioning + replication to a second region, lifecycle rules for old versions |
 | Redis | Not backed up | Minutes | Holds only rate-limit counters and the job queue; outbox events live in Postgres, so nothing durable is lost |
 | Secrets | 0 | 1 hour | Secrets manager with replication; break-glass access documented separately |
 

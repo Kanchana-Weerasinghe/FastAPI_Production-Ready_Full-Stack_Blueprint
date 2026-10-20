@@ -28,11 +28,10 @@ describe("todoSchema", () => {
     );
   });
 
-  it("accepts optional description and attachmentIds", () => {
+  it("accepts an optional description", () => {
     const result = todoSchema.safeParse({
       title: "Test",
       description: "Some notes",
-      attachmentIds: ["id-1", "id-2"],
     });
     expect(result.success).toBe(true);
   });
@@ -59,7 +58,6 @@ describe("todoResponseSchema", () => {
     userId: "user-1",
     title: "Test Todo",
     isCompleted: false,
-    attachments: [],
     createdAt: "2024-01-01T00:00:00Z",
     updatedAt: "2024-01-01T00:00:00Z",
   };
@@ -67,22 +65,6 @@ describe("todoResponseSchema", () => {
   it("parses a valid todo response", () => {
     const result = todoResponseSchema.safeParse(validTodo);
     expect(result.success).toBe(true);
-  });
-
-  it("defaults attachments to an empty array when omitted", () => {
-    const withoutAttachments = {
-      id: validTodo.id,
-      userId: validTodo.userId,
-      title: validTodo.title,
-      isCompleted: validTodo.isCompleted,
-      createdAt: validTodo.createdAt,
-      updatedAt: validTodo.updatedAt,
-    };
-    const result = todoResponseSchema.safeParse(withoutAttachments);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.attachments).toEqual([]);
-    }
   });
 
   it("rejects when required fields are missing", () => {

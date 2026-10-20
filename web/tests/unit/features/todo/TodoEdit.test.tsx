@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TodoEdit } from "@/features/todo/TodoEdit";
-import { useUpdateTodo, useUploadAttachment } from "@/hooks/mutations/todos";
+import { useUpdateTodo } from "@/hooks/mutations/todos";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: vi.fn(() => vi.fn()),
@@ -14,11 +14,6 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/mutations/todos", () => ({
   useUpdateTodo: vi.fn(() => ({ mutateAsync: vi.fn() })),
-  useRemoveAttachment: vi.fn(() => ({ mutateAsync: vi.fn() })),
-  useUploadAttachment: vi.fn(() => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  })),
 }));
 
 const mockUseTodo = vi.fn();
@@ -45,7 +40,6 @@ describe("TodoEdit", () => {
         isCompleted: false,
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z",
-        attachments: [],
       },
       isLoading: false,
     });
@@ -69,7 +63,6 @@ describe("TodoEdit", () => {
         isCompleted: false,
         createdAt: "",
         updatedAt: "",
-        attachments: [],
       },
       isLoading: false,
     });
@@ -89,80 +82,6 @@ describe("TodoEdit", () => {
     fireEvent.submit(form!);
   });
 
-  it("handles file uploads, size validation, and deleting pending attachments", async () => {
-    const uploadMutateAsync = vi
-      .fn()
-      .mockResolvedValueOnce({
-        id: "att-2",
-        fileName: "new.png",
-        fileType: "image/png",
-        fileSize: 100,
-      })
-      .mockRejectedValueOnce(new Error("fail"));
-
-    vi.mocked(useUploadAttachment).mockReturnValue({
-      mutateAsync: uploadMutateAsync,
-      isPending: false,
-    } as never);
-    mockUseTodo.mockReturnValue({
-      data: {
-        id: "1",
-        title: "Test Todo",
-        description: "Test Description",
-        isCompleted: false,
-        createdAt: "",
-        updatedAt: "",
-        attachments: [],
-      },
-      isLoading: false,
-    });
-
-    render(<TodoEdit />);
-    const fileInput = document.querySelector(
-      'input[type="file"]',
-    ) as HTMLInputElement;
-    const largeFile = new File(["a".repeat(60 * 1024 * 1024)], "large.png", {
-      type: "image/png",
-    });
-    Object.defineProperty(largeFile, "size", { value: 60 * 1024 * 1024 });
-    fireEvent.change(fileInput, { target: { files: [largeFile] } });
-    const validFile = new File(["test"], "test.png", { type: "image/png" });
-    fireEvent.change(fileInput, { target: { files: [validFile] } });
-    expect(await screen.findByText("new.png")).toBeInTheDocument();
-    fireEvent.change(fileInput, { target: { files: [validFile] } });
-    fireEvent.click(screen.getByTitle("Delete"));
-    expect(screen.queryByText("new.png")).not.toBeInTheDocument();
-  });
-
-  it("handles deleting existing attachments", async () => {
-    mockUseTodo.mockReturnValue({
-      data: {
-        id: "1",
-        title: "Test Todo",
-        description: "",
-        isCompleted: false,
-        createdAt: "",
-        updatedAt: "",
-        attachments: [
-          {
-            id: "att-1",
-            fileName: "old.png",
-            fileType: "image/png",
-            fileSize: 100,
-          },
-        ],
-      },
-      isLoading: false,
-    });
-    render(<TodoEdit />);
-
-    const removeBtn = screen.getByTitle("Delete");
-    fireEvent.click(removeBtn);
-    await waitFor(() =>
-      expect(screen.queryByText("old.png")).not.toBeInTheDocument(),
-    );
-  });
-
   it("renders the back link", () => {
     mockUseTodo.mockReturnValue({
       data: {
@@ -172,7 +91,6 @@ describe("TodoEdit", () => {
         isCompleted: false,
         createdAt: "",
         updatedAt: "",
-        attachments: [],
       },
       isLoading: false,
     });

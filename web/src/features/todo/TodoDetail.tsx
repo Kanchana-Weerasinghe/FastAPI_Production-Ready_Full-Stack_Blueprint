@@ -5,19 +5,17 @@ import { toast } from "sonner";
 
 import { Button } from "../../components/common/Button";
 import { Modal } from "../../components/common/Modal";
-import { CompactAssetCard } from "../../components/CompactAssetCard";
-import { getAttachmentIcon } from "../../constants/attachments.constants";
 import {
   useToggleArchiveTodo,
   useUpdateTodo,
 } from "../../hooks/mutations/todos";
 import { useTodo } from "../../hooks/queries/todos";
-import { formatDate, formatFileSize, getDownloadUrl } from "../../utils/helper";
+import { formatDate } from "../../utils/helper";
 
 /**
  * The Todo Detail feature page.
  * Displays comprehensive information about a specific todo, including
- * its status, description, and attached assets.
+ * its status and description.
  */
 export function TodoDetail() {
   const { todoId } = useParams({ from: "/_authenticated/todo/$todoId/" });
@@ -50,10 +48,6 @@ export function TodoDetail() {
     } catch {
       toast.error("Failed to update status");
     }
-  };
-
-  const handleDownload = (fileId: string) => {
-    window.open(getDownloadUrl(fileId), "_blank");
   };
 
   if (isLoading) {
@@ -139,27 +133,6 @@ export function TodoDetail() {
                 )}
               </div>
             </div>
-
-            <div className="mb-2">
-              <div className="flex flex-col gap-6">
-                {todo.attachments && todo.attachments.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {todo.attachments.map((file) => (
-                      <CompactAssetCard
-                        key={file.id}
-                        name={file.fileName}
-                        type={file.fileType}
-                        size={formatFileSize(file.fileSize)}
-                        date={formatDate(file.createdAt || todo.updatedAt)}
-                        iconUrl={getAttachmentIcon(file.fileName)}
-                        onDownload={() => handleDownload(file.id)}
-                        readOnly={true}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           <div className="bg-brand-100/50 border-t-2 border-brand-200/50 px-10 py-4 flex flex-wrap items-center gap-x-12 gap-y-4 text-brand-600/60 font-bold text-sm font-mono">
@@ -217,7 +190,7 @@ export function TodoDetail() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         title="Delete Todo?"
-        description="This todo will be delete after a month of inactivity along with assets and attachment. You can always restore this todo from the archive page."
+        description="This todo will be deleted after a month of inactivity. You can always restore this todo from the archive page."
         confirmLabel="Delete"
         variant="danger"
       />

@@ -1,92 +1,32 @@
 import { useForm } from "@tanstack/react-form";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Plus, XCircle } from "lucide-react";
+import { ArrowLeft, Check, XCircle } from "lucide-react";
 import { useState } from "react";
-import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
-import { CompactAssetCard } from "../../components/CompactAssetCard";
-import {
-  ALLOWED_EXTENSIONS,
-  getAttachmentIcon,
-} from "../../constants/attachments.constants";
-import {
-  useCreateTodo,
-  useUploadAttachment,
-} from "../../hooks/mutations/todos";
-import type { Attachment } from "../../models/attachment";
+import { useCreateTodo } from "../../hooks/mutations/todos";
 import { todoSchema } from "../../models/todo";
-import {
-  formatDate,
-  formatFileSize,
-  getErrorMessage,
-  validateFileSize,
-} from "../../utils/helper";
+import { getErrorMessage } from "../../utils/helper";
 
 /**
  * The Todo Creation feature page.
- * Provides an interface to create new todos with support for
- * multi-file uploads and real-time form validation.
+ * Provides an interface to create new todos with real-time form validation.
  */
 export function TodoNew() {
   const [activeField, setActiveField] = useState<string | null>(null);
-  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
-  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>(
-    [],
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { mutateAsync: createTodo } = useCreateTodo();
-  const { mutateAsync: uploadAttachment, isPending: isUploading } =
-    useUploadAttachment();
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!validateFileSize(file)) {
-      toast.error("File too large", {
-        description: "Max 50MB data is allowed.",
-      });
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      return;
-    }
-
-    try {
-      const uploadedAttachment = await uploadAttachment(file);
-      setAttachmentIds((prev) => [...prev, uploadedAttachment.id]);
-      setPendingAttachments((prev) => [...prev, uploadedAttachment]);
-      toast.success("File uploaded and ready to link");
-    } catch {
-      toast.error("Failed to upload file");
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const removePendingAttachment = (index: number) => {
-    setAttachmentIds((prev) => prev.filter((_, i) => i !== index));
-    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const form = useForm({
     defaultValues: {
       title: "",
       description: "",
-      attachmentIds: [] as string[],
     },
     onSubmit: async ({ value }) => {
       try {
-        await createTodo({
-          ...value,
-          attachmentIds,
-        });
+        await createTodo(value);
         toast.success("Todo created", {
           description: `"${value.title}" has been added to your list.`,
         });
@@ -191,46 +131,6 @@ export function TodoNew() {
                 </div>
               )}
             </form.Field>
-
-            <div className="mb-2">
-              <div className="flex flex-col gap-6">
-                {pendingAttachments.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {pendingAttachments.map((file, index) => (
-                      <CompactAssetCard
-                        key={file.id}
-                        name={file.fileName}
-                        type={file.fileType}
-                        size={formatFileSize(file.fileSize)}
-                        date={formatDate(file.createdAt)}
-                        iconUrl={getAttachmentIcon(file.fileName)}
-                        onDelete={() => removePendingAttachment(index)}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept={ALLOWED_EXTENSIONS.join(",")}
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className={buttonStyle}
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Plus size={20} />
-                    {isUploading ? "UPLOADING..." : "ADD ATTACHMENT"}
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

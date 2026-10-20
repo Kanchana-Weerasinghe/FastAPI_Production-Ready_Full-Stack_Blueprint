@@ -1,37 +1,19 @@
 import { useForm } from "@tanstack/react-form";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle, Plus, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle, Save } from "lucide-react";
 import { useState } from "react";
-import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "../../components/common/Button";
 import { Input } from "../../components/common/Input";
-import { CompactAssetCard } from "../../components/CompactAssetCard";
-import {
-  ALLOWED_EXTENSIONS,
-  getAttachmentIcon,
-} from "../../constants/attachments.constants";
-import {
-  useRemoveAttachment,
-  useUpdateTodo,
-  useUploadAttachment,
-} from "../../hooks/mutations/todos";
+import { useUpdateTodo } from "../../hooks/mutations/todos";
 import { useTodo } from "../../hooks/queries/todos";
-import type { Attachment } from "../../models/attachment";
 import { type Todo, todoSchema } from "../../models/todo";
-import {
-  formatDate,
-  formatFileSize,
-  getDownloadUrl,
-  getErrorMessage,
-  validateFileSize,
-} from "../../utils/helper";
+import { formatDate, getErrorMessage } from "../../utils/helper";
 
 /**
  * The Todo Edit feature page.
- * Provides a rich form to update todo content and manage attachments,
- * with real-time validation and file upload support.
+ * Provides a rich form to update todo content with real-time validation.
  */
 export function TodoEdit() {
   const { todoId } = useParams({ from: "/_authenticated/todo/$todoId/edit" });
@@ -55,68 +37,8 @@ interface TodoEditFormProps {
 
 function TodoEditForm({ todo, todoId }: TodoEditFormProps) {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { mutateAsync: updateTodo } = useUpdateTodo(todoId);
-  const { mutateAsync: removeAttachment } = useRemoveAttachment(todoId);
-  const { mutateAsync: uploadAttachment, isPending: isUploading } =
-    useUploadAttachment(todoId);
-
   const [activeField, setActiveField] = useState<string | null>(null);
-  const [newAttachmentIds, setNewAttachmentIds] = useState<string[]>([]);
-  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>(
-    [],
-  );
-  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>(
-    [],
-  );
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!validateFileSize(file)) {
-      toast.error("File too large", {
-        description: "Max 50MB data is allowed.",
-      });
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      return;
-    }
-
-    try {
-      const uploadedAttachment = await uploadAttachment(file);
-      setNewAttachmentIds((prev) => [...prev, uploadedAttachment.id]);
-      setPendingAttachments((prev) => [...prev, uploadedAttachment]);
-      toast.success("File uploaded and ready to save");
-    } catch {
-      toast.error("Failed to upload file");
-    } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const removePendingAttachment = (index: number) => {
-    setNewAttachmentIds((prev) => prev.filter((_, i) => i !== index));
-    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleDeleteAttachment = async (fileId: string) => {
-    try {
-      await removeAttachment(fileId);
-      setRemovedAttachmentIds((prev) => [...prev, fileId]);
-      toast.success("Attachment removed");
-    } catch {
-      toast.error("Failed to remove attachment");
-    }
-  };
-
-  const handleDownload = (fileId: string) => {
-    window.open(getDownloadUrl(fileId), "_blank");
-  };
 
   const form = useForm({
     defaultValues: {
@@ -125,15 +47,7 @@ function TodoEditForm({ todo, todoId }: TodoEditFormProps) {
     },
     onSubmit: async ({ value }) => {
       try {
-        await updateTodo({
-          ...value,
-          attachmentIds: [
-            ...todo.attachments
-              .filter((a) => !removedAttachmentIds.includes(a.id))
-              .map((a) => a.id),
-            ...newAttachmentIds,
-          ],
-        });
+        await updateTodo(value);
         toast.success("Todo updated successfully");
         navigate({
           to: "/todos",
@@ -276,59 +190,6 @@ function TodoEditForm({ todo, todoId }: TodoEditFormProps) {
                 );
               }}
             </form.Field>
-
-            <div className="mb-2">
-              <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {todo.attachments
-                    .filter((file) => !removedAttachmentIds.includes(file.id))
-                    .map((file) => (
-                      <CompactAssetCard
-                        key={file.id}
-                        name={file.fileName}
-                        type={file.fileType}
-                        size={formatFileSize(file.fileSize)}
-                        date={formatDate(file.createdAt)}
-                        iconUrl={getAttachmentIcon(file.fileName)}
-                        onDownload={() => handleDownload(file.id)}
-                        onDelete={() => handleDeleteAttachment(file.id)}
-                      />
-                    ))}
-                  {pendingAttachments.map((file, index) => (
-                    <CompactAssetCard
-                      key={file.id}
-                      name={file.fileName}
-                      type={file.fileType}
-                      size={formatFileSize(file.fileSize)}
-                      date={formatDate(file.createdAt)}
-                      iconUrl={getAttachmentIcon(file.fileName)}
-                      onDownload={() => handleDownload(file.id)}
-                      onDelete={() => removePendingAttachment(index)}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept={ALLOWED_EXTENSIONS.join(",")}
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className={primaryButtonStyle}
-                    disabled={isUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Plus size={20} />
-                    {isUploading ? "UPLOADING..." : "ADD ATTACHMENT"}
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="bg-brand-100/50 border-t-2 border-brand-200/50 px-10 py-4 flex flex-wrap items-center gap-x-12 gap-y-4 text-brand-600/60 font-bold text-sm font-mono">

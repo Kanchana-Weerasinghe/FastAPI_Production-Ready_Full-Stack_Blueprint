@@ -10,7 +10,6 @@ export const todoSchema = z.object({
     .min(1, "Title is missing")
     .max(100, "Must be less than 100 characters"),
   description: z.string().optional(),
-  attachmentIds: z.array(z.string()).optional(),
 });
 
 export type TodoFormValues = z.infer<typeof todoSchema>;
@@ -21,11 +20,8 @@ export const todoUpdateSchema = todoSchema.extend({
 
 export type TodoUpdate = z.infer<typeof todoUpdateSchema>;
 
-import { attachmentSchema } from "./attachment";
-
 /**
  * Zod schema for a full Todo object returned by the API.
- * Includes nested attachment details.
  */
 export const todoResponseSchema = z.object({
   id: z.string(),
@@ -33,7 +29,6 @@ export const todoResponseSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   isCompleted: z.boolean(),
-  attachments: z.array(attachmentSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

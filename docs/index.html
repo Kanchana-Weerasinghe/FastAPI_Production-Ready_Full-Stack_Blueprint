@@ -883,8 +883,9 @@
                     Domain-owned modules group related business capabilities.
                     Domain records and value objects live separately from
                     transport schemas and ORM models; for example,
-                    <code>UploadFileName</code> validates a filename and
-                    extension before storage handling.
+                    <code>TodoRecord</code> is mapped from the ORM row by the
+                    repository adapter, and <code>scripts/new_module.py</code>
+                    scaffolds a name value object and a uniqueness policy.
                   </td>
                   <td>
                     Keeps business vocabulary and validation rules close to
@@ -1768,8 +1769,9 @@
             Pydantic Settings reads environment configuration, validates types
             and rejects insecure deployed secrets/defaults. Local configuration
             examples are separate from production Kubernetes Secrets, which are
-            expected to come from a secrets manager. Feature flags support
-            controlled release of risky features.
+            expected to come from a secrets manager. Add a feature-flag
+            capability when the product needs controlled release of risky
+            features.
           </p>
           <p>
             Do not commit real <code>.env</code> files. Keep staging and
@@ -1828,7 +1830,7 @@
           </p>
           <p>
             The repository includes data classification, retention guidance,
-            account deletion and export flows, field encryption for sensitive
+            an account deletion flow, field encryption for sensitive
             secrets such as MFA seeds, append-oriented audit records,
             least-privilege guidance, access-review practices, and dependency
             licence checks.

@@ -79,7 +79,7 @@ export function TodoCard({ todo, onToggle, onDelete }: TodoCardProps) {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={() => onDelete?.(todo.id)}
         title="Delete Todo?"
-        description="This todo will be delete after a month of inactivity along with assets and attachment. You can always restore this todo from the archive page."
+        description="This todo will be deleted after a month of inactivity. You can always restore this todo from the archive page."
         confirmLabel="Delete"
         variant="danger"
       />

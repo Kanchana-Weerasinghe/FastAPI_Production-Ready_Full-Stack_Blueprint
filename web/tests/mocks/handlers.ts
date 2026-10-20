@@ -40,7 +40,6 @@ export const handlers = [
       userId: "user-1",
       title: "Test Todo",
       isCompleted: false,
-      attachments: [],
       createdAt: "2024-01-01T00:00:00Z",
       updatedAt: "2024-01-01T00:00:00Z",
     }),
@@ -51,25 +50,4 @@ export const handlers = [
     HttpResponse.json({}, { status: 204 }),
   ),
   http.post(`${BASE}/v2/todos/:todoId\\:archive`, () => HttpResponse.json({})),
-  http.get(`${BASE}/v2/attachments/`, () =>
-    HttpResponse.json({
-      founds: [],
-      searchOptions: { totalCount: 0, pageSize: 10, currentPage: 1 },
-    }),
-  ),
-  http.post(`${BASE}/v2/attachments/`, () =>
-    HttpResponse.json({
-      id: "att-1",
-      userId: "user-1",
-      fileName: "test.pdf",
-      downloadUrl: "/v2/attachments/att-1:download",
-      fileSize: 1024,
-      fileType: "application/pdf",
-      createdAt: "2024-01-01T00:00:00Z",
-      updatedAt: "2024-01-01T00:00:00Z",
-    }),
-  ),
-  http.delete(`${BASE}/v2/attachments/:fileId`, () =>
-    HttpResponse.json({}, { status: 204 }),
-  ),
 ];

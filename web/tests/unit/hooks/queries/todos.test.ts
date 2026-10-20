@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { useAttachments, useTodo, useTodos } from "@/hooks/queries/todos";
+import { useTodo, useTodos } from "@/hooks/queries/todos";
 
 import { createWrapper } from "../../../test_utils";
 
@@ -49,19 +49,5 @@ describe("useTodo", () => {
 
     expect(result.current.data?.id).toBe("todo-1");
     expect(result.current.data?.title).toBe("Test Todo");
-  });
-});
-
-describe("useAttachments", () => {
-  it("fetches the attachment list", async () => {
-    const { result } = renderHook(() => useAttachments(), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
-    });
-
-    expect(result.current.data?.founds).toEqual([]);
   });
 });

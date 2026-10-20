@@ -47,14 +47,6 @@ describe("TodoDetail", () => {
         isCompleted: true,
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z",
-        attachments: [
-          {
-            id: "att-1",
-            fileName: "test.png",
-            fileType: "image/png",
-            fileSize: 100,
-          },
-        ],
       },
       isLoading: false,
     });
@@ -62,7 +54,6 @@ describe("TodoDetail", () => {
     expect(screen.getByDisplayValue("Test Todo")).toBeInTheDocument();
     expect(screen.getByText("Tell your story...")).toBeInTheDocument();
     expect(screen.getByText("Completed")).toBeInTheDocument();
-    expect(screen.getByText("test.png")).toBeInTheDocument();
   });
 
   it("handles successful and failed delete", async () => {
@@ -79,7 +70,6 @@ describe("TodoDetail", () => {
         isCompleted: false,
         createdAt: "",
         updatedAt: "",
-        attachments: [],
       },
       isLoading: false,
     });
@@ -110,7 +100,6 @@ describe("TodoDetail", () => {
         isCompleted: false,
         createdAt: "",
         updatedAt: "",
-        attachments: [],
       },
       isLoading: false,
     });
@@ -120,32 +109,5 @@ describe("TodoDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: /mark as completed/i }));
     expect(mutateAsync).toHaveBeenCalledWith({ isCompleted: true });
     fireEvent.click(screen.getByRole("button", { name: /mark as completed/i }));
-  });
-
-  it("downloads attachment", () => {
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-    mockUseTodo.mockReturnValue({
-      data: {
-        id: "1",
-        title: "Test",
-        isCompleted: false,
-        createdAt: "",
-        updatedAt: "",
-        attachments: [
-          {
-            id: "att-1",
-            fileName: "test.png",
-            fileType: "image/png",
-            fileSize: 100,
-          },
-        ],
-      },
-      isLoading: false,
-    });
-
-    render(<TodoDetail />);
-    fireEvent.click(screen.getByTitle("Download"));
-    expect(openSpy).toHaveBeenCalled();
-    openSpy.mockRestore();
   });
 });

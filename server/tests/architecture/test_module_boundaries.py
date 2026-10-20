@@ -10,7 +10,8 @@ Architecture rules for the modular monolith, enforced on every test run.
 4. Modules never import the composition root (`app.container`, `app.api`, `app.main`); routes
    resolve services by container path, e.g. `Provide["todos.service"]`.
 5. Domain modules share `domain/`, `application/ports/`, `application/use_cases/`, and
-   `infrastructure/persistence/`; `privacy` is an application-only orchestrator by design.
+   `infrastructure/persistence/`. Modules listed in `APPLICATION_ORCHESTRATION_MODULES` coordinate
+   other modules' public services and must stay application-only (no `domain/` or `infrastructure/`).
 """
 
 import ast
@@ -19,8 +20,8 @@ from pathlib import Path
 import pytest
 
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
-APPLICATION_ORCHESTRATION_MODULES = {"privacy"}
-REQUIRED_DOMAIN_MODULES = {"attachments", "audit", "auth", "flags", "todos", "users"}
+APPLICATION_ORCHESTRATION_MODULES: set[str] = set()
+REQUIRED_DOMAIN_MODULES = {"audit", "auth", "todos", "users"}
 PUBLIC_MODULE_FILES = {"service", "schemas", "dependencies", "permissions"}
 FRAMEWORK_FREE_FILES = {"service", "repository", "models"}
 COMPOSITION_ROOT = ("app.container", "app.api", "app.main")
@@ -132,7 +133,7 @@ def test_modules_have_no_flat_persistence_facades() -> None:
 
 
 def test_modules_follow_their_declared_layer_structure() -> None:
-    """Require domain modules to use the same layers and privacy to remain application-only."""
+    """Require domain modules to use the same layers and orchestration modules to remain application-only."""
     modules_dir = APP_DIR / "modules"
     module_dirs = {
         path.name: path for path in modules_dir.iterdir() if path.is_dir() and not path.name.startswith("__")
@@ -154,10 +155,11 @@ def test_modules_follow_their_declared_layer_structure() -> None:
             assert layer_dir.is_dir(), f"{name} is missing layer directory {layer}"
             assert (layer_dir / "__init__.py").is_file(), f"{name}/{layer} is missing __init__.py"
 
-    privacy_dir = module_dirs["privacy"]
-    assert (privacy_dir / "application/use_cases/__init__.py").is_file()
-    assert not (privacy_dir / "domain").exists()
-    assert not (privacy_dir / "infrastructure").exists()
+    for name in APPLICATION_ORCHESTRATION_MODULES:
+        orchestrator_dir = module_dirs[name]
+        assert (orchestrator_dir / "application/use_cases/__init__.py").is_file()
+        assert not (orchestrator_dir / "domain").exists()
+        assert not (orchestrator_dir / "infrastructure").exists()
 
 
 @pytest.mark.parametrize(

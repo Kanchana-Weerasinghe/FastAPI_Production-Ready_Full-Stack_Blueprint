@@ -74,8 +74,8 @@ async def get_todo(
     service: TodoServiceDep,
     _todo: Annotated[TodoRecord, Depends(check_ownership("todos.service", "todo_id"))],
 ) -> TodoRecord:
-    """Retrieves a todo with its attachments. The `ETag` header carries its version for `If-Match`."""
-    todo = await service.get_by_id(todo_id, eager=["attachments"])
+    """Retrieves a todo. The `ETag` header carries its version for `If-Match`."""
+    todo = await service.get_by_id(todo_id)
     set_etag(response, todo.version)
     return todo
 

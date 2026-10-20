@@ -62,7 +62,6 @@ The application resides in the `server/app/` directory and is a **modular monoli
   * `router.py` and `schemas.py` translate and validate HTTP input/output; keep business rules in the domain and application layers.
   * Cross-module workflows use another module's public service/application API. Do not import another module's repository, infrastructure, router, or container. Keep domain entities module-local; use application contracts for cross-module data.
   * `auth/dependencies.py` provides `CurrentUserDep` and `check_ownership(...)` for route authentication and resource ownership checks.
-  * `privacy/` is intentionally an application-only composition module: it coordinates public services from data-owning modules and has no separate domain model or persistence adapter.
 
 * `shared/`: Base model/repository/service, pagination schemas (`schemas.py`), file storage, the `Actor` protocol, outbound integrations (`integrations/`) and utilities.
 
@@ -78,7 +77,7 @@ The source code resides in the `web/src/` directory:
 
 * `constants/`: Shared UI and navigation configuration constants.
 
-* `features/`: Modular components implementing feature-specific pages (e.g., `todo/TodoList.tsx`, `todo/TodoEdit.tsx`, `Archives.tsx`, `Attachments.tsx`).
+* `features/`: Modular components implementing feature-specific pages (e.g., `todo/TodoList.tsx`, `todo/TodoEdit.tsx`, `Archives.tsx`).
 
 * `hooks/`: React state and fetching hooks:
   * `queries/`: React Query hooks for fetching data (e.g., `todos.ts`).
@@ -87,7 +86,7 @@ The source code resides in the `web/src/` directory:
 
 * `lib/`: Client utilities such as the API axios `client.ts` and query configuration `query.ts`.
 
-* `models/`: Client-side Zod validation schemas and types (e.g., `todo.ts`, `attachment.ts`).
+* `models/`: Client-side Zod validation schemas and types (e.g., `todo.ts`).
 
 * `routes/`: File-based TanStack Router configuration directories (e.g., `_authenticated/`, `_guest/`).
 
@@ -124,8 +123,6 @@ The source code resides in the `web/src/` directory:
    * Map them to files in `web/src/routes/` using static route configurations. The build pipeline handles code splitting automatically.
 - **Search Components**:
    * When searching within a paginated view, always reset the current page parameter to `1` on query changes (`setPage(1)`) to avoid out-of-bounds pagination matches.
-- **MIME Types vs. Filenames**:
-   * Always resolve visual elements (like file type icons via `getAttachmentIcon(filename)`) using the actual file name/extension rather than the MIME type string.
 - For writing tests for the frontend, follow the `react-testing` skill.
 
 ### Backend

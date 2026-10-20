@@ -345,71 +345,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/attachments/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Attachments
-         * @description Retrieves a paginated list of all attachments owned by the current user.
-         */
-        get: operations["get_user_attachments_v2_attachments__get"];
-        put?: never;
-        /**
-         * Upload Attachment
-         * @description Uploads a file and creates an unlinked attachment record.
-         */
-        post: operations["upload_attachment_v2_attachments__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/attachments/{_file_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete Attachment
-         * @description Deletes an attachment record; the stored file is removed after the transaction commits.
-         */
-        delete: operations["delete_attachment_v2_attachments___file_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/attachments/{_file_id}:download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Download Attachment
-         * @description Downloads the file (always as an attachment, never rendered inline): redirects to a short-lived
-         *     pre-signed URL with object storage, or streams it from local storage.
-         */
-        get: operations["download_attachment_v2_attachments___file_id__download_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v2/audit-logs/": {
         parameters: {
             query?: never;
@@ -423,66 +358,6 @@ export interface paths {
          */
         get: operations["list_audit_logs_v2_audit_logs__get"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/feature-flags/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Feature Flags (admin)
-         * @description All flags with their configuration. Requires `flags:manage`.
-         */
-        get: operations["list_flags_v2_feature_flags__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/feature-flags/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * My Feature Flags
-         * @description Flags evaluated for the current user; the web app uses this to show or hide features.
-         */
-        get: operations["my_flags_v2_feature_flags_me_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v2/feature-flags/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Create or Update Feature Flag (admin)
-         * @description Creates or changes a flag (audited). Requires `flags:manage`.
-         */
-        put: operations["upsert_flag_v2_feature_flags__key__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -567,7 +442,7 @@ export interface paths {
         };
         /**
          * Get Todo
-         * @description Retrieves a todo with its attachments. The `ETag` header carries its version for `If-Match`.
+         * @description Retrieves a todo. The `ETag` header carries its version for `If-Match`.
          */
         get: operations["get_todo_v2_todos__todo_id__get"];
         put?: never;
@@ -602,26 +477,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/user/me/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export My Data
-         * @description Downloads all personal data stored about the current user as JSON (data portability).
-         */
-        get: operations["export_my_data_v2_user_me_export_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v2/users/": {
         parameters: {
             query?: never;
@@ -646,60 +501,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * Attachment
-         * @description Full attachment schema including the unique identifier.
-         */
-        Attachment: {
-            /**
-             * Createdat
-             * Format: date-time
-             * @description Upload timestamp
-             */
-            createdAt: string;
-            /**
-             * Downloadurl
-             * @description Authenticated, ownership-checked download path
-             */
-            readonly downloadUrl: string;
-            /**
-             * Filename
-             * @description Original name of the uploaded file
-             */
-            fileName: string;
-            /**
-             * Filesize
-             * @description Size of the file in bytes
-             */
-            fileSize: number;
-            /**
-             * Filetype
-             * @description MIME type of the file
-             */
-            fileType: string;
-            /**
-             * Id
-             * Format: uuid
-             * @description Unique attachment identifier
-             */
-            id: string;
-            /**
-             * Updatedat
-             * Format: date-time
-             * @description Last modification timestamp
-             */
-            updatedAt: string;
-        };
-        /** AttachmentListResponse */
-        AttachmentListResponse: {
-            /**
-             * Founds
-             * @description The list of retrieved items
-             */
-            founds: components["schemas"]["Attachment"][];
-            /** @description Pagination metadata */
-            searchOptions: components["schemas"]["SearchOptions"];
-        };
         /** AuditLog */
         AuditLog: {
             /** Action */
@@ -750,11 +551,6 @@ export interface components {
             /** @description Pagination metadata */
             searchOptions: components["schemas"]["SearchOptions"];
         };
-        /** Body_upload_attachment_v2_attachments__post */
-        Body_upload_attachment_v2_attachments__post: {
-            /** File */
-            file: string;
-        };
         /** EmailRequest */
         EmailRequest: {
             /**
@@ -762,49 +558,6 @@ export interface components {
              * Format: email
              */
             email: string;
-        };
-        /**
-         * EvaluatedFlags
-         * @description Flags as evaluated for the current user (what the web app uses).
-         */
-        EvaluatedFlags: {
-            /** Flags */
-            flags: {
-                [key: string]: boolean;
-            };
-        };
-        /** FeatureFlag */
-        FeatureFlag: {
-            /** Description */
-            description: string;
-            /** Enabled */
-            enabled: boolean;
-            /** Key */
-            key: string;
-            /** Roles */
-            roles: string[];
-            /** Rolloutpercentage */
-            rolloutPercentage: number;
-        };
-        /** FeatureFlagUpdate */
-        FeatureFlagUpdate: {
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Enabled
-             * @default false
-             */
-            enabled: boolean;
-            /** Roles */
-            roles?: string[];
-            /**
-             * Rolloutpercentage
-             * @default 100
-             */
-            rolloutPercentage: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -944,12 +697,6 @@ export interface components {
          */
         Todo: {
             /**
-             * Attachments
-             * @description List of files attached to this task
-             * @default []
-             */
-            attachments: components["schemas"]["Attachment"][];
-            /**
              * Createdat
              * Format: date-time
              * @description Timestamp when the task was created
@@ -1000,11 +747,6 @@ export interface components {
          * @description Schema for creating a new Todo item.
          */
         TodoCreate: {
-            /**
-             * Attachmentids
-             * @description Optional list of attachment IDs to link to this task
-             */
-            attachmentIds?: string[] | null;
             /**
              * Description
              * @description Detailed description of the task
@@ -1071,11 +813,6 @@ export interface components {
          * @description Schema for updating an existing Todo item. All fields are optional.
          */
         TodoUpdate: {
-            /**
-             * Attachmentids
-             * @description New list of attachment IDs to link
-             */
-            attachmentIds?: string[] | null;
             /**
              * Description
              * @description Updated description
@@ -1656,137 +1393,6 @@ export interface operations {
             };
         };
     };
-    get_user_attachments_v2_attachments__get: {
-        parameters: {
-            query?: {
-                /** @description The page number to retrieve */
-                page?: number | null;
-                /** @description Number of items per page (max 100) */
-                pageSize?: number | null;
-                /** @description Field to sort by. Prefix with '-' for descending order */
-                ordering?: string | null;
-                /** @description Filter by partial file name match */
-                fileName?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttachmentListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_attachment_v2_attachments__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_attachment_v2_attachments__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Attachment"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_attachment_v2_attachments___file_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                _file_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_attachment_v2_attachments___file_id__download_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                _file_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_audit_logs_v2_audit_logs__get: {
         parameters: {
             query?: {
@@ -1814,81 +1420,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogPage"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_flags_v2_feature_flags__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFlag"][];
-                };
-            };
-        };
-    };
-    my_flags_v2_feature_flags_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EvaluatedFlags"];
-                };
-            };
-        };
-    };
-    upsert_flag_v2_feature_flags__key__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureFlagUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFlag"];
                 };
             };
             /** @description Validation Error */
@@ -2141,26 +1672,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    export_my_data_v2_user_me_export_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Downloadable JSON export */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
             };
         };
     };

@@ -15,7 +15,6 @@ import { Route as AuthenticatedRouteRouteImport } from "./routes/_authenticated/
 import { Route as GuestIndexRouteImport } from "./routes/_guest/index"
 import { Route as GuestResetPasswordRouteImport } from "./routes/_guest/reset-password"
 import { Route as GuestForgotPasswordRouteImport } from "./routes/_guest/forgot-password"
-import { Route as AuthenticatedAttachmentsRouteImport } from "./routes/_authenticated/attachments"
 import { Route as AuthenticatedArchivesRouteImport } from "./routes/_authenticated/archives"
 import { Route as AuthenticatedAccountRouteImport } from "./routes/_authenticated/account"
 import { Route as AuthenticatedTodosIndexRouteImport } from "./routes/_authenticated/todos/index"
@@ -51,12 +50,6 @@ const GuestForgotPasswordRoute = GuestForgotPasswordRouteImport.update({
   path: "/forgot-password",
   getParentRoute: () => GuestRouteRoute,
 } as any)
-const AuthenticatedAttachmentsRoute =
-  AuthenticatedAttachmentsRouteImport.update({
-    id: "/attachments",
-    path: "/attachments",
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedArchivesRoute = AuthenticatedArchivesRouteImport.update({
   id: "/archives",
   path: "/archives",
@@ -95,7 +88,6 @@ export interface FileRoutesByFullPath {
   "/verify-email": typeof VerifyEmailRoute
   "/account": typeof AuthenticatedAccountRoute
   "/archives": typeof AuthenticatedArchivesRoute
-  "/attachments": typeof AuthenticatedAttachmentsRoute
   "/forgot-password": typeof GuestForgotPasswordRoute
   "/reset-password": typeof GuestResetPasswordRoute
   "/todo/new": typeof AuthenticatedTodoNewRoute
@@ -108,7 +100,6 @@ export interface FileRoutesByTo {
   "/verify-email": typeof VerifyEmailRoute
   "/account": typeof AuthenticatedAccountRoute
   "/archives": typeof AuthenticatedArchivesRoute
-  "/attachments": typeof AuthenticatedAttachmentsRoute
   "/forgot-password": typeof GuestForgotPasswordRoute
   "/reset-password": typeof GuestResetPasswordRoute
   "/todo/new": typeof AuthenticatedTodoNewRoute
@@ -123,7 +114,6 @@ export interface FileRoutesById {
   "/verify-email": typeof VerifyEmailRoute
   "/_authenticated/account": typeof AuthenticatedAccountRoute
   "/_authenticated/archives": typeof AuthenticatedArchivesRoute
-  "/_authenticated/attachments": typeof AuthenticatedAttachmentsRoute
   "/_guest/forgot-password": typeof GuestForgotPasswordRoute
   "/_guest/reset-password": typeof GuestResetPasswordRoute
   "/_guest/": typeof GuestIndexRoute
@@ -139,7 +129,6 @@ export interface FileRouteTypes {
     | "/verify-email"
     | "/account"
     | "/archives"
-    | "/attachments"
     | "/forgot-password"
     | "/reset-password"
     | "/todo/new"
@@ -152,7 +141,6 @@ export interface FileRouteTypes {
     | "/verify-email"
     | "/account"
     | "/archives"
-    | "/attachments"
     | "/forgot-password"
     | "/reset-password"
     | "/todo/new"
@@ -166,7 +154,6 @@ export interface FileRouteTypes {
     | "/verify-email"
     | "/_authenticated/account"
     | "/_authenticated/archives"
-    | "/_authenticated/attachments"
     | "/_guest/forgot-password"
     | "/_guest/reset-password"
     | "/_guest/"
@@ -226,13 +213,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof GuestForgotPasswordRouteImport
       parentRoute: typeof GuestRouteRoute
     }
-    "/_authenticated/attachments": {
-      id: "/_authenticated/attachments"
-      path: "/attachments"
-      fullPath: "/attachments"
-      preLoaderRoute: typeof AuthenticatedAttachmentsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     "/_authenticated/archives": {
       id: "/_authenticated/archives"
       path: "/archives"
@@ -281,7 +261,6 @@ declare module "@tanstack/react-router" {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedArchivesRoute: typeof AuthenticatedArchivesRoute
-  AuthenticatedAttachmentsRoute: typeof AuthenticatedAttachmentsRoute
   AuthenticatedTodoNewRoute: typeof AuthenticatedTodoNewRoute
   AuthenticatedTodosIndexRoute: typeof AuthenticatedTodosIndexRoute
   AuthenticatedTodoTodoIdEditRoute: typeof AuthenticatedTodoTodoIdEditRoute
@@ -291,7 +270,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedArchivesRoute: AuthenticatedArchivesRoute,
-  AuthenticatedAttachmentsRoute: AuthenticatedAttachmentsRoute,
   AuthenticatedTodoNewRoute: AuthenticatedTodoNewRoute,
   AuthenticatedTodosIndexRoute: AuthenticatedTodosIndexRoute,
   AuthenticatedTodoTodoIdEditRoute: AuthenticatedTodoTodoIdEditRoute,

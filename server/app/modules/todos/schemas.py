@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.modules.attachments.schemas import Attachment
 from app.shared.schemas import BaseListResponse, PaginationMixin
 
 
@@ -21,8 +20,6 @@ class TodoBase(BaseModel):
 class TodoCreate(TodoBase):
     """Schema for creating a new Todo item."""
 
-    attachment_ids: list[UUID] | None = Field(None, description="Optional list of attachment IDs to link to this task")
-
 
 class TodoUpdate(BaseModel):
     """Schema for updating an existing Todo item. All fields are optional."""
@@ -31,7 +28,6 @@ class TodoUpdate(BaseModel):
     title: str | None = Field(None, description="Updated title")
     description: str | None = Field(None, description="Updated description")
     is_completed: bool | None = Field(None, description="Updated completion status")
-    attachment_ids: list[UUID] | None = Field(None, description="New list of attachment IDs to link")
 
 
 class Todo(TodoBase):
@@ -39,7 +35,6 @@ class Todo(TodoBase):
 
     id: UUID = Field(..., description="Unique task identifier")
     user_id: UUID = Field(..., description="Owner's user identifier")
-    attachments: list[Attachment] = Field([], description="List of files attached to this task")
     created_at: datetime = Field(..., description="Timestamp when the task was created")
     updated_at: datetime = Field(..., description="Timestamp when the task was last modified")
     version: int = Field(..., description="Optimistic-locking version (also sent as the ETag header)")

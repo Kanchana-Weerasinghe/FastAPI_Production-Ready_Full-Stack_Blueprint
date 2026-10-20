@@ -28,9 +28,6 @@ test.describe("Navigation & Auth Guards", () => {
     await expect(
       page.getByPlaceholder("Search archived todos..."),
     ).toBeVisible();
-    await page.getByRole("link", { name: "Attachments" }).click();
-    await expect(page).toHaveURL(/.*\/attachments/);
-    await expect(page.getByPlaceholder("Search files...")).toBeVisible();
     await page.getByRole("link", { name: "Todo" }).click();
     await expect(page).toHaveURL(/.*\/todos/);
   });

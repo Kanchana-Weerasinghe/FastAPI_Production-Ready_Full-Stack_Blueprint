@@ -33,8 +33,5 @@ class Users(BaseModel):
         self._password = password
 
     todos: Mapped[list["Todos"]] = relationship("Todos", back_populates="user", cascade="all, delete-orphan")
-    attachments: Mapped[list["Attachments"]] = relationship(
-        "Attachments", back_populates="user", cascade="all, delete-orphan"
-    )
 
-    eagers = ["todos", "attachments"]
+    eagers = ["todos"]

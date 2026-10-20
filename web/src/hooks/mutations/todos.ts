@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import client from "../../lib/client";
-import type { Attachment } from "../../models/attachment";
 import type { TodoFormValues, TodoUpdate } from "../../models/todo";
 
 /**
@@ -100,79 +99,6 @@ export const useDeleteTodo = () => {
       await client.delete(`/v2/todos/${todoId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-    },
-  });
-};
-
-/**
- * Hook to upload a file as an attachment.
- *
- * @param todoId - Optional todo ID to invalidate detail queries after upload.
- * @returns A mutation object that returns the uploaded Attachment data.
- */
-export const useUploadAttachment = (todoId?: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await client.post<Attachment>(
-        "/v2/attachments/",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      if (todoId) {
-        queryClient.invalidateQueries({ queryKey: ["todos", todoId] });
-      }
-      queryClient.invalidateQueries({ queryKey: ["attachments"] });
-    },
-  });
-};
-
-/**
- * Hook to remove a specific attachment from a todo.
- *
- * @param todoId - The ID of the todo owning the attachment.
- * @returns A mutation object for removing a specific attachment.
- */
-export const useRemoveAttachment = (todoId: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (fileId: string) => {
-      await client.delete(`/v2/attachments/${fileId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", todoId] });
-      queryClient.invalidateQueries({ queryKey: ["attachments"] });
-    },
-  });
-};
-
-/**
- * A generic hook to delete an attachment by its file ID globally.
- *
- * @returns A mutation object for global attachment deletion.
- */
-export const useRemoveAttachmentGeneric = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ fileId }: { fileId: string }) => {
-      await client.delete(`/v2/attachments/${fileId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attachments"] });
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });

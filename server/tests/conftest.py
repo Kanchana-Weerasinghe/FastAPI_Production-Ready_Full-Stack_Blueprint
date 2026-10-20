@@ -65,8 +65,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import config
 from app.main import app as app_instance
 from app.main import container
-from app.modules.attachments.infrastructure.persistence.repository import AttachmentRepository
-from app.modules.attachments.service import AttachmentService
 from app.modules.todos.infrastructure.persistence.repository import TodoRepository
 from app.modules.todos.service import TodoService
 from app.modules.users.infrastructure.persistence.repository import UserRepository
@@ -74,7 +72,6 @@ from app.modules.users.service import UserService
 from app.shared.models import BaseModel
 from app.shared.storage import LocalFileStorage
 from tests.factories import load_test_data
-from tests.mocks.attachment_repository import MockAttachmentRepository
 from tests.mocks.audit import FakeAuditService
 from tests.mocks.autosend import MockAutosendClient
 from tests.mocks.todo_repository import MockTodoRepository
@@ -175,20 +172,8 @@ def mock_todo_repository() -> MockTodoRepository:
 
 
 @pytest.fixture
-def mock_attachment_repository() -> MockAttachmentRepository:
-    return MockAttachmentRepository()
-
-
-@pytest.fixture
-def attachment_service(
-    mock_attachment_repository: MockAttachmentRepository, fake_uow: FakeUnitOfWork
-) -> AttachmentService:
-    return AttachmentService(attachment_repository=mock_attachment_repository, storage=LocalFileStorage(), uow=fake_uow)
-
-
-@pytest.fixture
-def todo_service(mock_todo_repository: MockTodoRepository, attachment_service: AttachmentService) -> TodoService:
-    return TodoService(todo_repository=mock_todo_repository, attachment_service=attachment_service)
+def todo_service(mock_todo_repository: MockTodoRepository) -> TodoService:
+    return TodoService(todo_repository=mock_todo_repository)
 
 
 @pytest.fixture(autouse=True)
@@ -220,8 +205,3 @@ def user_repository(db_session: AsyncSession) -> UserRepository:
 @pytest.fixture
 def todo_repository(db_session: AsyncSession) -> TodoRepository:
     return TodoRepository(db_session)
-
-
-@pytest.fixture
-def attachment_repository(db_session: AsyncSession) -> AttachmentRepository:
-    return AttachmentRepository(db_session)

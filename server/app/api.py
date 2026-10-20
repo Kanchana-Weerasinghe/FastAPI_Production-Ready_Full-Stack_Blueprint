@@ -8,11 +8,8 @@ announced sunset date and advertise it via `Deprecation`/`Sunset` headers.
 
 from fastapi import APIRouter
 
-from app.modules.attachments.router import router as attachments_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
-from app.modules.flags.router import router as flags_router
-from app.modules.privacy.router import router as privacy_router
 from app.modules.todos.router import router as todos_router
 from app.modules.users.router import admin_router as users_admin_router
 from app.modules.users.router import router as users_router
@@ -26,10 +23,7 @@ api_v2 = APIRouter(prefix="/v2")
 api_v2.include_router(users_router)
 api_v2.include_router(users_admin_router)
 api_v2.include_router(todos_router)
-api_v2.include_router(attachments_router)
 api_v2.include_router(audit_router)
-api_v2.include_router(flags_router)
-api_v2.include_router(privacy_router)
 # [scaffold:router-includes]
 
 API_ROUTERS = [api_v1, api_v2]

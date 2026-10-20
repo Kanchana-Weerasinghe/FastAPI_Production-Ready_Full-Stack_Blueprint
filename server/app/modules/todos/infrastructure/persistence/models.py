@@ -16,8 +16,5 @@ class Todos(BaseModel):
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user: Mapped["Users"] = relationship("Users", back_populates="todos", lazy="selectin")
-    attachments: Mapped[list["Attachments"]] = relationship(
-        "Attachments", back_populates="todo", cascade="save-update, merge, refresh-expire, expunge"
-    )
 
-    eagers = ["user", "attachments"]
+    eagers = ["user"]

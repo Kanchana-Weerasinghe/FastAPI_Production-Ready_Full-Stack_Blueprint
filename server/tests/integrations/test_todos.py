@@ -159,19 +159,6 @@ async def test_get_todos_list_pagination_and_search(client: Any) -> None:
         assert search_query.lower() in item["title"].lower()
 
 
-async def test_create_todo_with_another_users_attachment(client: Any) -> None:
-    """Integration test verifying a user cannot link (and thereby read) an attachment owned by another user."""
-    owner = await client(SECOND_USER_CREDENTIALS["email"], SECOND_USER_CREDENTIALS["password"])
-    upload = await owner.post("/v2/attachments/", files={"file": ("private.json", b"{}", "application/json")})
-    attachment_id = upload.json()["id"]
-
-    attacker = await client(FIRST_USER_CREDENTIALS["email"], FIRST_USER_CREDENTIALS["password"])
-    response = await attacker.post("/v2/todos/", json={"title": "Steal", "attachmentIds": [attachment_id]})
-    assert response.status_code == 404
-    todos = (await attacker.get("/v2/todos/", params={"title": "Steal"})).json()
-    assert todos["searchOptions"]["totalCount"] == 0
-
-
 async def test_list_todos_rejects_unknown_ordering(client: Any) -> None:
     """Integration test verifying that ordering by a field outside the allow-list is rejected with 422 instead of a 500."""
     api_client = await client(FIRST_USER_CREDENTIALS["email"], FIRST_USER_CREDENTIALS["password"])

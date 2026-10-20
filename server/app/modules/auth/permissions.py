@@ -22,7 +22,6 @@ class Permission(StrEnum):
     USERS_READ_ALL = "users:read_all"
     USERS_MANAGE = "users:manage"
     AUDIT_READ = "audit:read"
-    FLAGS_MANAGE = "flags:manage"
 
 
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {

@@ -44,7 +44,7 @@ The architecture applies the following principles in the codebase:
 
 | Principle or pattern | How it is used |
 | --- | --- |
-| **DDD-inspired domain modeling** | Business capabilities are grouped into domain-owned modules. Domain records, value objects, and domain validation are separated from HTTP schemas and ORM models. For example, `UploadFileName` validates attachment filename metadata. |
+| **DDD-inspired domain modeling** | Business capabilities are grouped into domain-owned modules. Domain records, value objects, and domain validation are separated from HTTP schemas and ORM models. For example, `TodoRecord` is mapped from the ORM row by the repository adapter, and `scripts/new_module.py` scaffolds a value object and a domain policy. |
 | **Selective DDD scope** | The project uses practical DDD building blocks; it does not claim that every module is a fully modeled bounded context with aggregates and a formally documented ubiquitous language. |
 | **Modular monolith** | Domains have internal boundaries but are deployed together as one application. Cross-module workflows use public service/application APIs rather than importing another module's private repository or container. |
 | **Separation of concerns** | Routers translate HTTP, application services coordinate workflows, domain types represent business concepts, and infrastructure adapters handle persistence and external integrations. |
@@ -80,7 +80,7 @@ For the detailed architecture walkthrough, request lifecycle, 14-area readiness 
 
 The backend (`server/`) is built with **FastAPI (Async)** and **Python** as a **modular monolith**: code is grouped by business domain, with HTTP routes, application use cases, domain rules, ports, and infrastructure adapters separated inside each module.
 
-- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `todos`, `attachments`) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd server && uv run python scripts/new_module.py <name>`.
+- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `audit`, and the example `todos` module) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd server && uv run python scripts/new_module.py <name>`.
 - **Shared (`app/shared/`)**: Reusable building blocks: base repository/service/model, pagination schemas, file storage, integrations.
 - **Core (`app/core/`)**: Config, database and unit of work, domain errors and RFC 9457 error handlers, security, logging, and middleware for cross-cutting request concerns.
 - **Composition root (`app/container.py`, `app/api.py`, `app/models.py`)**: Wires modules together, mounts routers per API version, registers models for Alembic.
@@ -128,7 +128,7 @@ The repository combines application frameworks with testing, operations, and del
 | --- | --- |
 | **Backend** | Python 3.12+, FastAPI, Uvicorn, Gunicorn, Pydantic, Pydantic Settings, Dependency Injector |
 | **Data and background work** | PostgreSQL, SQLAlchemy 2 async, asyncpg, Alembic, Redis, ARQ |
-| **Security and API operations** | PyJWT, bcrypt, pyotp, cryptography, email-validator, SlowAPI, multipart upload support |
+| **Security and API operations** | PyJWT, bcrypt, pyotp, cryptography, email-validator, SlowAPI |
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, TanStack Router, TanStack Query, TanStack Form, TanStack Store, Zod, Axios |
 | **Backend quality and tests** | Pytest, pytest-asyncio, pytest-cov, Ruff, mypy |
 | **Frontend quality and tests** | Vitest, Testing Library, Playwright, MSW, ESLint, Prettier |
