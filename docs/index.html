@@ -642,15 +642,16 @@
         <h1>FastAPI &amp; React: A Production-Ready Full-Stack Blueprint</h1>
         <p>
           This guide explains the problems this FastAPI + React template is
-          designed to solve, the architectural choices it makes, how its 14
-          engineering areas map to a production-minded application, and how to
-          add a new domain entity without weakening those boundaries.
+          designed to solve, the architectural choices it makes, how each
+          business domain runs as its own deployable service, what every folder
+          and file inside a service is responsible for, and how to add business
+          logic without weakening those boundaries.
         </p>
         <div class="hero-badges" aria-label="Core technology">
           <span>Python 3.12+</span>
           <span>FastAPI · SQLAlchemy · PostgreSQL</span>
           <span>React · TypeScript</span>
-          <span>Modular monolith</span>
+          <span>Domain services · DDD</span>
           <span>Docker · Helm · Terraform</span>
         </div>
       </div>
@@ -664,8 +665,13 @@
           <a href="#technology">Technology</a>
           <a href="#principles">Principles and patterns</a>
           <a href="#architecture">Architecture at a glance</a>
+          <a href="#services">Service landscape</a>
+          <a href="#service-folders">Service anatomy · folders</a>
+          <a href="#service-files">Service anatomy · files</a>
+          <a href="#service-trace">Trace a request through the files</a>
+          <a href="#service-extend">Extend a service or add one</a>
           <a href="#request-workflow">End-to-end request workflow</a>
-          <a href="#scorecard">14-area map</a>
+          <a href="#area-1">14-area map</a>
           <a href="#area-1">1 · Architecture</a>
           <a href="#area-2">2 · API contracts</a>
           <a href="#area-3">3 · Data layer</a>
@@ -1216,6 +1222,496 @@
           </p>
         </section>
 
+        <section id="services">
+          <h2>Service landscape</h2>
+          <p class="lede">
+            Each business domain (bounded context) is its own service: its own
+            code, database schema, migrations, tests, image and deployment. A
+            domain's business rules live only inside its service; every other
+            application uses them through that service's HTTP API (and, later,
+            its domain events).
+          </p>
+          <div class="diagram">
+            <svg
+              viewBox="0 0 920 330"
+              role="img"
+              aria-labelledby="services-title services-desc"
+            >
+              <title id="services-title">Domain services and their dependencies</title>
+              <desc id="services-desc">
+                Client applications sign in with the identity service, which
+                issues an access token. They call the data acquisition service
+                with that token as a Bearer header; the service verifies it
+                offline. Both services share one PostgreSQL server but each owns
+                its own schema. Both are built on the shared platform-kit
+                library.
+              </desc>
+              <defs>
+                <marker
+                  id="arrow-services"
+                  markerWidth="9"
+                  markerHeight="9"
+                  refX="7"
+                  refY="3"
+                  orient="auto"
+                >
+                  <path d="M0,0 L0,6 L8,3 z" fill="#5484a7"></path>
+                </marker>
+              </defs>
+              <rect class="node" x="20" y="125" width="160" height="80" rx="12"></rect>
+              <text x="100" y="158">Apps / BFFs</text>
+              <text class="small" x="100" y="182">web · portals · workers</text>
+              <rect class="node" x="300" y="30" width="230" height="80" rx="12"></rect>
+              <text x="415" y="63">services/identity</text>
+              <text class="small" x="415" y="87">sign-in · users · audit · issues tokens</text>
+              <rect class="node" x="300" y="220" width="230" height="80" rx="12"></rect>
+              <text x="415" y="253">services/data-acquisition</text>
+              <text class="small" x="415" y="277">AcquisitionJob rules · /v1/acquisition-jobs</text>
+              <rect class="node" x="660" y="30" width="240" height="80" rx="12"></rect>
+              <text x="780" y="63">PostgreSQL · schema public</text>
+              <text class="small" x="780" y="87">owned by identity</text>
+              <rect class="node" x="660" y="220" width="240" height="80" rx="12"></rect>
+              <text x="780" y="253">PostgreSQL · schema data_acquisition</text>
+              <text class="small" x="780" y="277">owned by data-acquisition</text>
+              <rect class="node" x="320" y="135" width="190" height="60" rx="12"></rect>
+              <text x="415" y="161">packages/platform-kit</text>
+              <text class="small" x="415" y="182">shared technical code only</text>
+              <path style="fill:none;stroke:#5484a7;stroke-width:2.2" marker-end="url(#arrow-services)" d="M180 145 C230 145 250 70 293 70"></path>
+              <path style="fill:none;stroke:#5484a7;stroke-width:2.2" marker-end="url(#arrow-services)" d="M180 185 C230 185 250 260 293 260"></path>
+              <path style="fill:none;stroke:#5484a7;stroke-width:2.2" marker-end="url(#arrow-services)" d="M530 70 H653"></path>
+              <path style="fill:none;stroke:#5484a7;stroke-width:2.2" marker-end="url(#arrow-services)" d="M530 260 H653"></path>
+              <text class="small" x="240" y="60">1 · sign in → token</text>
+              <text class="small" x="240" y="292">2 · Bearer token</text>
+            </svg>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Path</th>
+                  <th>Responsibility</th>
+                  <th>Deploys as</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>services/identity/</code></td>
+                  <td>
+                    Platform service: sign-up/sign-in, sessions, MFA, users and
+                    roles, security audit log. Issues the access tokens every
+                    other service trusts. Also contains the <code>todos</code>
+                    learning example.
+                  </td>
+                  <td>Image + <code>deploy/helm/app</code> (with its worker and the web app)</td>
+                </tr>
+                <tr>
+                  <td><code>services/data-acquisition/</code></td>
+                  <td>
+                    Business domain service: owns <code>AcquisitionJob</code> and
+                    every rule about it. <strong>The reference service</strong>
+                    to copy when building a new domain.
+                  </td>
+                  <td>Image + its own release of <code>deploy/helm/domain-service</code></td>
+                </tr>
+                <tr>
+                  <td><code>packages/platform-kit/</code></td>
+                  <td>
+                    Shared technical building blocks: settings, logging, unit of
+                    work, errors, middleware, health, token verification, HTTP
+                    client. No business rules.
+                  </td>
+                  <td>Library (path dependency of each service)</td>
+                </tr>
+                <tr>
+                  <td><code>web/</code></td>
+                  <td>React front end.</td>
+                  <td>Image + <code>deploy/helm/app</code></td>
+                </tr>
+                <tr>
+                  <td><code>deploy/</code></td>
+                  <td>
+                    Helm charts, Terraform, per-service database roles,
+                    monitoring configuration.
+                  </td>
+                  <td>Used by the release pipeline</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>Three rules that keep services independent:</strong> never
+            import another service's code; never read or join another service's
+            schema (store its IDs as plain values); reach another domain only
+            through its API (via a port and an adapter) or its events. See
+            <a href="adr/0016-independent-domain-services.md">ADR 0016</a>.
+          </div>
+        </section>
+
+        <section id="service-folders">
+          <h2>Service anatomy · what each folder is responsible for</h2>
+          <p class="lede">
+            The walkthrough uses <code>services/data-acquisition</code>. Every
+            new domain service follows the same layout. Inside a service, each
+            folder under <code>app/modules/</code> is one aggregate of that
+            domain (here <code>acquisition_jobs</code>).
+          </p>
+          <pre><code>services/data-acquisition/
+├── app/                          the running application
+│   ├── main.py · config.py · container.py · api.py · auth.py · db.py · models.py
+│   └── modules/
+│       └── acquisition_jobs/     one aggregate of the domain
+│           ├── domain/           business rules (plain Python)
+│           ├── application/
+│           │   ├── ports/        what the use cases need from outside
+│           │   └── use_cases/    one business operation per class
+│           ├── infrastructure/   technology that implements the ports
+│           │   └── persistence/  SQLAlchemy model + repository
+│           ├── router.py · schemas.py      HTTP boundary
+│           ├── container.py              wiring of ports to adapters
+│           └── service.py                public API of the module
+├── migrations/                   Alembic history for this service's schema only
+├── tests/                        unit · architecture · integration
+├── scripts/                      contract export and helpers
+└── Dockerfile · pyproject.toml · alembic.ini · .env.example · openapi.json · README.md</code></pre>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Folder</th>
+                  <th>Responsible for</th>
+                  <th>May depend on</th>
+                  <th>Must never</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>app/</code> (root files)</td>
+                  <td>
+                    Starting the service: configuration, dependency wiring,
+                    router registry, caller authentication, database base class.
+                  </td>
+                  <td>Everything in the service, <code>platform_kit</code></td>
+                  <td>Contain business rules</td>
+                </tr>
+                <tr>
+                  <td><code>modules/&lt;aggregate&gt;/</code></td>
+                  <td>
+                    Everything about one aggregate, from rules to HTTP. Add a
+                    folder per aggregate (e.g. <code>data_sources/</code>).
+                  </td>
+                  <td>Other modules of the same service via their <code>service.py</code></td>
+                  <td>Import another module's infrastructure or router</td>
+                </tr>
+                <tr>
+                  <td><code>domain/</code></td>
+                  <td>
+                    The business: entity and its behaviours, value objects
+                    (validation), policies (decisions needing outside facts),
+                    domain events, named business errors.
+                  </td>
+                  <td>Standard library, <code>platform_kit.errors</code></td>
+                  <td>Import FastAPI, Pydantic, SQLAlchemy, HTTP clients or <code>app.config</code></td>
+                </tr>
+                <tr>
+                  <td><code>application/ports/</code></td>
+                  <td>
+                    Interfaces (<code>Protocol</code>) describing what use cases
+                    need: storage, event publishing, other services.
+                  </td>
+                  <td>Domain</td>
+                  <td>Mention a technology (SQL, HTTP, broker)</td>
+                </tr>
+                <tr>
+                  <td><code>application/use_cases/</code></td>
+                  <td>
+                    One business operation each: load → check access → apply
+                    domain behaviour → save → publish events.
+                  </td>
+                  <td>Domain, ports, <code>platform_kit.errors</code>, <code>platform_kit.auth</code></td>
+                  <td>Import infrastructure, ORM models, HTTP schemas or FastAPI</td>
+                </tr>
+                <tr>
+                  <td><code>infrastructure/</code></td>
+                  <td>
+                    Adapters implementing ports: SQLAlchemy repository and row
+                    mapping, event publisher, clients for other services.
+                  </td>
+                  <td>Domain, ports, SQLAlchemy, <code>platform_kit</code></td>
+                  <td>Make business decisions or commit transactions</td>
+                </tr>
+                <tr>
+                  <td><code>router.py</code> / <code>schemas.py</code></td>
+                  <td>
+                    The HTTP contract: paths, request/response shapes, status
+                    codes, headers (ETag, If-Match, Location).
+                  </td>
+                  <td>Use cases, domain types (for mapping), <code>platform_kit.http</code></td>
+                  <td>Contain business rules or talk to the database</td>
+                </tr>
+                <tr>
+                  <td><code>migrations/</code></td>
+                  <td>Schema history of this service's schema only.</td>
+                  <td><code>app.models</code>, <code>app.config</code></td>
+                  <td>Touch another service's schema</td>
+                </tr>
+                <tr>
+                  <td><code>tests/</code></td>
+                  <td>
+                    Proving rules (unit), boundaries (architecture) and the real
+                    HTTP + database behaviour (integration).
+                  </td>
+                  <td>Everything</td>
+                  <td>Point at a shared or developer database</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>Dependency direction:</strong> HTTP → use case → domain;
+            infrastructure → ports. Nothing points back at HTTP or infrastructure.
+            <code>tests/architecture/test_layers.py</code> fails the build if a
+            file breaks this.
+          </div>
+        </section>
+
+        <section id="service-files">
+          <h2>Service anatomy · what each file does</h2>
+          <p class="lede">
+            Paths are relative to <code>services/data-acquisition/</code>; the
+            module files are under <code>app/modules/acquisition_jobs/</code>.
+            The "change it when" column tells you where a typical task lands.
+          </p>
+
+          <h3>Service root</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>pyproject.toml</code></td><td>Dependencies (including <code>platform-kit</code> as a path dependency), task commands (<code>dev</code>, <code>test</code>, <code>upgrade</code>, <code>openapi</code>), lint/type/coverage settings.</td><td>Adding a library or a task</td></tr>
+                <tr><td><code>uv.lock</code></td><td>Exact locked versions for reproducible builds.</td><td>Never by hand; <code>uv sync</code> / <code>uv add</code> update it</td></tr>
+                <tr><td><code>.env.example</code></td><td>Every setting with a safe development value; copy to <code>.env</code> locally.</td><td>Adding a setting</td></tr>
+                <tr><td><code>Dockerfile</code> · <code>Dockerfile.dockerignore</code></td><td>Production image built from the repo root (so <code>platform-kit</code> is included): non-root user, read-only filesystem, gunicorn. The ignore file keeps the build context to this service and the kit.</td><td>Changing runtime command or base image</td></tr>
+                <tr><td><code>alembic.ini</code></td><td>Points Alembic at <code>migrations/</code>.</td><td>Rarely</td></tr>
+                <tr><td><code>openapi.json</code></td><td>The exported, committed API contract consumers generate clients from.</td><td>After any API change: <code>uv run task openapi</code></td></tr>
+                <tr><td><code>README.md</code></td><td>Service summary: aggregate, endpoints, commands.</td><td>Endpoints or rules change</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Application wiring (<code>app/</code>)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>main.py</code></td><td>Entry point: sets up logging, builds the container, creates the FastAPI app with <code>platform_kit</code>'s factory (error handlers, request/transaction middleware, health probes, CORS).</td><td>Rarely</td></tr>
+                <tr><td><code>config.py</code></td><td><code>Settings</code> extends <code>ServiceSettings</code>: service name, schema (<code>data_acquisition</code>) and business settings such as <code>ACTIVE_JOB_LIMIT_PER_OWNER</code>. Refuses insecure values in staging/production.</td><td>Adding a setting (also add it to <code>.env.example</code>)</td></tr>
+                <tr><td><code>container.py</code></td><td>Composition root: creates the database and unit of work once and plugs in each module's container.</td><td>Adding a module or shared adapter</td></tr>
+                <tr><td><code>api.py</code></td><td>Router registry: mounts module routers under <code>/v1</code>.</td><td>Adding a module or an API version</td></tr>
+                <tr><td><code>auth.py</code></td><td><code>CurrentPrincipal</code> dependency: reads <code>Authorization: Bearer</code> and verifies the identity service's token offline.</td><td>Rarely</td></tr>
+                <tr><td><code>db.py</code></td><td>Declarative <code>Base</code> whose tables all live in this service's schema.</td><td>Never for features</td></tr>
+                <tr><td><code>models.py</code></td><td>Registry importing every ORM model so Alembic sees them.</td><td>Adding a new ORM model</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Domain layer (<code>domain/</code>) · the business rules</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>entities.py</code></td><td>The <code>AcquisitionJob</code> aggregate: properties, the <code>create</code> factory, behaviours (<code>start</code>, <code>record_progress</code>, <code>complete</code>, <code>fail</code>, <code>retry</code>, <code>cancel</code>) that enforce valid transitions, business questions (<code>can_retry</code>, <code>is_active</code>) and recording of domain events.</td><td>A new behaviour or lifecycle rule</td></tr>
+                <tr><td><code>value_objects.py</code></td><td>Self-validating values: <code>JobName</code> (3–120 chars), <code>DataSource</code> (allowed URI scheme per source type, no embedded credentials), <code>MaxAttempts</code> (1–10), plus the <code>SourceType</code> and <code>JobStatus</code> enums.</td><td>A new validated field or allowed value</td></tr>
+                <tr><td><code>policies.py</code></td><td>Pure decisions that need outside facts, e.g. <code>ensure_owner_can_queue_job(active_jobs, limit)</code>.</td><td>A rule spans more than one aggregate instance</td></tr>
+                <tr><td><code>events.py</code></td><td>Facts other domains may react to: <code>AcquisitionJobQueued</code>, <code>…Completed</code>, <code>…Failed</code>, <code>…Cancelled</code>. Part of the public contract.</td><td>Another domain needs to know something happened</td></tr>
+                <tr><td><code>exceptions.py</code></td><td>Named business errors with stable codes (<code>invalid_source</code>, <code>retry_limit_reached</code>, …), mapped automatically to RFC 9457 responses.</td><td>A new rule can be violated</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Application layer (<code>application/</code>) · use cases and ports</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>ports/job_repository.py</code></td><td><code>JobRepository</code> protocol (<code>add</code>, <code>get</code>, <code>save</code>, <code>find</code>, <code>count_active</code>) plus <code>JobQuery</code>/<code>JobPage</code>.</td><td>A use case needs a new kind of read or write</td></tr>
+                <tr><td><code>ports/event_publisher.py</code></td><td><code>EventPublisher</code> protocol: publish events only if the transaction commits.</td><td>Rarely</td></tr>
+                <tr><td><code>use_cases/_base.py</code></td><td>Shared steps: load for owner (404 for strangers, If-Match check), load for worker (role check), save and publish events; the injectable clock.</td><td>A new access rule shared by many use cases</td></tr>
+                <tr><td><code>use_cases/create_job.py</code></td><td><code>CreateJob</code> + <code>CreateJobCommand</code>: validate values, fetch the active count, apply the policy, create, persist, publish.</td><td>Creation rules change</td></tr>
+                <tr><td><code>use_cases/owner_actions.py</code></td><td><code>CancelJob</code>, <code>RetryJob</code>: actions the job's owner takes.</td><td>Adding an owner action</td></tr>
+                <tr><td><code>use_cases/worker_actions.py</code></td><td><code>StartJob</code>, <code>RecordProgress</code>, <code>CompleteJob</code>, <code>FailJob</code>: lifecycle reported by the acquisition worker.</td><td>Adding a worker action</td></tr>
+                <tr><td><code>use_cases/queries.py</code></td><td><code>GetJob</code>, <code>ListJobs</code> (owner-scoped; admins may list all).</td><td>New read scenarios</td></tr>
+                <tr><td><code>use_cases/__init__.py</code></td><td>Exports every use case for the router and container.</td><td>Adding a use case</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Infrastructure layer (<code>infrastructure/</code>) · adapters</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>persistence/models.py</code></td><td><code>AcquisitionJobs</code> SQLAlchemy table: columns, check constraints, indexes. Only the repository uses it.</td><td>A new stored field (then create a migration)</td></tr>
+                <tr><td><code>persistence/repository.py</code></td><td><code>SqlAlchemyJobRepository</code>: implements the port, maps rows ↔ entity, compare-and-set on <code>version</code> (409 on concurrent change), filtered and paginated queries.</td><td>A new port method or stored field</td></tr>
+                <tr><td><code>events.py</code></td><td><code>LoggingEventPublisher</code>: logs events after commit. Replace with an outbox/broker adapter when another domain consumes events.</td><td>Introducing a message broker</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>HTTP boundary and wiring of the module</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>router.py</code></td><td>Endpoints under <code>/v1/acquisition-jobs</code>: resolve the caller, translate the request into a command, call one use case, map the result, set <code>ETag</code>/<code>Location</code>.</td><td>A new endpoint</td></tr>
+                <tr><td><code>schemas.py</code></td><td>Pydantic request/response models (camelCase JSON) and <code>Job.from_entity</code> mapping. Validates shape only; rules stay in the domain.</td><td>Request or response shape changes</td></tr>
+                <tr><td><code>container.py</code></td><td>Binds ports to adapters (repository, event publisher) and builds each use case.</td><td>A new use case or adapter</td></tr>
+                <tr><td><code>service.py</code></td><td>Public API of the module for other modules <em>in the same service</em> (re-exports only).</td><td>Another module needs a use case</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Migrations, tests and scripts</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>migrations/env.py</code></td><td>Runs Alembic against this service's schema only, creating it if needed; the version table lives in the same schema.</td><td>Rarely</td></tr>
+                <tr><td><code>migrations/versions/*.py</code></td><td>One file per schema change (<code>a1c4e7d2b905</code> creates <code>acquisition_jobs</code>).</td><td>Every model change: autogenerate, then review</td></tr>
+                <tr><td><code>tests/unit/test_domain.py</code></td><td>Every value object, transition and policy, with no database or framework.</td><td>Every new rule</td></tr>
+                <tr><td><code>tests/unit/test_use_cases.py</code></td><td>Use cases with fake ports: access control, events, limits, If-Match.</td><td>Every new use case</td></tr>
+                <tr><td><code>tests/fakes.py</code></td><td>In-memory <code>FakeJobRepository</code> and <code>FakeEventPublisher</code>.</td><td>A port gains a method</td></tr>
+                <tr><td><code>tests/architecture/test_layers.py</code></td><td>Fails the build if a layer imports what it must not, or code imports another service.</td><td>Rarely</td></tr>
+                <tr><td><code>tests/integration/conftest.py</code></td><td>Starts a throwaway Postgres (Testcontainers), runs the real migrations, builds signed test tokens.</td><td>Rarely</td></tr>
+                <tr><td><code>tests/integration/test_acquisition_jobs_api.py</code></td><td>The real HTTP API end to end: 401/403/404, rules, lifecycle, pagination, 412.</td><td>Every new endpoint</td></tr>
+                <tr><td><code>scripts/export_openapi.py</code></td><td>Writes or checks <code>openapi.json</code> (<code>--check</code> for CI).</td><td>Never for features</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="service-trace">
+          <h2>Trace a request through the files</h2>
+          <p>
+            <code>POST /v1/acquisition-jobs/</code> with a Bearer token and
+            <code>{"name": "Catalogue crawl", "sourceType": "web", "sourceUri": "https://example.org"}</code>:
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>File</th><th>What happens</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>1</td><td><code>platform_kit/http/middleware.py</code></td><td>Binds the request ID, checks body size, opens the transaction.</td></tr>
+                <tr><td>2</td><td><code>schemas.py</code> → <code>JobCreate</code></td><td>Validates the JSON shape (422 <code>validation_failed</code> if wrong).</td></tr>
+                <tr><td>3</td><td><code>app/auth.py</code></td><td>Verifies the token → <code>Principal(user_id, role)</code> (401 if invalid).</td></tr>
+                <tr><td>4</td><td><code>router.py</code> → <code>create_job</code></td><td>Builds a <code>CreateJobCommand</code> and calls the use case from <code>container.py</code>.</td></tr>
+                <tr><td>5</td><td><code>use_cases/create_job.py</code></td><td>Creates <code>JobName</code>, <code>DataSource</code>, <code>MaxAttempts</code> (<code>value_objects.py</code>, 422 <code>invalid_source</code> etc.).</td></tr>
+                <tr><td>6</td><td><code>ports/job_repository.py</code> → <code>repository.py</code></td><td><code>count_active(owner)</code>; then <code>policies.py</code> checks the limit (409 <code>active_job_limit_reached</code>).</td></tr>
+                <tr><td>7</td><td><code>entities.py</code></td><td><code>AcquisitionJob.create(...)</code> → status <code>queued</code>, records <code>AcquisitionJobQueued</code>.</td></tr>
+                <tr><td>8</td><td><code>repository.py</code> + <code>models.py</code></td><td>Maps the entity to a row and inserts it into <code>data_acquisition.acquisition_jobs</code>.</td></tr>
+                <tr><td>9</td><td><code>infrastructure/events.py</code></td><td>Schedules event publishing for after the commit.</td></tr>
+                <tr><td>10</td><td><code>router.py</code> + <code>schemas.py</code></td><td><code>Job.from_entity</code>, 201 with <code>Location</code> and <code>ETag: W/"1"</code>.</td></tr>
+                <tr><td>11</td><td><code>platform_kit/http/middleware.py</code></td><td>Commits (any 4xx/5xx would roll back), runs after-commit callbacks, adds <code>X-Request-ID</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="service-extend">
+          <h2>Extend a service or add one</h2>
+          <h3>Add a behaviour to an existing aggregate (e.g. "pause a running job")</h3>
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <h3>Domain</h3>
+              <p>
+                Add <code>PAUSED</code> to <code>JobStatus</code>
+                (<code>value_objects.py</code>), a <code>pause()</code> method
+                that checks the current state in <code>entities.py</code>, and
+                an event if other domains care (<code>events.py</code>). Add the
+                rule's tests to <code>tests/unit/test_domain.py</code> first.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <h3>Use case</h3>
+              <p>
+                Add <code>PauseJob</code> (load with access check →
+                <code>job.pause()</code> → <code>_save</code>) to the right file in
+                <code>use_cases/</code>, export it in <code>__init__.py</code>,
+                and test it with the fakes in <code>test_use_cases.py</code>.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <h3>Wiring and HTTP</h3>
+              <p>
+                Register <code>pause_job</code> in the module
+                <code>container.py</code>, add <code>POST /{job_id}:pause</code>
+                in <code>router.py</code>, an integration test, then
+                <code>uv run task openapi</code> and update
+                <code>docs/API_FLOW.md</code>.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <h3>Storage (only if a field is added)</h3>
+              <p>
+                Change <code>persistence/models.py</code> and the mapping in
+                <code>repository.py</code>, run
+                <code>uv run alembic revision --autogenerate -m "..."</code>,
+                review it, <code>uv run task upgrade</code>, and update
+                <code>docs/DATABASE_DESIGN.md</code>.
+              </p>
+            </div>
+          </div>
+
+          <h3>Add a new aggregate to the same domain (e.g. <code>DataSource</code>)</h3>
+          <p>
+            Create <code>app/modules/data_sources/</code> with the same layers,
+            register its container in <code>app/container.py</code>, its router
+            in <code>app/api.py</code> and its model in <code>app/models.py</code>.
+            Other aggregates refer to it by ID; a job can hold
+            <code>data_source_id</code>.
+          </p>
+
+          <h3>Add a new domain service (e.g. <code>services/billing</code>)</h3>
+          <ol>
+            <li>Copy <code>services/data-acquisition</code>, rename the project, <code>SERVICE_NAME</code>, <code>DB_SCHEMA</code> and the module.</li>
+            <li>Replace the aggregate with the new domain's entity, rules, use cases and tests.</li>
+            <li>Create its database roles (copy <code>deploy/db/roles-data-acquisition.sql</code>) and its Helm values file for <code>deploy/helm/domain-service</code>.</li>
+            <li>Add it to <code>docker-compose.yml</code>, pre-commit and the docs (README, AGENTS, API_FLOW, DATABASE_DESIGN).</li>
+            <li>If it needs another domain's data, add a port in <code>application/ports/</code> and an adapter using <code>platform_kit.http.client.ServiceClient</code>; never read the other schema.</li>
+          </ol>
+          <pre><code>cd services/data-acquisition
+uv sync                 # install (platform-kit comes from ../../packages)
+uv run task upgrade     # migrate this service's schema
+uv run task dev         # http://localhost:8010/docs
+uv run task check; uv run task type-check
+uv run task test        # unit + architecture + integration (Docker required)
+uv run task openapi     # export the contract and commit it</code></pre>
+        </section>
+
         <section id="request-workflow">
           <h2>End-to-end request workflow</h2>
           <p class="lede">
@@ -1505,6 +2001,13 @@
             another module's public application API. Let the composition root
             wire providers. Document material architectural changes as ADRs.
           </p>
+          <div class="callout">
+            <strong>Services, not only modules:</strong> the same rules apply
+            inside every domain service. A new business domain becomes a new
+            service under <code>services/</code> (see
+            <a href="#services">Service landscape</a>), not a new module in
+            <code>services/identity</code>.
+          </div>
         </section>
 
         <section id="area-2">
@@ -1854,6 +2357,14 @@
             template workflow; generated code must be reviewed and adapted to
             your domain.
           </p>
+
+          <div class="callout warning">
+            <strong>Where does this apply?</strong> The generator works inside
+            <code>services/identity</code> and is the quickest way to learn the
+            layers. For a real business domain, build a separate service by
+            following <a href="#service-extend">Extend a service or add one</a>
+            and use <code>services/data-acquisition</code> as the reference.
+          </div>
 
           <p class="small-text muted">
             The request lifecycle is shown once in
@@ -2250,6 +2761,26 @@ pnpm test</code></pre>
             <li>
               <a href="../services/identity/scripts/new_module.py"
                 >Domain module generator</a
+              >
+            </li>
+            <li>
+              <a href="adr/0016-independent-domain-services.md"
+                >ADR 0016 · Independent domain services</a
+              >
+            </li>
+            <li>
+              <a href="../services/data-acquisition/README.md"
+                >Reference domain service (data-acquisition)</a
+              >
+            </li>
+            <li>
+              <a href="../packages/platform-kit/README.md"
+                >Shared platform-kit package</a
+              >
+            </li>
+            <li>
+              <a href="../deploy/helm/domain-service/values.yaml"
+                >Domain-service Helm chart</a
               >
             </li>
           </ul>
