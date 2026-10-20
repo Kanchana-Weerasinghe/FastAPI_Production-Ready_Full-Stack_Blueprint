@@ -96,11 +96,6 @@ def test_entity_turns_plain_strings_into_value_objects() -> None:
     assert account.role is Role.USER
 
 
-def test_admin_question_uses_the_role() -> None:
-    assert _account(role="admin").is_admin
-    assert not _account().is_admin
-
-
 @pytest.mark.parametrize(
     ("field", "value", "error"),
     [
@@ -115,7 +110,7 @@ def test_entity_cannot_hold_invalid_values(field: str, value: str, error: type[E
         _account(**{field: value})
 
 
-# --- Business questions ---------------------------------------------------------------------------
+# --- Sign-in guard ---------------------------------------------------------------------------------
 
 
 def test_account_is_locked_only_until_expiry() -> None:
@@ -137,7 +132,6 @@ def test_verify_email_keeps_first_timestamp() -> None:
     assert account.verify_email(at=NOW)
     assert not account.verify_email(at=NOW + timedelta(days=1))
     assert account.email_verified_at == NOW
-    assert account.is_email_verified
 
 
 def test_clear_failed_logins_reports_whether_anything_changed() -> None:
@@ -161,9 +155,9 @@ def test_mfa_lifecycle() -> None:
     with pytest.raises(MfaNotStarted):
         account.enable_mfa(at=NOW)
     account.start_mfa_setup("encrypted-secret")
-    assert not account.is_mfa_enabled
+    assert account.mfa_enabled_at is None
     account.enable_mfa(at=NOW)
-    assert account.is_mfa_enabled
+    assert account.mfa_enabled_at == NOW
     with pytest.raises(MfaAlreadyEnabled):
         account.start_mfa_setup("another-secret")
     account.disable_mfa()

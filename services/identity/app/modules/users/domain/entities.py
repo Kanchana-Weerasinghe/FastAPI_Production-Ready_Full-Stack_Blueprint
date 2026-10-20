@@ -47,35 +47,25 @@ class UserAccount:
         self.password_hash = PasswordHash(self.password_hash)
         self.role = Role.parse(self.role)
 
-    # --- Business questions -----------------------------------------------------------------
+    # --- Behaviours ---------------------------------------------------------------------------
+    # Each behaviour checks its own rule first, then changes the account. Those returning `bool`
+    # report whether anything changed, so the use case saves only real changes.
+
     def is_locked(self, now: datetime) -> bool:
-        """Only a lock expiry in the future blocks sign-in."""
+        """Sign-in guard: only a lock expiry in the future blocks sign-in."""
         if now.tzinfo is None:
             raise ValueError("Account lock checks require a timezone-aware datetime")
         return self.locked_until is not None and self.locked_until > now
 
-    @property
-    def is_email_verified(self) -> bool:
-        return self.email_verified_at is not None
-
-    @property
-    def is_mfa_enabled(self) -> bool:
-        return self.mfa_enabled_at is not None
-
-    @property
-    def has_failed_logins(self) -> bool:
-        return bool(self.failed_login_attempts or self.locked_until)
-
-    # --- Behaviours (each returns whether anything changed, so callers save only real changes) ---
     def verify_email(self, *, at: datetime) -> bool:
-        if self.is_email_verified:
-            return False  # verifying twice keeps the original timestamp
+        if self.email_verified_at is not None:
+            return False  # already verified: keep the original timestamp
         self.email_verified_at = at
         return True
 
     def clear_failed_logins(self) -> bool:
-        if not self.has_failed_logins:
-            return False
+        if not self.failed_login_attempts and self.locked_until is None:
+            return False  # nothing to reset
         self.failed_login_attempts = 0
         self.locked_until = None
         return True
@@ -84,13 +74,9 @@ class UserAccount:
         """Stores a new hash. Revoking existing sessions is the use case's job (atomic counter)."""
         self.password_hash = PasswordHash(password_hash)
 
-    @property
-    def is_admin(self) -> bool:
-        return self.role is Role.ADMIN
-
     def start_mfa_setup(self, encrypted_secret: str) -> None:
         """Stores a new, not yet active TOTP secret."""
-        if self.is_mfa_enabled:
+        if self.mfa_enabled_at is not None:
             raise MfaAlreadyEnabled("MFA is already enabled")
         self.mfa_secret_encrypted = encrypted_secret
         self.mfa_enabled_at = None
