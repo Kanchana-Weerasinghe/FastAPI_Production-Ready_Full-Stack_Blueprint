@@ -248,7 +248,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Local Uploads
-server/uploads/
+services/*/uploads/
 
 # Terraform (commit .terraform.lock.hcl, never state)
 .terraform/

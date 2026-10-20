@@ -1,5 +1,5 @@
 """
-Exports the OpenAPI document (the API contract) to `server/openapi.json`.
+Exports the OpenAPI document (the API contract) to `services/core-api/openapi.json`.
 
 The file is committed: CI regenerates it and fails when it is out of date, and checks the diff against
 the target branch for breaking changes (oasdiff). The web app generates its TypeScript types from it

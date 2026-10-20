@@ -1,5 +1,5 @@
 [project]
-name = "server"
+name = "core-api"
 version = "0.1.0"
 description = "FastAPI Template by aps08 | https://github.com/aps08"
 requires-python = ">=3.12"

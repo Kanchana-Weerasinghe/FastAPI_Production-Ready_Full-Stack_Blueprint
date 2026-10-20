@@ -13,7 +13,7 @@ See [docs/onboarding.md](docs/onboarding.md). In short:
 
 ```bash
 uvx pre-commit install --hook-type pre-commit --hook-type pre-push
-cd server && uv sync && uv run task upgrade && uv run task seed && uv run task dev
+cd services/core-api && uv sync && uv run task upgrade && uv run task seed && uv run task dev
 cd web && pnpm install && pnpm dev
 ```
 
@@ -21,6 +21,6 @@ cd web && pnpm install && pnpm dev
 
 - Backend architecture and rules: [AGENTS.md](AGENTS.md), ADRs in [docs/adr](docs/adr). New domain → `uv run python scripts/new_module.py <name>`.
 - Errors: raise domain errors from `app/core/errors.py`; never `HTTPException` in services.
-- Every API change updates `server/openapi.json` (`uv run task openapi`), the generated web types (`pnpm gen:api`) and `docs/API_FLOW.md`.
+- Every API change updates `services/core-api/openapi.json` (`uv run task openapi`), the generated web types (`pnpm gen:api`) and `docs/API_FLOW.md`.
 - Every schema change ships a reviewed, backward-compatible migration ([docs/database/migrations.md](docs/database/migrations.md)) and updates `docs/DATABASE_DESIGN.md`.
 - Tests: unit tests for services, integration tests for endpoints (real Postgres via testcontainers); coverage must stay ≥ 90%.

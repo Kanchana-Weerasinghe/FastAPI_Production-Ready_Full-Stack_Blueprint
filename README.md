@@ -78,9 +78,19 @@ For the detailed architecture walkthrough, request lifecycle, 14-area readiness 
 <img src="https://img.shields.io/badge/Gunicorn-499848?style=for-the-badge&logo=gunicorn&logoColor=white" />
 </p>
 
-The backend (`server/`) is built with **FastAPI (Async)** and **Python** as a **modular monolith**: code is grouped by business domain, with HTTP routes, application use cases, domain rules, ports, and infrastructure adapters separated inside each module.
+The backend is a set of **independently deployable domain services** (see [ADR 0016](docs/adr/0016-independent-domain-services.md)):
 
-- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `audit`, and the example `todos` module) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd server && uv run python scripts/new_module.py <name>`.
+| Path | Role |
+| :--- | :--- |
+| [`services/core-api/`](services/core-api) | Identity (auth, users), audit and the `todos` example; issues the access tokens other services verify |
+| [`services/data-acquisition-api/`](services/data-acquisition-api) | Data acquisition domain: `AcquisitionJob` aggregate, own schema, own image and Helm release |
+| [`packages/platform-kit/`](packages/platform-kit) | Shared technical building blocks (settings, unit of work, errors, middleware, auth, HTTP client); no business rules |
+
+Each service keeps its business rules in its own domain and application layers and exposes them only through its API. Services share one PostgreSQL server but each owns a separate schema.
+
+`services/core-api/` is built with **FastAPI (Async)** and **Python** as a **modular monolith**: code is grouped by business domain, with HTTP routes, application use cases, domain rules, ports, and infrastructure adapters separated inside each module.
+
+- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `audit`, and the example `todos` module) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd services/core-api && uv run python scripts/new_module.py <name>`.
 - **Shared (`app/shared/`)**: Reusable building blocks: base repository/service/model, pagination schemas, file storage, integrations.
 - **Core (`app/core/`)**: Config, database and unit of work, domain errors and RFC 9457 error handlers, security, logging, and middleware for cross-cutting request concerns.
 - **Composition root (`app/container.py`, `app/api.py`, `app/models.py`)**: Wires modules together, mounts routers per API version, registers models for Alembic.
@@ -173,11 +183,11 @@ Before running or debugging, make sure to:
 
 ## Install Dependencies for Local Development
 
-There is no `requirements.txt` in this project. Backend dependencies are declared in `server/pyproject.toml` and locked in `server/uv.lock`; frontend dependencies are declared in `web/package.json` and locked in `web/pnpm-lock.yaml`. Install them with their respective package managers:
+There is no `requirements.txt` in this project. Backend dependencies are declared in `services/core-api/pyproject.toml` and locked in `services/core-api/uv.lock`; frontend dependencies are declared in `web/package.json` and locked in `web/pnpm-lock.yaml`. Install them with their respective package managers:
 
 ```powershell
 # Backend: Python 3.12+ and uv
-cd server
+cd services/core-api
 uv sync
 ```
 
@@ -189,7 +199,7 @@ corepack pnpm install --frozen-lockfile
 
 `uv sync` creates the backend virtual environment and installs the project dependencies, including its development dependency group. `--frozen-lockfile` installs the frontend versions recorded in the lockfile without changing it.
 
-For local development, start the backend from `server/` with `uv run task dev` and the frontend from `web/` with `corepack pnpm dev`. Run `uv run task test` from `server/` for backend tests (Docker is required for the PostgreSQL test container), or `corepack pnpm test:cov` from `web/` for frontend unit tests and coverage.
+For local development, start the backend from `services/core-api/` with `uv run task dev` and the frontend from `web/` with `corepack pnpm dev`. Run `uv run task test` from `services/core-api/` for backend tests (Docker is required for the PostgreSQL test container), or `corepack pnpm test:cov` from `web/` for frontend unit tests and coverage.
 
 For the containerized stack, configure the root `.env` as described below instead.
 
@@ -198,7 +208,7 @@ You have multiple ways to run the code:
 - **Quick Start (Docker Compose)**: Copy `.env.example` to `.env`, fill in the secrets, then run `docker compose up --build`. This starts Postgres, Redis, a one-off migration job, the API (http://localhost:8000), the worker and the web app (http://localhost:3000) with production settings. Add `--profile observability` for Prometheus and Grafana. For real deployments use the Helm chart and Terraform in `deploy/` (see `docs/operations/deployment.md`).
 - **Run Both Servers**: You can launch the **FastAPI Backend** and the **React Frontend** simultaneously using the configured "Full Stack" task. This is the fastest way to start working on the entire project. In VS Code, you can trigger this via `Ctrl+Shift+B` (if bound) or through the Run Task menu.
 - **Run Individually**: If you are only working on the backend or frontend, you can choose to run just the `Server` or just the `Web` task independently. This helps save system resources.
-- **Using Code Runner (Play Button)**: If you have the Code Runner extension installed, you can simply click the Play button in the top right. The project is configured to automatically start the backend server if you run a `.py` file inside the `server/` folder, and start the frontend development server if you run a `.ts` or `.tsx` file in the `web/` folder.
+- **Using Code Runner (Play Button)**: If you have the Code Runner extension installed, you can simply click the Play button in the top right. The project is configured to automatically start the backend server if you run a `.py` file inside the `services/core-api/` folder, and start the frontend development server if you run a `.ts` or `.tsx` file in the `web/` folder.
 - **Run Tasks (Smart Context)**: Press `Ctrl+Shift+P`, type `Run Task`, and select `🚀 Run: Smart Context`. It automatically detects if you're in frontend or backend code and starts the appropriate server.
 
 ## Quality Gates

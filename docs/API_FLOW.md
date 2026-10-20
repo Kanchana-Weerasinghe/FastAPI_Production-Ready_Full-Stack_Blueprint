@@ -52,6 +52,12 @@
   - [Liveness Probe (GET `/health/live`)](#liveness-probe)
   - [Readiness Probe (GET `/health/ready`)](#readiness-probe)
 
+- **Data Acquisition Endpoints** (`data-acquisition-api`, a separate service)
+
+  - [Service contract and authentication](#data-acquisition-service)
+  - [Create Acquisition Job (POST `/v1/acquisition-jobs/`)](#create-acquisition-job)
+  - [Job lifecycle endpoints (`:start`, `:progress`, `:complete`, `:fail`, `:retry`, `:cancel`)](#acquisition-job-lifecycle)
+
 ---
 
 ## Auth Endpoints
@@ -2989,5 +2995,162 @@
 > </details>
 
 </details>
+
+---
+
+## Data Acquisition Endpoints
+
+### <a id="data-acquisition-service"></a>Service contract and authentication
+
+These endpoints belong to **data-acquisition-api** (`services/data-acquisition-api`), deployed separately from core-api. Its machine-readable contract is [`services/data-acquisition-api/openapi.json`](/services/data-acquisition-api/openapi.json).
+
+| Aspect | Behaviour |
+| :--- | :--- |
+| Authentication | `Authorization: Bearer <access token>` issued by core-api (`/v1/auth/signin`), verified offline. Cookies are not accepted. Missing, invalid, expired or non-access tokens → 401. |
+| Ownership | Owners (and admins) see, cancel and retry their jobs; anyone else gets 404 `acquisition_job_not_found`. |
+| Worker role | `:start`, `:progress`, `:complete` and `:fail` require role `acquisition_worker` (or admin); otherwise 403. |
+| Concurrency | Responses carry `ETag: W/"<version>"`; `If-Match` on `:cancel`/`:retry` → 412 `precondition_failed` (body has `current_etag`) when stale. |
+| Errors | RFC 9457 Problem Details with stable codes: `invalid_job_name`, `invalid_source`, `invalid_max_attempts`, `invalid_progress`, `invalid_failure_reason` (422); `invalid_status_transition`, `retry_limit_reached`, `active_job_limit_reached`, `concurrent_modification` (409). |
+| Transactions | One transaction per request; any 4xx/5xx rolls back. Domain events are published only after commit. |
+
+### <a id="create-acquisition-job"></a>Create Acquisition Job
+
+<details>
+<summary>Create Acquisition Job (POST /v1/acquisition-jobs/)</summary>
+
+| URL | Method | Auth Required | Description |
+| :--- | :--- | :--- | :--- |
+| `/v1/acquisition-jobs/` | POST | True (Bearer) | Queues a job for the caller. Returns 201 with `Location` and `ETag`. |
+
+> <details>
+> <summary>Request body</summary>
+>
+> **Fields:**
+>
+> - `name` (string, **Required**): 3-120 characters after whitespace normalisation.
+> - `sourceType` (string, **Required**): `web` (http/https), `api` (https only) or `file` (s3/sftp).
+> - `sourceUri` (string, **Required**): Must match the source type's schemes, include a host/bucket and contain no embedded credentials.
+> - `maxAttempts` (integer, *Optional*, default: `3`): 1-10.
+>
+> ```json
+> {
+>   "name": "Product catalogue crawl",
+>   "sourceType": "web",
+>   "sourceUri": "https://example.org/catalogue",
+>   "maxAttempts": 3
+> }
+> ```
+> </details>
+>
+> <details>
+> <summary>Response body</summary>
+>
+> ```json
+> {
+>   "id": "4b1d1f0e-2a3c-4e5f-8a9b-0c1d2e3f4a5b",
+>   "ownerId": "d7e393b4-19dc-43ab-9a31-6ab9256123cb",
+>   "name": "Product catalogue crawl",
+>   "sourceType": "web",
+>   "sourceUri": "https://example.org/catalogue",
+>   "status": "queued",
+>   "attempts": 0,
+>   "maxAttempts": 3,
+>   "canRetry": false,
+>   "recordsCollected": 0,
+>   "errorMessage": null,
+>   "createdAt": "2026-10-20T12:00:00Z",
+>   "startedAt": null,
+>   "finishedAt": null,
+>   "version": 1
+> }
+> ```
+> </details>
+>
+> <details>
+> <summary>Error body</summary>
+>
+> **422 Unprocessable Entity** (business rule: an `api` source must use https):
+> ```json
+> {
+>   "type": "https://errors.example.com/invalid_source",
+>   "title": "Business Rule Violation",
+>   "status": 422,
+>   "detail": "A api source must use one of: https",
+>   "instance": "/v1/acquisition-jobs/",
+>   "code": "invalid_source",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+>
+> **409 Conflict** (the owner already has `ACTIVE_JOB_LIMIT_PER_OWNER` queued or running jobs):
+> ```json
+> {
+>   "type": "https://errors.example.com/active_job_limit_reached",
+>   "title": "Conflict",
+>   "status": 409,
+>   "detail": "You already have 10 active jobs (limit 10)",
+>   "instance": "/v1/acquisition-jobs/",
+>   "code": "active_job_limit_reached",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+> </details>
+
+> <details>
+> <summary>Flow Diagram</summary>
+>
+> <div align="center">
+>
+> ```mermaid
+> flowchart TD
+>     Client([Client / BFF])
+>     Router[acquisition_jobs router]
+>     Auth[Bearer token verification]
+>     UseCase[CreateJob use case]
+>     Domain[JobName / DataSource / MaxAttempts + active-job policy]
+>     Repo[SqlAlchemyJobRepository]
+>     DB[(PostgreSQL schema data_acquisition)]
+>     Events[EventPublisher after commit]
+>
+>     Client -->|1. POST /v1/acquisition-jobs/| Router
+>     Router -->|2. Verify access token| Auth
+>     Auth -->|3. Principal| UseCase
+>     UseCase -->|4. Validate values| Domain
+>     UseCase -->|5. count_active owner| Repo
+>     UseCase -->|6. Apply policy, AcquisitionJob.create| Domain
+>     UseCase -->|7. add| Repo
+>     Repo -->|8. INSERT| DB
+>     UseCase -->|9. AcquisitionJobQueued| Events
+>     Router -->|10. 201 + Location + ETag| Client
+> ```
+>
+> </div>
+> </details>
+
+</details>
+
+---
+
+### <a id="acquisition-job-lifecycle"></a>Job lifecycle endpoints
+
+```
+QUEUED --start--> RUNNING --complete--> COMPLETED
+   |                 |
+   |                 +--fail--> FAILED --retry--> QUEUED   (while attempts < maxAttempts)
+   +-----cancel------+--cancel--> CANCELLED
+```
+
+| URL | Method | Caller | Body | Rule enforced by the `AcquisitionJob` aggregate |
+| :--- | :--- | :--- | :--- | :--- |
+| `/v1/acquisition-jobs/` | GET | owner (admin: `allOwners=true`) | — | Query: `status`, `page` (≥ 1), `pageSize` (1-100). Response `{ items, pageInfo: { page, pageSize, totalCount } }`. |
+| `/v1/acquisition-jobs/{job_id}` | GET | owner/admin | — | Returns the job with `ETag`. |
+| `/v1/acquisition-jobs/{job_id}:start` | POST | worker | — | Only `queued` jobs; increments `attempts`. |
+| `/v1/acquisition-jobs/{job_id}:progress` | POST | worker | `{ "records": 250 }` | Only `running` jobs; `records` ≥ 1, added to `recordsCollected`. |
+| `/v1/acquisition-jobs/{job_id}:complete` | POST | worker | — | Only `running` jobs; publishes `AcquisitionJobCompleted`. |
+| `/v1/acquisition-jobs/{job_id}:fail` | POST | worker | `{ "reason": "Vendor returned 503" }` | Only `running` jobs; reason required (stored up to 1000 chars); publishes `AcquisitionJobFailed`. |
+| `/v1/acquisition-jobs/{job_id}:retry` | POST | owner/admin (`If-Match` optional) | — | Only `failed` jobs with attempts left (else 409 `retry_limit_reached`); resets `recordsCollected`. |
+| `/v1/acquisition-jobs/{job_id}:cancel` | POST | owner/admin (`If-Match` optional) | — | Only `queued`/`running` jobs; publishes `AcquisitionJobCancelled`. |
+
+All lifecycle endpoints return the updated job (200) with its new `ETag`; a transition that is not allowed returns 409 `invalid_status_transition`.
 
 ---

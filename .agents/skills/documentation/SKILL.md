@@ -34,7 +34,7 @@ You must update [docs/API_FLOW.md](docs/API_FLOW.md) if **anything changes in th
 
 ## Database Design Documentation (`docs/DATABASE_DESIGN.md`)
 
-You must update [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) if **anything changes in the `server/app/models` folder** (e.g., adding/modifying SQLAlchemy models, tables, columns, or relationships). The updates must follow the exact format given in `docs/DATABASE_DESIGN.md`:
+You must update [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) if **anything changes in the `services/core-api/app/models` folder** (e.g., adding/modifying SQLAlchemy models, tables, columns, or relationships). The updates must follow the exact format given in `docs/DATABASE_DESIGN.md`:
 
 - **Entity Relationship Diagram**: Maintain a **Mermaid Entity Relationship Diagram** representing all tables, columns, and relationships (with keys and descriptions). Only standard key constraints (`PK`, `FK`) are permitted (do not use invalid constraints like `UK`).
 - **Tables and Columns Detail**: Provide a detailed tabular reference listing every column, its data type, constraints, and a comprehensive comment explaining **why** it is there.

@@ -21,6 +21,7 @@ An ADR captures one significant decision: the context, the choice, and its conse
 | [0013](0013-deployment.md) | Containers on Kubernetes, infrastructure as code, build once and promote | Accepted |
 | [0014](0014-frontend.md) | Frontend: secure sessions, resilience, monitoring, budgets and accessibility | Accepted |
 | [0015](0015-governance-and-feature-flags.md) | Governance: privacy rights, retention, feature flags and supply-chain policy | Accepted |
+| [0016](0016-independent-domain-services.md) | Independent domain services with a shared platform kit | Accepted |
 
 ## Template
 

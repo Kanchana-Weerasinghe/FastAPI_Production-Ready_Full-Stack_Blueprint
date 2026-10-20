@@ -1,6 +1,6 @@
 """Scaffold a module using domain, application ports/use cases, and infrastructure adapters.
 
-Run from ``server/``:
+Run from ``services/core-api/``:
 
     uv run python scripts/new_module.py projects
     uv run python scripts/new_module.py news --singular news_item

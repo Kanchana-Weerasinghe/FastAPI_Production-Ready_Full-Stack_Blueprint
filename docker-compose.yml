@@ -49,7 +49,7 @@ services:
   # One-off migration step: the API only starts after it succeeded (replicas never race to migrate).
   migrate:
     build:
-      context: ./server
+      context: ./services/core-api
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     command: ["sh", "-c", "python scripts/backend_pre_start.py && alembic upgrade head"]
@@ -60,7 +60,7 @@ services:
 
   server:
     build:
-      context: ./server
+      context: ./services/core-api
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     container_name: todo-backend
@@ -86,7 +86,7 @@ services:
 
   worker:
     build:
-      context: ./server
+      context: ./services/core-api
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     container_name: todo-worker
@@ -102,6 +102,49 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  # --- data-acquisition-api: an independent domain service (own image, own schema, own migrations) ---
+  data-acquisition-migrate:
+    build:
+      context: .
+      dockerfile: services/data-acquisition-api/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    command: ["alembic", "upgrade", "head"]
+    environment: &data-acquisition-env
+      ENVIRONMENT: production
+      APP_VERSION: ${APP_VERSION:-0.0.0-local}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-app}
+      # Use a dedicated role in real deployments (see deploy/db/roles.sql); compose shares the app user.
+      DB_USERNAME: ${DB_USERNAME:-app}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
+      DB_SCHEMA: data_acquisition
+      # Verifies the access tokens core-api issues, so it must equal core-api's SECRET_KEY.
+      JWT_SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (see .env.example)}
+      PROBLEM_TYPE_BASE_URI: ${PROBLEM_TYPE_BASE_URI:-https://errors.localhost.test}
+      CORS_ORIGINS: '["${FRONTEND_URL:-http://localhost:3000}"]'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  data-acquisition-api:
+    build:
+      context: .
+      dockerfile: services/data-acquisition-api/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+    container_name: data-acquisition-api
+    environment: *data-acquisition-env
+    read_only: true
+    tmpfs:
+      - /tmp
+    ports:
+      - "8010:8000"
+    depends_on:
+      data-acquisition-migrate:
+        condition: service_completed_successfully
 
   web:
     build:

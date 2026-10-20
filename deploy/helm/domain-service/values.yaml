@@ -1,0 +1,72 @@
+# Defaults shared by every domain service. Each service has its own values file
+# (e.g. values-data-acquisition.yaml) that sets serviceName, image, schema and the secret name.
+# Secrets are never stored here: reference an existing Secret created from the cloud secrets manager.
+
+serviceName: ""        # required, e.g. data-acquisition-api
+
+image:
+  repository: ""       # required
+  tag: ""              # defaults to .Chart.AppVersion; set by the release pipeline
+  digest: ""           # prefer digests in production (immutable)
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Non-secret configuration (ConfigMap, consumed with envFrom).
+config:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+  DB_SCHEMA: ""        # required: the service's own schema
+  DB_POOL_SIZE: "5"
+  DB_MAX_OVERFLOW: "5"
+  PROBLEM_TYPE_BASE_URI: ""
+
+# Existing Secret with DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD (runtime role),
+# MIGRATION_DB_USERNAME, MIGRATION_DB_PASSWORD (schema owner role) and JWT_SECRET_KEY.
+existingSecret: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+replicas: 2
+resources:
+  requests: {cpu: 100m, memory: 256Mi}
+  limits: {memory: 512Mi}
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 65
+pdb:
+  minAvailable: 1
+terminationGracePeriodSeconds: 40
+preStopSleepSeconds: 10
+
+migrations:
+  enabled: true
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+
+# Who may call this service. The gateway/ingress controller always may; list other services' pods
+# (by app.kubernetes.io/name label) that call this one directly.
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+  allowedCallers: []
+
+topologySpread: true

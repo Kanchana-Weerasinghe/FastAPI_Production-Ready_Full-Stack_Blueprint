@@ -18,33 +18,59 @@ repos:
     hooks:
       - id: gitleaks
 
-  # Local hooks use the versions pinned in server/uv.lock and web/pnpm-lock.yaml.
+  # Local hooks use the versions pinned in services/core-api/uv.lock and web/pnpm-lock.yaml.
   - repo: local
     hooks:
       - id: ruff-format
         name: ruff format
-        entry: uv run --directory server ruff format
+        entry: uv run --directory services/core-api ruff format
         language: system
         types: [python]
-        files: ^server/
+        files: ^services/core-api/
         pass_filenames: false
 
       - id: ruff-check
         name: ruff check
-        entry: uv run --directory server ruff check --fix
+        entry: uv run --directory services/core-api ruff check --fix
         language: system
         types: [python]
-        files: ^server/
+        files: ^services/core-api/
         pass_filenames: false
 
       - id: mypy
         name: mypy
-        entry: uv run --directory server mypy .
+        entry: uv run --directory services/core-api mypy .
         language: system
         types: [python]
-        files: ^server/
+        files: ^services/core-api/
         pass_filenames: false
         stages: [pre-push]
+
+      - id: data-acquisition-ruff
+        name: ruff (data-acquisition-api)
+        entry: uv run --directory services/data-acquisition-api task check
+        language: system
+        types: [python]
+        files: ^services/data-acquisition-api/
+        pass_filenames: false
+
+      - id: data-acquisition-mypy
+        name: mypy (data-acquisition-api)
+        entry: uv run --directory services/data-acquisition-api mypy .
+        language: system
+        types: [python]
+        # platform-kit changes can break the service's types too.
+        files: ^(services/data-acquisition-api|packages/platform-kit)/
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: platform-kit-checks
+        name: ruff + mypy (platform-kit)
+        entry: uv run --directory packages/platform-kit task check
+        language: system
+        types: [python]
+        files: ^packages/platform-kit/
+        pass_filenames: false
 
       - id: prettier
         name: prettier

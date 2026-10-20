@@ -7,7 +7,7 @@ description: Standards for SQLAlchemy async models, PostgreSQL indexing, UTC dat
 
 ## 1. SQLAlchemy Base Class & Models
 
-All database models (except system/internal models where not applicable) must inherit from `BaseModel` defined in `server/app/models/base.py`.
+All database models (except system/internal models where not applicable) must inherit from `BaseModel` defined in `services/core-api/app/models/base.py`.
 
 ### Automatically Handled by `BaseModel`
 

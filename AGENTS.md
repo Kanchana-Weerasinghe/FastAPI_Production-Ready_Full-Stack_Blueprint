@@ -31,14 +31,40 @@ Welcome! This document provides commands, rules, and guidelines for developing a
 * **Unit Testing (coverage):** `pnpm test:cov`
 * **E2E Testing:** `pnpm test:e2e`
 
-### Backend (`server/`)
+### Repository layout
+
+| Path | What it is |
+| :--- | :--- |
+| `services/core-api/` | Identity (auth, users), audit and the `todos` example; issues the access tokens |
+| `services/data-acquisition-api/` | Data acquisition domain service (`AcquisitionJob`), deployed independently |
+| `packages/platform-kit/` | Shared technical building blocks for domain services (no business rules) |
+| `web/` | React front end |
+| `deploy/helm/app`, `deploy/helm/domain-service` | Helm charts: core-api + web, and one release per domain service |
+
+Run each service's commands from its own folder. See `docs/adr/0016-independent-domain-services.md`.
+
+### Domain services (`services/<name>-api/`, e.g. `data-acquisition-api`)
+
+* **Environment Sync:** `uv sync` (installs `platform-kit` as an editable path dependency)
+* **Development Server:** `uv run task dev` (data-acquisition-api on `:8010`)
+* **Migrations:** `uv run task upgrade` (own schema, e.g. `data_acquisition`)
+* **Checks:** `uv run task check`, `uv run task format`, `uv run task type-check`
+* **Testing:** `uv run task test` (unit, architecture and Testcontainers integration tests)
+* **Export OpenAPI contract:** `uv run task openapi` (commit the service's `openapi.json`)
+* **Image:** `docker build -f services/<name>-api/Dockerfile .` from the repository root
+
+### Shared package (`packages/platform-kit/`)
+
+* `uv sync`, `uv run task check`, `uv run task type-check`, `uv run task test`. Changes affect every domain service: run their tests too.
+
+### Backend (`services/core-api/`)
 
 * **Environment Sync:** `uv sync`
 * **Development Server:** `uv run task dev`
 * **Background Worker:** `uv run task worker` (ARQ; needs `REDIS_URL`. Not needed for local dev: outbox events are delivered inline)
 * **New Module:** `uv run python scripts/new_module.py <plural_name>` (layered domain/application/ports/infrastructure scaffold)
 * **Seed dev data:** `uv run task seed` (development only)
-* **Export OpenAPI contract:** `uv run task openapi` (commit `server/openapi.json`; then `pnpm gen:api` in `web/`)
+* **Export OpenAPI contract:** `uv run task openapi` (commit `services/core-api/openapi.json`; then `pnpm gen:api` in `web/`)
 * **Run Linter:** `uv run task check`
 * **Run Formatter:** `uv run task format`
 * **Type Checking:** `uv run task type-check`
@@ -50,9 +76,9 @@ Welcome! This document provides commands, rules, and guidelines for developing a
 
 ---
 
-### Backend Folder Structure (`server/`)
+### Backend Folder Structure (`services/core-api/`)
 
-The application resides in the `server/app/` directory and is a **modular monolith** (see `docs/adr/0001-modular-monolith.md`):
+The application resides in the `services/core-api/app/` directory and is a **modular monolith** (see `docs/adr/0001-modular-monolith.md`):
 
 * `modules/<name>/`: One package per business domain, organized into `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP `router.py`/`schemas.py`, and a DI `container.py`. Create modules with `uv run python scripts/new_module.py <plural_name>`.
   * `domain/` contains persistence- and framework-independent entities, value objects, policies, and domain exceptions.
@@ -68,6 +94,16 @@ The application resides in the `server/app/` directory and is a **modular monoli
 * `core/`: Config, database + `UnitOfWork` (`database.py`), domain errors (`errors.py`) and RFC 9457 handlers (`error_handlers.py`), security, logging, middleware, client IP resolution. Imports nothing from `shared`/`modules`.
 
 * `container.py` / `api.py` / `models.py`: Composition root (DI wiring), router registry per API version (`/v1`, `/v2`), and model registry for Alembic.
+
+### Domain Service Structure (`services/<name>-api/`)
+
+Same layering as core-api modules, but the service *is* the bounded context and its modules are its aggregates (e.g. `app/modules/acquisition_jobs/`):
+
+* `domain/`: `entities.py` (aggregate with behaviour methods and domain events), `value_objects.py`, `policies.py`, `events.py`, `exceptions.py` (extend `platform_kit.errors`). Plain Python: no FastAPI, Pydantic, SQLAlchemy or `app.config`.
+* `application/ports/` (`Protocol` interfaces) and `application/use_cases/` (one class per use case; receives a `Principal` and transport-neutral values). May import only `platform_kit.errors` and `platform_kit.auth` from platform-kit.
+* `infrastructure/`: SQLAlchemy models (the service's schema via `app/db.py`), repository adapter, event publisher adapter, HTTP clients to other services.
+* `router.py`, `schemas.py`, `container.py`, `service.py` as in core-api; `app/auth.py` resolves the caller from the bearer token.
+* Never import another service's code or read another service's schema; reference other aggregates by ID, call their API through a port, or consume their events. `tests/architecture/test_layers.py` enforces the layer rules.
 
 ### Frontend Folder Structure (`web/`)
 
@@ -208,7 +244,7 @@ sequenceDiagram
 
 Start from the layered scaffold, then adapt its example business rule rather than treating the generated sample as a complete feature.
 
-- **Generate the module** from the `server/` directory:
+- **Generate the module** from the `services/core-api/` directory:
 
   ```powershell
   uv run python scripts/new_module.py projects
@@ -237,7 +273,7 @@ Start from the layered scaffold, then adapt its example business rule rather tha
 
   Review the generated migration before applying it; autogeneration does not replace migration review. Update `docs/DATABASE_DESIGN.md` for schema changes and `docs/API_FLOW.md` for API contract changes.
 
-- **Run checks** from `server/` before opening a pull request:
+- **Run checks** from `services/core-api/` before opening a pull request:
 
   ```powershell
   uv run task check
@@ -249,8 +285,8 @@ Start from the layered scaffold, then adapt its example business rule rather tha
 
 ## STRICTLY FOLLOW THESE RULES
 
-- Run `uv run task check`, `uv run task format`, and `uv run task type-check` if **more than 5** `*.py` files in the backend (`server/app`) codebase have been changed in the current session.
-- Run `uv run task cov-html` or `uv run task test` if changes have been made to `*.py` files in the backend (`server/`) codebase inside the `tests` directory.
+- Run `uv run task check`, `uv run task format`, and `uv run task type-check` if **more than 5** `*.py` files in the backend (`services/core-api/app`) codebase have been changed in the current session.
+- Run `uv run task cov-html` or `uv run task test` if changes have been made to `*.py` files in the backend (`services/core-api/`) codebase inside the `tests` directory.
 - Run `pnpm lint`, `pnpm lint:fix`, `pnpm format`, and `pnpm format:check` if **more than 10** `*.ts` or `*.tsx` files in `web/src/` have been changed in the current session.
 - Run `pnpm test` or `pnpm test:cov` if changes have been made to files in the `web/tests/` directory and **more than 5** files have changed in the current session.
 - Always update `docs/API_FLOW.md` when making changes to the backend API using the documentation skills.

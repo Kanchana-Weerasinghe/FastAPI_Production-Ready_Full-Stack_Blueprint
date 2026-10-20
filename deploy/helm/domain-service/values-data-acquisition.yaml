@@ -1,0 +1,19 @@
+# data-acquisition-api release:
+#   helm upgrade --install data-acquisition deploy/helm/domain-service \
+#     -f deploy/helm/domain-service/values-data-acquisition.yaml --set image.tag=<git-sha>
+
+serviceName: data-acquisition-api
+
+image:
+  repository: ghcr.io/your-org/your-repo/data-acquisition-api
+
+config:
+  DB_SCHEMA: data_acquisition
+  PROBLEM_TYPE_BASE_URI: https://errors.example.com
+  ACTIVE_JOB_LIMIT_PER_OWNER: "10"
+  DEFAULT_MAX_ATTEMPTS: "3"
+
+existingSecret: data-acquisition-secrets
+
+networkPolicy:
+  allowedCallers: []   # e.g. [acquisition-worker] once workers call the API inside the cluster

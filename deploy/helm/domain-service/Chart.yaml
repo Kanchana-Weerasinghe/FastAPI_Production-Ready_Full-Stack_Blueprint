@@ -1,0 +1,8 @@
+apiVersion: v2
+name: domain-service
+description: Reusable chart for an independently deployed domain service (API Deployment, migration hook, autoscaling, network policy)
+type: application
+# One release per domain service, e.g.:
+#   helm upgrade --install data-acquisition deploy/helm/domain-service -f deploy/helm/domain-service/values-data-acquisition.yaml
+version: 0.1.0
+appVersion: "0.0.0"
