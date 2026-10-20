@@ -8,14 +8,15 @@ from fastapi import Request
 
 from app.core.errors import AuthenticationError, BadRequestError, NotFoundError, PermissionDeniedError
 from app.modules.auth.dependencies import check_ownership, get_current_user
+from app.modules.users.domain.value_objects import EmailAddress, Username
 from app.modules.users.service import UserAccount
 
 
 def _user(token_version: int = 0, user_id: UUID | None = None) -> UserAccount:
     return UserAccount(
         id=user_id or uuid.uuid4(),
-        email="test@example.com",
-        username="test_user",
+        email=EmailAddress("test@example.com"),
+        username=Username("test_user"),
         password_hash="hashed",
         role="user",
         token_version=token_version,
@@ -74,7 +75,7 @@ async def test_check_ownership_success() -> None:
     mock_request.path_params = {"id": str(resource_id)}
 
     mock_user = _user(user_id=uuid.uuid4())
-    mock_user.username = "owner_user"
+    mock_user.username = Username("owner_user")
 
     mock_resource = MagicMock()
     mock_resource.user_id = mock_user.id
@@ -156,7 +157,7 @@ async def test_check_ownership_not_authorized() -> None:
     mock_request.path_params = {"id": str(resource_id)}
 
     mock_user = _user()
-    mock_user.username = "other_user"
+    mock_user.username = Username("other_user")
 
     mock_resource = MagicMock()
     mock_resource.user_id = uuid.uuid4()

@@ -7,6 +7,7 @@ from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.users.domain.entities import UserAccount
+from app.modules.users.domain.value_objects import EmailAddress, Username
 from app.modules.users.infrastructure.persistence.models import Users
 from app.shared.repository import BaseRepository
 
@@ -23,10 +24,11 @@ class UserRepository(BaseRepository[Users, BaseModel]):
 
     @staticmethod
     def _to_entity(user: Users) -> UserAccount:
+        """Maps a row to the entity, rebuilding the value objects from the stored strings."""
         return UserAccount(
             id=user.id,
-            email=user.email,
-            username=user.username,
+            email=EmailAddress(user.email),
+            username=Username(user.username),
             password_hash=user._password,
             role=user.role,
             token_version=user.token_version,

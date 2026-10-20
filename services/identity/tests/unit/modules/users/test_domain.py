@@ -65,6 +65,25 @@ def test_username_allows_handle_characters() -> None:
     assert Username(" ada.lovelace_1-x ") == "ada.lovelace_1-x"
 
 
+# --- Entity uses the value objects ----------------------------------------------------------------
+
+
+def test_entity_turns_plain_strings_into_value_objects() -> None:
+    account = _account(email=" ada@example.com ", username="ADA42")
+    assert isinstance(account.email, EmailAddress)
+    assert isinstance(account.username, Username)
+    assert account.email == "ada@example.com"
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [("email", "not-an-email", InvalidEmailAddress), ("username", "a b", InvalidUsername)],
+)
+def test_entity_cannot_hold_invalid_values(field: str, value: str, error: type[Exception]) -> None:
+    with pytest.raises(error):
+        _account(**{field: value})
+
+
 # --- Business questions ---------------------------------------------------------------------------
 
 

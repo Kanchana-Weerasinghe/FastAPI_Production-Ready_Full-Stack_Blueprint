@@ -19,14 +19,15 @@ from datetime import datetime
 from uuid import UUID
 
 from app.modules.users.domain.exceptions import InvalidPasswordHash, MfaAlreadyEnabled, MfaNotStarted
+from app.modules.users.domain.value_objects import EmailAddress, Username
 
 
 @dataclass(slots=True)
 class UserAccount:
     # --- Properties -------------------------------------------------------------------------
     id: UUID
-    email: str  # an EmailAddress when created through UserService
-    username: str  # a Username when created through UserService
+    email: EmailAddress  # value object: always a valid address
+    username: Username  # value object: always a valid handle
     password_hash: str  # never the plain password
     role: str
     token_version: int  # bumped to revoke every access token issued so far
@@ -38,6 +39,11 @@ class UserAccount:
     created_at: datetime
     is_active: bool
     is_deleted: bool
+
+    def __post_init__(self) -> None:
+        # Guarantee: an account can never hold an invalid email or username, whoever builds it.
+        self.email = EmailAddress(self.email)
+        self.username = Username(self.username)
 
     # --- Business questions -----------------------------------------------------------------
     def is_locked(self, now: datetime) -> bool:
