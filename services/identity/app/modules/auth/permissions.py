@@ -1,7 +1,8 @@
 """
 Role-based access control (RBAC).
 
-Permissions are `<resource>:<action>` strings checked with `require_permission(...)` (see
+Roles are owned by the users domain (`Role`, a value object of the account); this module decides
+what each role may do. Permissions are `<resource>:<action>` strings checked with `require_permission(...)` (see
 `app.modules.auth.dependencies`). Roles map to permission sets here, in code, so changes are reviewed
 and versioned; `"*"` grants everything. Resource *ownership* (a user may only touch their own todos)
 is enforced separately by `check_ownership(...)`.
@@ -12,10 +13,9 @@ To add a permission: add it to `Permission`, grant it to roles below, and protec
 
 from enum import StrEnum
 
+from app.modules.users.service import Role
 
-class Role(StrEnum):
-    USER = "user"
-    ADMIN = "admin"
+__all__ = ["ROLE_PERMISSIONS", "Permission", "Role", "has_permission"]
 
 
 class Permission(StrEnum):

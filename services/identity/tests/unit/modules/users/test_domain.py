@@ -9,14 +9,18 @@ from app.modules.users.domain.entities import UserAccount
 from app.modules.users.domain.exceptions import (
     InvalidEmailAddress,
     InvalidPasswordHash,
+    InvalidRole,
     InvalidUsername,
     MfaAlreadyEnabled,
     MfaNotStarted,
 )
 from app.modules.users.domain.policies import lockout_expiry
-from app.modules.users.domain.value_objects import EmailAddress, Username
+from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 
 NOW = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
+# Shape of a real bcrypt hash (what app.core.security.hash_password produces).
+HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEeO5EHpKChSJlLpm1AaM6cX9i5n2H2hB7m"
+OTHER_HASH = "$2b$12$abcdefghijklmnopqrstuuJ0Fh1y9n7cQ4m9Rz8sQnB3dJ6q9wTzK"
 
 
 def _account(**overrides: object) -> UserAccount:
@@ -24,7 +28,7 @@ def _account(**overrides: object) -> UserAccount:
         "id": uuid.uuid4(),
         "email": EmailAddress("ada@example.com"),
         "username": Username("ADA42"),
-        "password_hash": "hash",
+        "password_hash": HASH,
         "role": "user",
         "token_version": 0,
         "email_verified_at": None,
@@ -65,6 +69,22 @@ def test_username_allows_handle_characters() -> None:
     assert Username(" ada.lovelace_1-x ") == "ada.lovelace_1-x"
 
 
+def test_password_hash_accepts_bcrypt_only() -> None:
+    assert PasswordHash(HASH) == HASH
+
+
+@pytest.mark.parametrize("value", ["", "MySecret123!", "$2b$12$tooshort", "hash"])
+def test_plain_passwords_are_never_accepted_as_hashes(value: str) -> None:
+    with pytest.raises(InvalidPasswordHash):
+        PasswordHash(value)
+
+
+def test_role_parses_known_roles_only() -> None:
+    assert Role.parse("admin") is Role.ADMIN
+    with pytest.raises(InvalidRole):
+        Role.parse("superadmin")
+
+
 # --- Entity uses the value objects ----------------------------------------------------------------
 
 
@@ -73,11 +93,22 @@ def test_entity_turns_plain_strings_into_value_objects() -> None:
     assert isinstance(account.email, EmailAddress)
     assert isinstance(account.username, Username)
     assert account.email == "ada@example.com"
+    assert account.role is Role.USER
+
+
+def test_admin_question_uses_the_role() -> None:
+    assert _account(role="admin").is_admin
+    assert not _account().is_admin
 
 
 @pytest.mark.parametrize(
     ("field", "value", "error"),
-    [("email", "not-an-email", InvalidEmailAddress), ("username", "a b", InvalidUsername)],
+    [
+        ("email", "not-an-email", InvalidEmailAddress),
+        ("username", "a b", InvalidUsername),
+        ("password_hash", "MySecret123!", InvalidPasswordHash),
+        ("role", "superadmin", InvalidRole),
+    ],
 )
 def test_entity_cannot_hold_invalid_values(field: str, value: str, error: type[Exception]) -> None:
     with pytest.raises(error):
@@ -116,12 +147,13 @@ def test_clear_failed_logins_reports_whether_anything_changed() -> None:
     assert (account.failed_login_attempts, account.locked_until) == (0, None)
 
 
-def test_change_password_requires_a_hash() -> None:
+def test_change_password_accepts_only_a_hash() -> None:
     account = _account()
-    account.change_password("new-hash")
-    assert account.password_hash == "new-hash"
+    account.change_password(OTHER_HASH)
+    assert account.password_hash == OTHER_HASH
     with pytest.raises(InvalidPasswordHash):
-        account.change_password("")
+        account.change_password("MyNewPassword1!")  # a plain password must never be stored
+    assert account.password_hash == OTHER_HASH
 
 
 def test_mfa_lifecycle() -> None:

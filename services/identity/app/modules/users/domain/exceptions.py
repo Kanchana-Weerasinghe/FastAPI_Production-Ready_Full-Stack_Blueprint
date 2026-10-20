@@ -29,6 +29,10 @@ class InvalidPasswordHash(UserRuleViolation):
     code = "invalid_password_hash"
 
 
+class InvalidRole(UserRuleViolation):
+    code = "invalid_role"
+
+
 class MfaAlreadyEnabled(UserRuleViolation):
     code = "mfa_already_enabled"
 

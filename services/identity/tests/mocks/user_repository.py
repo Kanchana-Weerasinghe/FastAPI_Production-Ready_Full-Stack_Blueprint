@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 from app.modules.users.domain.entities import UserAccount
-from app.modules.users.domain.value_objects import EmailAddress, Username
+from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 from app.modules.users.infrastructure.persistence.models import Users
 from app.modules.users.schemas import FindUser
 
@@ -32,8 +32,8 @@ class MockUserRepository:
             id=user.id,
             email=EmailAddress(user.email),
             username=Username(user.username),
-            password_hash=user._password,
-            role=user.role or "user",
+            password_hash=PasswordHash(user._password),
+            role=Role.parse(user.role or "user"),
             token_version=user.token_version or 0,
             email_verified_at=user.email_verified_at,
             failed_login_attempts=user.failed_login_attempts or 0,

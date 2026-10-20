@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.modules.users.domain.exceptions import InvalidPasswordHash, MfaAlreadyEnabled, MfaNotStarted
-from app.modules.users.domain.value_objects import EmailAddress, Username
+from app.modules.users.domain.exceptions import MfaAlreadyEnabled, MfaNotStarted
+from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 
 
 @dataclass(slots=True)
@@ -28,8 +28,8 @@ class UserAccount:
     id: UUID
     email: EmailAddress  # value object: always a valid address
     username: Username  # value object: always a valid handle
-    password_hash: str  # never the plain password
-    role: str
+    password_hash: PasswordHash  # value object: always a bcrypt hash, never the plain password
+    role: Role  # value object: only known roles
     token_version: int  # bumped to revoke every access token issued so far
     email_verified_at: datetime | None
     failed_login_attempts: int
@@ -41,9 +41,11 @@ class UserAccount:
     is_deleted: bool
 
     def __post_init__(self) -> None:
-        # Guarantee: an account can never hold an invalid email or username, whoever builds it.
+        # Guarantee: an account can never hold an invalid value, whoever builds it.
         self.email = EmailAddress(self.email)
         self.username = Username(self.username)
+        self.password_hash = PasswordHash(self.password_hash)
+        self.role = Role.parse(self.role)
 
     # --- Business questions -----------------------------------------------------------------
     def is_locked(self, now: datetime) -> bool:
@@ -80,9 +82,11 @@ class UserAccount:
 
     def change_password(self, password_hash: str) -> None:
         """Stores a new hash. Revoking existing sessions is the use case's job (atomic counter)."""
-        if not password_hash:
-            raise InvalidPasswordHash("A password hash is required")
-        self.password_hash = password_hash
+        self.password_hash = PasswordHash(password_hash)
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role is Role.ADMIN
 
     def start_mfa_setup(self, encrypted_secret: str) -> None:
         """Stores a new, not yet active TOTP secret."""

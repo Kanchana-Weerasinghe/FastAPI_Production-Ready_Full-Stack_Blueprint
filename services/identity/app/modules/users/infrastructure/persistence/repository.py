@@ -7,7 +7,7 @@ from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.users.domain.entities import UserAccount
-from app.modules.users.domain.value_objects import EmailAddress, Username
+from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 from app.modules.users.infrastructure.persistence.models import Users
 from app.shared.repository import BaseRepository
 
@@ -29,8 +29,8 @@ class UserRepository(BaseRepository[Users, BaseModel]):
             id=user.id,
             email=EmailAddress(user.email),
             username=Username(user.username),
-            password_hash=user._password,
-            role=user.role,
+            password_hash=PasswordHash(user._password),
+            role=Role.parse(user.role),
             token_version=user.token_version,
             email_verified_at=user.email_verified_at,
             failed_login_attempts=user.failed_login_attempts,

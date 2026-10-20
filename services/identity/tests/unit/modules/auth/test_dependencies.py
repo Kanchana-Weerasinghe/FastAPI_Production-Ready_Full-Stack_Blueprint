@@ -8,7 +8,7 @@ from fastapi import Request
 
 from app.core.errors import AuthenticationError, BadRequestError, NotFoundError, PermissionDeniedError
 from app.modules.auth.dependencies import check_ownership, get_current_user
-from app.modules.users.domain.value_objects import EmailAddress, Username
+from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 from app.modules.users.service import UserAccount
 
 
@@ -17,8 +17,8 @@ def _user(token_version: int = 0, user_id: UUID | None = None) -> UserAccount:
         id=user_id or uuid.uuid4(),
         email=EmailAddress("test@example.com"),
         username=Username("test_user"),
-        password_hash="hashed",
-        role="user",
+        password_hash=PasswordHash("$2b$12$C6UzMDM.H6dfI/f/IKcEeO5EHpKChSJlLpm1AaM6cX9i5n2H2hB7m"),
+        role=Role.USER,
         token_version=token_version,
         email_verified_at=None,
         failed_login_attempts=0,
