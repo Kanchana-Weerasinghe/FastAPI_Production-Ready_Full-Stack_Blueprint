@@ -38,7 +38,7 @@ class ServiceSettings(BaseSettings):
     DB_MAX_OVERFLOW: int = 10
     DB_STATEMENT_TIMEOUT_MS: int = 15000
 
-    # --- Token verification: access tokens are issued by core-api (identity) ---
+    # --- Token verification: access tokens are issued by the identity service ---
     # Shared HS256 secret today; move to asymmetric keys + JWKS when more services trust the issuer.
     JWT_SECRET_KEY: SecretStr = SecretStr(INSECURE_SECRET_KEY)
     JWT_ALGORITHM: str = "HS256"

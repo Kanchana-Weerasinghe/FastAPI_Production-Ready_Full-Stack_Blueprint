@@ -24,7 +24,7 @@
     {
       "label": "Full Stack: Server",
       "type": "shell",
-      "command": "cd services/core-api; uv sync; uv run task dev",
+      "command": "cd services/identity; uv sync; uv run task dev",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {

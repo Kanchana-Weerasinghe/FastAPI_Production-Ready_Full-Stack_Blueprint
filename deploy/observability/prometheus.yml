@@ -11,4 +11,4 @@ scrape_configs:
     # If METRICS_TOKEN is set on the server, add:
     # authorization: { type: Bearer, credentials_file: /etc/prometheus/metrics-token }
     static_configs:
-      - targets: ["server:8000"]
+      - targets: ["identity:8000"]

@@ -49,7 +49,7 @@ services:
   # One-off migration step: the API only starts after it succeeded (replicas never race to migrate).
   migrate:
     build:
-      context: ./services/core-api
+      context: ./services/identity
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     command: ["sh", "-c", "python scripts/backend_pre_start.py && alembic upgrade head"]
@@ -58,12 +58,12 @@ services:
       db:
         condition: service_healthy
 
-  server:
+  identity:
     build:
-      context: ./services/core-api
+      context: ./services/identity
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
-    container_name: todo-backend
+    container_name: identity
     environment: *api-env
     read_only: true
     tmpfs:
@@ -86,7 +86,7 @@ services:
 
   worker:
     build:
-      context: ./services/core-api
+      context: ./services/identity
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     container_name: todo-worker
@@ -98,16 +98,16 @@ services:
     healthcheck:
       disable: true
     depends_on:
-      server:
+      identity:
         condition: service_healthy
       redis:
         condition: service_healthy
 
-  # --- data-acquisition-api: an independent domain service (own image, own schema, own migrations) ---
+  # --- data-acquisition: an independent domain service (own image, own schema, own migrations) ---
   data-acquisition-migrate:
     build:
       context: .
-      dockerfile: services/data-acquisition-api/Dockerfile
+      dockerfile: services/data-acquisition/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
     command: ["alembic", "upgrade", "head"]
@@ -121,7 +121,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-app}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env (see .env.example)}
       DB_SCHEMA: data_acquisition
-      # Verifies the access tokens core-api issues, so it must equal core-api's SECRET_KEY.
+      # Verifies the access tokens the identity service issues, so it must equal the identity service's SECRET_KEY.
       JWT_SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (see .env.example)}
       PROBLEM_TYPE_BASE_URI: ${PROBLEM_TYPE_BASE_URI:-https://errors.localhost.test}
       CORS_ORIGINS: '["${FRONTEND_URL:-http://localhost:3000}"]'
@@ -129,13 +129,13 @@ services:
       db:
         condition: service_healthy
 
-  data-acquisition-api:
+  data-acquisition:
     build:
       context: .
-      dockerfile: services/data-acquisition-api/Dockerfile
+      dockerfile: services/data-acquisition/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0-local}
-    container_name: data-acquisition-api
+    container_name: data-acquisition
     environment: *data-acquisition-env
     read_only: true
     tmpfs:
@@ -156,11 +156,11 @@ services:
     container_name: todo-frontend
     environment:
       API_ORIGIN: ${VITE_API_URL:-http://localhost:8000}
-      API_UPSTREAM: http://server:8000
+      API_UPSTREAM: http://identity:8000
     ports:
       - "3000:8080"
     depends_on:
-      - server
+      - identity
 
   # Optional local monitoring: docker compose --profile observability up
   prometheus:
@@ -172,7 +172,7 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - server
+      - identity
 
   grafana:
     image: grafana/grafana:11.4.0

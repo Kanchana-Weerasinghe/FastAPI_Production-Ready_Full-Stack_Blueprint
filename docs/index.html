@@ -847,7 +847,7 @@
                   <td>Modular monolith</td>
                   <td>
                     Business domains live in
-                    <code>services/core-api/app/modules/&lt;domain&gt;</code>; one
+                    <code>services/identity/app/modules/&lt;domain&gt;</code>; one
                     application is deployed.
                   </td>
                   <td>
@@ -1478,7 +1478,7 @@
             <span class="status ready">Layered migration complete</span>
           </p>
           <p>
-            Backend modules under <code>services/core-api/app/modules/</code> separate
+            Backend modules under <code>services/identity/app/modules/</code> separate
             domain records and rules, application use cases and ports, HTTP
             schemas/routes, and infrastructure persistence adapters. Existing
             module application workflows use repository ports and map between
@@ -1539,7 +1539,7 @@
               side effects.
             </li>
             <li>
-              Regenerate <code>services/core-api/openapi.json</code> and
+              Regenerate <code>services/identity/openapi.json</code> and
               <code>web/src/lib/api-types.gen.ts</code>.
             </li>
             <li>
@@ -1866,7 +1866,7 @@
             <div class="step-number">1</div>
             <div>
               <h3>Generate the domain scaffold</h3>
-              <pre><code>cd services/core-api
+              <pre><code>cd services/identity
 uv run python scripts/new_module.py projects</code></pre>
               <p>
                 The layered generator creates
@@ -2066,7 +2066,7 @@ DELETE /v2/projects/{id}   soft-delete an owned project (204)</code></pre>
             <div class="step-number">8</div>
             <div>
               <h3>Create and review the migration</h3>
-              <pre><code>cd services/core-api
+              <pre><code>cd services/identity
 uv run alembic revision --autogenerate -m "create projects"
 # Review the generated upgrade() and downgrade() before applying.
 uv run task upgrade</code></pre>
@@ -2106,7 +2106,7 @@ uv run task upgrade</code></pre>
                   documentation.
                 </li>
               </ul>
-              <pre><code>cd services/core-api
+              <pre><code>cd services/identity
 uv run task test
 uv run task openapi
 
@@ -2248,7 +2248,7 @@ pnpm test</code></pre>
             </li>
             <li><a href="security/testing.md">Security testing guide</a></li>
             <li>
-              <a href="../services/core-api/scripts/new_module.py"
+              <a href="../services/identity/scripts/new_module.py"
                 >Domain module generator</a
               >
             </li>

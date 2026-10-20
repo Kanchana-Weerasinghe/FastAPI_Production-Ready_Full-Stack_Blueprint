@@ -14,7 +14,7 @@
   "packages": {
     ".": {
       "extra-files": [
-        { "type": "toml", "path": "services/core-api/pyproject.toml", "jsonpath": "$.project.version" },
+        { "type": "toml", "path": "services/identity/pyproject.toml", "jsonpath": "$.project.version" },
         { "type": "json", "path": "web/package.json", "jsonpath": "$.version" },
         { "type": "yaml", "path": "deploy/helm/app/Chart.yaml", "jsonpath": "$.appVersion" }
       ]

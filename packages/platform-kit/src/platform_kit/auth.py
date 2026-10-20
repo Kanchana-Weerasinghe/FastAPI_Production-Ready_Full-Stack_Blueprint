@@ -1,8 +1,8 @@
 """
 Caller identity for domain services.
 
-Access tokens are issued by core-api (the identity service) and verified here offline, so a domain
-service never calls core-api per request. Services accept them only as `Authorization: Bearer`:
+Access tokens are issued by the identity service and verified here offline, so a domain
+service never calls the identity service per request. Services accept them only as `Authorization: Bearer`:
 callers are backends-for-frontends, other services and the API gateway, so cookie/CSRF handling
 stays at the edge. Tokens are short-lived (15 minutes); revocation takes effect at expiry.
 """

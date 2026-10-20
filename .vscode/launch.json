@@ -10,8 +10,8 @@
         "dev"
       ],
       "jinja": true,
-      "cwd": "${workspaceFolder}/services/core-api",
-      "python": "${workspaceFolder}/services/core-api/.venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}/services/identity",
+      "python": "${workspaceFolder}/services/identity/.venv/Scripts/python.exe",
       "env": {
         "PYTHON": "app"
       },

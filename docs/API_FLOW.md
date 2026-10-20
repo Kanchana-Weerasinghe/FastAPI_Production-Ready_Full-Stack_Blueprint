@@ -52,7 +52,7 @@
   - [Liveness Probe (GET `/health/live`)](#liveness-probe)
   - [Readiness Probe (GET `/health/ready`)](#readiness-probe)
 
-- **Data Acquisition Endpoints** (`data-acquisition-api`, a separate service)
+- **Data Acquisition Endpoints** (`data-acquisition`, a separate service)
 
   - [Service contract and authentication](#data-acquisition-service)
   - [Create Acquisition Job (POST `/v1/acquisition-jobs/`)](#create-acquisition-job)
@@ -3002,11 +3002,11 @@
 
 ### <a id="data-acquisition-service"></a>Service contract and authentication
 
-These endpoints belong to **data-acquisition-api** (`services/data-acquisition-api`), deployed separately from core-api. Its machine-readable contract is [`services/data-acquisition-api/openapi.json`](/services/data-acquisition-api/openapi.json).
+These endpoints belong to **data-acquisition** (`services/data-acquisition`), deployed separately from the identity service. Its machine-readable contract is [`services/data-acquisition/openapi.json`](/services/data-acquisition/openapi.json).
 
 | Aspect | Behaviour |
 | :--- | :--- |
-| Authentication | `Authorization: Bearer <access token>` issued by core-api (`/v1/auth/signin`), verified offline. Cookies are not accepted. Missing, invalid, expired or non-access tokens → 401. |
+| Authentication | `Authorization: Bearer <access token>` issued by the identity service (`/v1/auth/signin`), verified offline. Cookies are not accepted. Missing, invalid, expired or non-access tokens → 401. |
 | Ownership | Owners (and admins) see, cancel and retry their jobs; anyone else gets 404 `acquisition_job_not_found`. |
 | Worker role | `:start`, `:progress`, `:complete` and `:fail` require role `acquisition_worker` (or admin); otherwise 403. |
 | Concurrency | Responses carry `ETag: W/"<version>"`; `If-Match` on `:cancel`/`:retry` → 412 `precondition_failed` (body has `current_etag`) when stale. |

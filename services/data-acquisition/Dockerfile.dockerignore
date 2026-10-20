@@ -1,0 +1,16 @@
+# Used by `docker build -f services/data-acquisition/Dockerfile .` (the build context is the repo root).
+# Allow-list: only the shared package and this service reach the build context.
+*
+!packages/platform-kit/
+!services/data-acquisition/
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/.coverage
+**/.env
+**/.env.*
+services/data-acquisition/tests/
+packages/platform-kit/tests/

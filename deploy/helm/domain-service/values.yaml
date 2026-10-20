@@ -2,7 +2,7 @@
 # (e.g. values-data-acquisition.yaml) that sets serviceName, image, schema and the secret name.
 # Secrets are never stored here: reference an existing Secret created from the cloud secrets manager.
 
-serviceName: ""        # required, e.g. data-acquisition-api
+serviceName: ""        # required, e.g. data-acquisition
 
 image:
   repository: ""       # required

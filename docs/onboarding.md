@@ -12,7 +12,7 @@ uvx pre-commit install --hook-type pre-commit --hook-type pre-push
 
 # Backend: Postgres via Docker, then migrations, demo data, dev server on :8000
 docker run -d --name dev-db -e POSTGRES_USER=root -e POSTGRES_PASSWORD=password -e POSTGRES_DB=postgres -p 5432:5432 postgres:16-alpine
-cd services/core-api && uv sync && uv run task upgrade && uv run task seed && uv run task dev
+cd services/identity && uv sync && uv run task upgrade && uv run task seed && uv run task dev
 
 # Frontend on :3000
 cd ../../web && pnpm install && pnpm dev
@@ -26,7 +26,7 @@ Everything at once, production-like: `cp .env.example .env` (fill secrets) and `
 
 1. [README.md](../README.md) and [AGENTS.md](../AGENTS.md): structure and commands.
 2. [ADR index](adr/README.md): 0001 (modular monolith), 0002 (errors), 0004 (unit of work), 0008 (sessions).
-3. Read the [request lifecycle diagram](../AGENTS.md#backend-request-lifecycle) and [module creation guide](../AGENTS.md#creating-a-backend-module), then trace `services/core-api/app/modules/todos/` (router → application use case → domain/ports → infrastructure adapter) and its tests.
+3. Read the [request lifecycle diagram](../AGENTS.md#backend-request-lifecycle) and [module creation guide](../AGENTS.md#creating-a-backend-module), then trace `services/identity/app/modules/todos/` (router → application use case → domain/ports → infrastructure adapter) and its tests.
 4. [docs/API_FLOW.md](API_FLOW.md) and [docs/DATABASE_DESIGN.md](DATABASE_DESIGN.md).
 5. Operations: [deployment](operations/deployment.md), [SLOs](operations/slo.md), [runbooks](operations/runbooks/).
 

@@ -13,7 +13,7 @@ Use this skill when extending the Python backend, writing routes, services, or r
 
 We use `dependency-injector` for wiring application components together.
 
-* **Wiring**: The composition root is `services/core-api/app/container.py`; each module declares its own sub-container in `app/modules/<name>/container.py`, and the root wires all of `app.modules`.
+* **Wiring**: The composition root is `services/identity/app/container.py`; each module declares its own sub-container in `app/modules/<name>/container.py`, and the root wires all of `app.modules`.
 * **Dependency injection in Routes**:
   * Decorate endpoints with `@inject` (from `dependency_injector.wiring`).
   * Create clean dependency type aliases using `Annotated` and `Depends(Provide["<module>.service"])` (string paths, so modules never import the composition root).

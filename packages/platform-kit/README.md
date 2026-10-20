@@ -11,7 +11,7 @@ for cross-cutting concerns.
 | `database` | `Database` (schema-bound engine), `UnitOfWork` with `after_commit` |
 | `persistence` | `schema_metadata(schema)`, `AuditColumnsMixin` (id, timestamps, version) |
 | `errors` | Framework-agnostic `AppError` hierarchy (safe to use from domain code) |
-| `auth` | `TokenVerifier` for core-api access tokens, `Principal`, `bearer_token` |
+| `auth` | `TokenVerifier` for the identity service access tokens, `Principal`, `bearer_token` |
 | `http.app` | `create_service_app(...)`: handlers, middleware, CORS, health, routers |
 | `http.middleware` | Request ID propagation, body limit, one transaction per request (rollback on 4xx/5xx) |
 | `http.problems` | RFC 9457 Problem Details handlers |

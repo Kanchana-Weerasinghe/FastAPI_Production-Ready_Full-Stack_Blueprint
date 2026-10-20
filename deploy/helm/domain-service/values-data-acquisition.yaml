@@ -1,11 +1,11 @@
-# data-acquisition-api release:
+# data-acquisition release:
 #   helm upgrade --install data-acquisition deploy/helm/domain-service \
 #     -f deploy/helm/domain-service/values-data-acquisition.yaml --set image.tag=<git-sha>
 
-serviceName: data-acquisition-api
+serviceName: data-acquisition
 
 image:
-  repository: ghcr.io/your-org/your-repo/data-acquisition-api
+  repository: ghcr.io/your-org/your-repo/data-acquisition
 
 config:
   DB_SCHEMA: data_acquisition

@@ -32,7 +32,7 @@ LABEL org.opencontainers.image.title="web" org.opencontainers.image.version="${A
 
 # Rendered with envsubst at start-up (API_ORIGIN feeds the Content-Security-Policy connect-src).
 ENV API_ORIGIN="'self'" \
-    API_UPSTREAM="http://server:8000"
+    API_UPSTREAM="http://identity:8000"
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/templates/default.conf.template
