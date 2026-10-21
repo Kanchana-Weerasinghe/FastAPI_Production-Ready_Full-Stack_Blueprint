@@ -669,6 +669,7 @@
           <a href="#service-folders">Service anatomy · folders</a>
           <a href="#service-files">Service anatomy · files</a>
           <a href="#service-trace">Trace a request through the files</a>
+          <a href="#entity-vs-service">Entity behaviour vs application service</a>
           <a href="#service-extend">Extend a service or add one</a>
           <a href="#request-workflow">End-to-end request workflow</a>
           <a href="#area-1">14-area map</a>
@@ -1628,6 +1629,202 @@
                 <tr><td>11</td><td><code>platform_kit/http/middleware.py</code></td><td>Commits (any 4xx/5xx would roll back), runs after-commit callbacks, adds <code>X-Request-ID</code>.</td></tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section id="entity-vs-service">
+          <h2>Entity behaviour vs application service</h2>
+          <p class="lede">
+            Every business rule has one right home. The entity decides
+            <strong>what is allowed</strong> for one object; the application
+            service (use case) organises <strong>the steps around it</strong>:
+            loading, saving, other modules, emails, audit. Worked example:
+            <code>UserAccount</code> in
+            <code>services/identity/app/modules/users/</code>.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Entity behaviour</th>
+                  <th>Application service / use case</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Answers</td><td>"Is this change allowed? If so, apply it."</td><td>"Which steps make up this operation?"</td></tr>
+                <tr><td>Works with</td><td>One object, in memory</td><td>Repository (database), clock, configuration, other modules, email, audit</td></tr>
+                <tr><td><code>async</code> / database calls</td><td>Never</td><td>Yes</td></tr>
+                <tr><td>File</td><td><code>domain/entities.py</code> (+ <code>value_objects.py</code>, <code>policies.py</code>)</td><td><code>application/use_cases/</code></td></tr>
+                <tr><td>Example</td><td><code>change_password()</code>, <code>verify_email()</code>, <code>enable_mfa()</code></td><td><code>UserUseCases.set_password()</code>, <code>mark_email_verified()</code>, <code>set_mfa_secret()</code></td></tr>
+                <tr><td>Tested with</td><td>Plain unit tests, no fakes</td><td>Fake repositories, integration tests</td></tr>
+                <tr><td>Change it when</td><td>A business rule changes</td><td>The steps or integrations change</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>The method: classify each rule with four questions</h3>
+          <ol>
+            <li><strong>Is it about one value being well-formed?</strong> → value object (<code>EmailAddress</code>, <code>PasswordHash</code>, <code>Role</code>).</li>
+            <li><strong>Does it only need this object's own data?</strong> → entity behaviour (or a guard such as <code>is_locked</code>).</li>
+            <li><strong>Does it need facts the object does not have</strong> (other records, configuration, the clock) but is still a business decision? → domain policy, with the facts fetched by the use case.</li>
+            <li><strong>Is it about loading, saving, calling another module or system, or ordering steps?</strong> → application service, plus a database constraint when concurrent requests could race.</li>
+          </ol>
+
+          <h3>Apply the method to a real example</h3>
+          <p>
+            Suppose the business requirements contain these rules for
+            <code>UserAccount</code>:
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Business rule</th>
+                  <th>Classification</th>
+                  <th>Reason</th>
+                  <th>Where it lives in this repository</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>BR-01</strong> An email cannot be empty</td>
+                  <td>Value object</td>
+                  <td>Protects valid domain state; needs only the value</td>
+                  <td><code>EmailAddress</code> in <code>domain/value_objects.py</code>; enforced on every <code>UserAccount</code> by <code>__post_init__</code></td>
+                </tr>
+                <tr>
+                  <td><strong>BR-02</strong> An inactive user cannot perform account operations</td>
+                  <td>Entity, where appropriate</td>
+                  <td>Enforces an account-state restriction from the account's own data</td>
+                  <td>
+                    <span class="status partial">Not yet an entity rule</span>
+                    Today only lookups by ID skip inactive accounts. Add a
+                    guard such as <code>_require_active()</code> to
+                    <code>entities.py</code> and call it first in each behaviour.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>BR-03</strong> An email must be unique across all registered users</td>
+                  <td>Application service + database constraint</td>
+                  <td>Needs other accounts (cross-record check) and protection against two sign-ups at the same moment</td>
+                  <td>Sign-up checks <code>get_by_email</code> first (auth); the <code>users.email</code> column is <code>UNIQUE</code> as the final guard</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-04</strong> A user must be saved after registration</td>
+                  <td>Application service</td>
+                  <td>Coordinates persistence</td>
+                  <td><code>UserUseCases.create_user</code> → <code>UserRepository.create_account</code>; committed once by the request middleware</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-05</strong> A welcome email must be sent after registration</td>
+                  <td>Application service</td>
+                  <td>Coordinates an external system</td>
+                  <td>Auth's <code>sign_up</code> queues it through the outbox in the same transaction, so it is sent only if registration commits</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-06</strong> A premium user receives a discount based on order value</td>
+                  <td>Domain policy (or domain service), depending on the model</td>
+                  <td>Combines several business concepts (customer tier and order value); belongs to neither entity alone</td>
+                  <td>Not in this template; would be a pure function such as <code>discount_for(tier, order_total)</code> in the ordering domain's <code>policies.py</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>The entity: rules for one account</h3>
+          <p>
+            <code>domain/entities.py</code>: plain Python, no database, no
+            <code>async</code>. Every behaviour checks its rule first, then
+            changes the account.
+          </p>
+          <pre><code>@dataclass(slots=True)
+class UserAccount:
+    id: UUID
+    email: EmailAddress            # value object: always a valid address   (BR-01)
+    username: Username             # value object: always a valid handle
+    password_hash: PasswordHash    # value object: a bcrypt hash, never a plain password
+    role: Role                     # value object: only known roles
+    failed_login_attempts: int
+    locked_until: datetime | None
+    mfa_secret_encrypted: str | None
+    mfa_enabled_at: datetime | None
+    ...
+
+    def __post_init__(self) -&gt; None:
+        # An account can never hold an invalid value, whoever builds it.
+        self.email = EmailAddress(self.email)
+        self.username = Username(self.username)
+        self.password_hash = PasswordHash(self.password_hash)
+        self.role = Role.parse(self.role)
+
+    # --- Behaviours ---
+    def is_locked(self, now: datetime) -&gt; bool:              # sign-in guard
+        return self.locked_until is not None and self.locked_until &gt; now
+
+    def verify_email(self, *, at: datetime) -&gt; bool:
+        if self.email_verified_at is not None:
+            return False                                      # keep the first date
+        self.email_verified_at = at
+        return True
+
+    def change_password(self, password_hash: str) -&gt; None:
+        self.password_hash = PasswordHash(password_hash)       # rejects plain passwords
+
+    def enable_mfa(self, *, at: datetime) -&gt; None:
+        if self.mfa_secret_encrypted is None:
+            raise MfaNotStarted("Start MFA setup first")
+        self.mfa_enabled_at = at</code></pre>
+
+          <h3>The application service: the steps around it</h3>
+          <p>
+            <code>application/use_cases/user_use_cases.py</code>: loads,
+            calls the behaviour, saves only what changed, then does the
+            follow-up work. It never decides the rule itself.
+          </p>
+          <pre><code>class UserUseCases:
+    async def set_password(self, user: UserAccount, password_hash: str) -&gt; None:
+        with business_rules():                     # domain error → HTTP 400
+            user.change_password(password_hash)    # ① ENTITY decides (rule)
+        await self._save(user, password=user.password_hash)   # ② save (repository)
+        await self.revoke_access_tokens(user)      # ③ follow-up: log out other sessions
+
+    async def mark_email_verified(self, user: UserAccount) -&gt; None:
+        if user.verify_email(at=_now()):           # ① ENTITY decides
+            await self._save(user, email_verified_at=user.email_verified_at)   # ② save only if changed
+
+    async def record_failed_login(self, user: UserAccount) -&gt; None:
+        lock_until = lockout_expiry(now=_now(), lockout_minutes=config.LOGIN_LOCKOUT_MINUTES)  # POLICY
+        await self._users.register_failed_login(user.id, config.LOGIN_MAX_FAILED_ATTEMPTS, lock_until)  # atomic SQL
+        self.uow.persist_on_failure()              # keep the count although sign-in returns 401</code></pre>
+
+          <h3>One operation, split across the layers</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Step of "change password"</th><th>Who</th><th>Why there</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Validate the request shape</td><td><code>auth/schemas.py</code> (Pydantic)</td><td>HTTP boundary</td></tr>
+                <tr><td>Check the current password, hash the new one</td><td><code>AuthService.change_password</code></td><td>Authentication workflow; uses security helpers</td></tr>
+                <tr><td>Only a bcrypt hash may be stored</td><td><code>UserAccount.change_password</code> → <code>PasswordHash</code></td><td>Rule on the account's own data</td></tr>
+                <tr><td>Save the new hash</td><td><code>UserUseCases._save</code> → repository</td><td>Persistence</td></tr>
+                <tr><td>Revoke existing sessions</td><td><code>UserUseCases.revoke_access_tokens</code> (atomic SQL)</td><td>Must be safe under concurrent requests</td></tr>
+                <tr><td>Record an audit event</td><td><code>AuthService</code> → <code>AuditService</code></td><td>Another module</td></tr>
+                <tr><td>Commit once, or roll back on error</td><td>Request middleware</td><td>Transaction boundary</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout">
+            <strong>Quick test for any new code:</strong> does it need anything
+            outside the object (database, clock, configuration, another module,
+            email, audit)? <em>No</em> → entity behaviour. <em>Yes</em> →
+            application service, which calls the entity for the rule itself.
+            Never assign an entity field from a service
+            (<code>user.password_hash = …</code>); call the behaviour
+            (<code>user.change_password(…)</code>).
           </div>
         </section>
 
