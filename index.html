@@ -1664,18 +1664,10 @@
             </table>
           </div>
 
-          <h3>The method: classify each rule with four questions</h3>
-          <ol>
-            <li><strong>Is it about one value being well-formed?</strong> → value object (<code>EmailAddress</code>, <code>PasswordHash</code>, <code>Role</code>).</li>
-            <li><strong>Does it only need this object's own data?</strong> → entity behaviour (or a guard such as <code>is_locked</code>).</li>
-            <li><strong>Does it need facts the object does not have</strong> (other records, configuration, the clock) but is still a business decision? → domain policy, with the facts fetched by the use case.</li>
-            <li><strong>Is it about loading, saving, calling another module or system, or ordering steps?</strong> → application service, plus a database constraint when concurrent requests could race.</li>
-          </ol>
-
           <h3>Apply the method to a real example</h3>
           <p>
-            Suppose the business requirements contain these rules for
-            <code>UserAccount</code>:
+            Suppose your BRD contains these business rules for a
+            <code>UserAccount</code> entity.
           </p>
           <div class="table-wrap">
             <table>
@@ -1684,53 +1676,126 @@
                   <th>Business rule</th>
                   <th>Classification</th>
                   <th>Reason</th>
-                  <th>Where it lives in this repository</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><strong>BR-01</strong> An email cannot be empty</td>
-                  <td>Value object</td>
-                  <td>Protects valid domain state; needs only the value</td>
-                  <td><code>EmailAddress</code> in <code>domain/value_objects.py</code>; enforced on every <code>UserAccount</code> by <code>__post_init__</code></td>
+                  <td><strong>BR-01:</strong> An email cannot be empty or have an invalid format.</td>
+                  <td>Value Object (<code>EmailAddress</code>)</td>
+                  <td>Validates the email value itself.</td>
                 </tr>
                 <tr>
-                  <td><strong>BR-02</strong> An inactive user cannot perform account operations</td>
-                  <td>Entity, where appropriate</td>
-                  <td>Enforces an account-state restriction from the account's own data</td>
-                  <td>
-                    <span class="status partial">Not yet an entity rule</span>
-                    Today only lookups by ID skip inactive accounts. Add a
-                    guard such as <code>_require_active()</code> to
-                    <code>entities.py</code> and call it first in each behaviour.
-                  </td>
+                  <td><strong>BR-02:</strong> An inactive user cannot authenticate.</td>
+                  <td>Entity + Application Service</td>
+                  <td>The entity represents account state; the application service enforces the restriction in the authentication workflow.</td>
                 </tr>
                 <tr>
-                  <td><strong>BR-03</strong> An email must be unique across all registered users</td>
-                  <td>Application service + database constraint</td>
-                  <td>Needs other accounts (cross-record check) and protection against two sign-ups at the same moment</td>
-                  <td>Sign-up checks <code>get_by_email</code> first (auth); the <code>users.email</code> column is <code>UNIQUE</code> as the final guard</td>
+                  <td><strong>BR-03:</strong> An email must be unique across all registered users.</td>
+                  <td>Application Service + Repository + DB constraint</td>
+                  <td>Requires checking other accounts and protecting against concurrent registrations.</td>
                 </tr>
                 <tr>
-                  <td><strong>BR-04</strong> A user must be saved after registration</td>
-                  <td>Application service</td>
-                  <td>Coordinates persistence</td>
-                  <td><code>UserUseCases.create_user</code> → <code>UserRepository.create_account</code>; committed once by the request middleware</td>
+                  <td><strong>BR-04:</strong> A user must be saved after successful registration.</td>
+                  <td>Application Service + Repository</td>
+                  <td>The service coordinates registration; the repository persists the account.</td>
                 </tr>
                 <tr>
-                  <td><strong>BR-05</strong> A welcome email must be sent after registration</td>
-                  <td>Application service</td>
-                  <td>Coordinates an external system</td>
-                  <td>Auth's <code>sign_up</code> queues it through the outbox in the same transaction, so it is sent only if registration commits</td>
+                  <td><strong>BR-05:</strong> A welcome email must be sent after registration.</td>
+                  <td>Application Service + notification port</td>
+                  <td>Coordinates an external notification system.</td>
                 </tr>
                 <tr>
-                  <td><strong>BR-06</strong> A premium user receives a discount based on order value</td>
-                  <td>Domain policy (or domain service), depending on the model</td>
-                  <td>Combines several business concepts (customer tier and order value); belongs to neither entity alone</td>
-                  <td>Not in this template; would be a pure function such as <code>discount_for(tier, order_total)</code> in the ordering domain's <code>policies.py</code></td>
+                  <td><strong>BR-06:</strong> A premium user receives a discount based on order value.</td>
+                  <td>Domain Policy or Domain Service</td>
+                  <td>Applies a business decision using customer tier and order value.</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-07:</strong> An account is locked for a configurable duration after five failed sign-in attempts.</td>
+                  <td>Policy + Application Service + Repository</td>
+                  <td>The policy determines the lockout expiry; the service coordinates the workflow; the repository applies the update atomically.</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-08:</strong> A user's password must be changed before it expires.</td>
+                  <td>Policy + Application Service, possibly Entity</td>
+                  <td>The policy determines expiry using dates and configuration; the service enforces the authentication workflow.</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-09:</strong> A user cannot deactivate an account that is already deactivated.</td>
+                  <td>Entity</td>
+                  <td>Protects the account's state transition and invariant.</td>
+                </tr>
+                <tr>
+                  <td><strong>BR-10:</strong> Only administrators can create new user roles.</td>
+                  <td>Application Service + authorization policy</td>
+                  <td>Requires checking the acting user's permissions before performing the operation.</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <p class="small-text muted">
+            The classifications above are typical starting points. The final
+            placement depends on your domain model and exact requirements.
+          </p>
+
+          <h3>How to identify the correct classification</h3>
+          <p>Use this decision process for each business rule.</p>
+          <div class="callout">
+            <strong>Start with one business rule.</strong> Example: “Lock an
+            account for 15 minutes after five failed sign-in attempts.”
+          </div>
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <h4>Does it validate a single value?</h4>
+              <p><strong>Yes → Value Object</strong></p>
+              <p class="small-text muted">Example: email format, password complexity.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <h4>Does it protect an entity's state or control a valid state transition?</h4>
+              <p><strong>Yes → Entity</strong></p>
+              <p class="small-text muted">Example: a deactivated account cannot be re-deactivated.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <h4>Does it calculate a business decision from facts, time, or configuration?</h4>
+              <p><strong>Yes → Policy</strong></p>
+              <p class="small-text muted">Example: calculate lockout expiry or determine a discount rate.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <h4>Does it combine domain logic that does not naturally belong to one entity?</h4>
+              <p><strong>Yes → Domain Service</strong></p>
+              <p class="small-text muted">Example: calculate a pricing outcome involving a customer, order, and pricing rules.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">5</div>
+            <div>
+              <h4>Does it coordinate a use case or workflow?</h4>
+              <p><strong>Yes → Application Service</strong></p>
+              <p class="small-text muted">Example: register a user, verify credentials, call the policy, and invoke the repository.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">6</div>
+            <div>
+              <h4>Does it retrieve or persist data?</h4>
+              <p><strong>Yes → Repository</strong></p>
+              <p class="small-text muted">Example: find a user by email or atomically update failed login attempts.</p>
+            </div>
+          </div>
+          <div class="callout warning">
+            <strong>A single rule can involve several components.</strong> Do
+            not force each rule into exactly one category: classify the
+            responsibility, then identify which components collaborate to
+            fulfil it.
           </div>
 
           <h3>The entity: rules for one account</h3>
