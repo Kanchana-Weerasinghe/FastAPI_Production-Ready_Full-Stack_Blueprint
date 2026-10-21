@@ -669,7 +669,7 @@
           <a href="#service-folders">Service anatomy · folders</a>
           <a href="#service-files">Service anatomy · files</a>
           <a href="#service-trace">Trace a request through the files</a>
-          <a href="#entity-vs-service">Entity behaviour vs application service</a>
+          <a href="#entity-vs-service">Entity behaviour, policy, application service identification guide</a>
           <a href="#service-extend">Extend a service or add one</a>
           <a href="#request-workflow">End-to-end request workflow</a>
           <a href="#area-1">14-area map</a>
@@ -1633,7 +1633,7 @@
         </section>
 
         <section id="entity-vs-service">
-          <h2>Entity behaviour vs application service</h2>
+          <h2>Entity behaviour, policy, application service identification guide</h2>
           <p class="lede">
             Every business rule has one right home. The entity decides
             <strong>what is allowed</strong> for one object; the application
@@ -1642,27 +1642,6 @@
             <code>UserAccount</code> in
             <code>services/identity/app/modules/users/</code>.
           </p>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Entity behaviour</th>
-                  <th>Application service / use case</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Answers</td><td>"Is this change allowed? If so, apply it."</td><td>"Which steps make up this operation?"</td></tr>
-                <tr><td>Works with</td><td>One object, in memory</td><td>Repository (database), clock, configuration, other modules, email, audit</td></tr>
-                <tr><td><code>async</code> / database calls</td><td>Never</td><td>Yes</td></tr>
-                <tr><td>File</td><td><code>domain/entities.py</code> (+ <code>value_objects.py</code>, <code>policies.py</code>)</td><td><code>application/use_cases/</code></td></tr>
-                <tr><td>Example</td><td><code>change_password()</code>, <code>verify_email()</code>, <code>enable_mfa()</code></td><td><code>UserUseCases.set_password()</code>, <code>mark_email_verified()</code>, <code>set_mfa_secret()</code></td></tr>
-                <tr><td>Tested with</td><td>Plain unit tests, no fakes</td><td>Fake repositories, integration tests</td></tr>
-                <tr><td>Change it when</td><td>A business rule changes</td><td>The steps or integrations change</td></tr>
-              </tbody>
-            </table>
-          </div>
 
           <h3>Apply the method to a real example</h3>
           <p>
