@@ -4,7 +4,7 @@ import copy
 from collections.abc import Sequence
 from uuid import UUID
 
-from app.modules.acquisition_jobs.application.ports import JobPage, JobQuery
+from app.modules.acquisition_jobs.application.ports import EventPublisher, JobPage, JobQuery, JobRepository
 from app.modules.acquisition_jobs.domain.entities import AcquisitionJob
 from app.modules.acquisition_jobs.domain.events import DomainEvent
 from app.modules.acquisition_jobs.domain.exceptions import ConcurrentModification, JobNotFound
@@ -17,7 +17,7 @@ def _stored(job: AcquisitionJob) -> AcquisitionJob:
     return stored
 
 
-class FakeJobRepository:
+class FakeJobRepository(JobRepository):
     def __init__(self) -> None:
         self.jobs: dict[UUID, AcquisitionJob] = {}
 
@@ -49,7 +49,7 @@ class FakeJobRepository:
         return sum(1 for job in self.jobs.values() if job.owner_id == owner_id and job.is_active)
 
 
-class FakeEventPublisher:
+class FakeEventPublisher(EventPublisher):
     def __init__(self) -> None:
         self.published: list[DomainEvent] = []
 

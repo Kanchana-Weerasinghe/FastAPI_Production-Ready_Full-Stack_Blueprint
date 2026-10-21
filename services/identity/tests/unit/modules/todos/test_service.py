@@ -1,7 +1,7 @@
 import uuid
 
+from app.modules.todos.public import TodoService
 from app.modules.todos.schemas import TodoCreate, TodoUpdate
-from app.modules.todos.service import TodoService
 from tests.mocks.todo_repository import MockTodoRepository
 
 

@@ -8,6 +8,7 @@ from app.core.config import config
 from app.core.security import clear_auth_cookies, rate_limit, set_auth_cookies
 from app.modules.auth.application.contracts import ClientInfo, SessionTokens
 from app.modules.auth.dependencies import CurrentUserDep
+from app.modules.auth.public import AuthService
 from app.modules.auth.schemas import (
     EmailRequest,
     MfaCode,
@@ -20,7 +21,6 @@ from app.modules.auth.schemas import (
     SignUp,
     TokenRequest,
 )
-from app.modules.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

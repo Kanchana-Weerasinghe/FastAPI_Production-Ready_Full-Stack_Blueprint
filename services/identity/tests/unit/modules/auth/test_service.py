@@ -1,5 +1,5 @@
 from app.modules.auth.permissions import Role, has_permission
-from app.modules.auth.service import generate_username
+from app.modules.auth.public import generate_username
 
 
 def test_generate_username() -> None:

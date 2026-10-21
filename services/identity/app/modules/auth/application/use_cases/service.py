@@ -19,7 +19,7 @@ from app.core.security import (
     hash_token,
     verify_password_async,
 )
-from app.modules.audit.service import FAILURE, AuditService
+from app.modules.audit.public import FAILURE, AuditService
 from app.modules.auth import emails
 from app.modules.auth.application.contracts import ClientInfo, MfaSetupDetails, SessionTokens, SignInOutcome
 from app.modules.auth.application.ports.email_sender import EmailSender
@@ -28,7 +28,7 @@ from app.modules.auth.application.ports.token_repositories import (
     RefreshTokenRepositoryPort,
 )
 from app.modules.auth.domain.entities import OneTimeToken, RefreshToken
-from app.modules.users.service import UserAccount, UserService
+from app.modules.users.public import UserAccount, UserUseCases
 from app.shared.unit_of_work import UnitOfWork
 
 USERNAME_ALPHABET = string.ascii_uppercase + string.digits
@@ -47,12 +47,12 @@ class AuthService:
     Authentication use cases: registration, sign-in (with lockout and optional TOTP MFA), session
     rotation and revocation, email verification and password reset/change.
 
-    Accounts are owned by the users module; this service only talks to it through `UserService`.
+    Accounts are owned by the users module; this service only talks to it through `UserUseCases`.
     """
 
     def __init__(
         self,
-        user_service: UserService,
+        user_use_cases: UserUseCases,
         refresh_tokens: RefreshTokenRepositoryPort,
         one_time_tokens: OneTimeTokenRepositoryPort,
         email_client: EmailSender,
@@ -60,7 +60,7 @@ class AuthService:
         audit: AuditService,
     ):
         self.audit = audit
-        self.user_service = user_service
+        self.user_use_cases = user_use_cases
         self.refresh_tokens = refresh_tokens
         self.one_time_tokens = one_time_tokens
         self.email_client = email_client
@@ -76,10 +76,10 @@ class AuthService:
         enumerate registered addresses.
         """
         logger.info("auth_sign_up_initiated")
-        if await self.user_service.get_by_email(email):
+        if await self.user_use_cases.get_by_email(email):
             logger.warning("auth_sign_up_failed_user_exists")
             return
-        user = await self.user_service.create_user(
+        user = await self.user_use_cases.create_user(
             email=email,
             password_hash=await hash_password_async(password),
             username=generate_username(),
@@ -98,19 +98,19 @@ class AuthService:
         Failed attempts are counted per account (in their own transaction) and lock the account
         for LOGIN_LOCKOUT_MINUTES after LOGIN_MAX_FAILED_ATTEMPTS failures.
         """
-        user = await self.user_service.get_by_email(email)
-        if user is not None and self.user_service.is_locked(user):
+        user = await self.user_use_cases.get_by_email(email)
+        if user is not None and self.user_use_cases.is_locked(user):
             logger.warning("auth_sign_in_locked", user_id=user.id)
             await self._audit_failure("auth.signin.locked", user.id)
             raise AuthenticationError("Too many failed attempts. Try again later.", code="account_locked")
         password_ok = await verify_password_async(password, user.password_hash if user else None)
         if user is None or not password_ok:
             if user is not None:
-                await self.user_service.record_failed_login(user)
+                await self.user_use_cases.record_failed_login(user)
             reason = "wrong_password" if user else "unknown_email"
             await self._audit_failure("auth.signin.failed", user.id if user else None, reason=reason)
             raise AuthenticationError(INVALID_CREDENTIALS, code="invalid_credentials")
-        await self.user_service.reset_failed_logins(user)
+        await self.user_use_cases.reset_failed_logins(user)
         if config.REQUIRE_VERIFIED_EMAIL and user.email_verified_at is None:
             raise AuthenticationError("Verify your email address before signing in", code="email_not_verified")
         if user.mfa_enabled_at is not None:
@@ -122,9 +122,9 @@ class AuthService:
     async def verify_mfa(self, mfa_token: str, code: str, client: ClientInfo) -> SessionTokens:
         """Completes an MFA sign-in with a TOTP code."""
         claims = decode_token(mfa_token, "mfa_challenge")
-        user = await self.user_service.get_by_id(uuid.UUID(claims["sub"]))
+        user = await self.user_use_cases.get_by_id(uuid.UUID(claims["sub"]))
         if not user.mfa_secret_encrypted or user.mfa_enabled_at is None or not self._totp_ok(user, code):
-            await self.user_service.record_failed_login(user)
+            await self.user_use_cases.record_failed_login(user)
             await self._audit_failure("auth.mfa.failed", user.id)
             raise AuthenticationError("Invalid authentication code", code="invalid_mfa_code")
         await self.audit.record("auth.signin.succeeded", actor_id=user.id, details={"mfa": True})
@@ -151,7 +151,7 @@ class AuthService:
             raise AuthenticationError("Session has been revoked", code="refresh_token_reused")
         if stored.expires_at <= datetime.now(UTC):
             raise AuthenticationError("Session expired", code="token_expired")
-        user = await self.user_service.get_by_id(stored.user_id)
+        user = await self.user_use_cases.get_by_id(stored.user_id)
         tokens, new_token = await self._issue_session(user, client, family_id=stored.family_id)
         await self.refresh_tokens.rotate(stored.id, new_token.id, datetime.now(UTC))
         return tokens
@@ -167,7 +167,7 @@ class AuthService:
     async def sign_out_everywhere(self, user: UserAccount) -> None:
         """Revokes every session of the user: all refresh tokens and (via token_version) all access tokens."""
         await self.refresh_tokens.revoke_all_for_user(user.id)
-        await self.user_service.revoke_access_tokens(user)
+        await self.user_use_cases.revoke_access_tokens(user)
         await self.audit.record("auth.signout_all", actor_id=user.id)
         logger.info("auth_signed_out_everywhere", user_id=user.id)
 
@@ -179,8 +179,8 @@ class AuthService:
 
     async def verify_email(self, token: str) -> None:
         stored = await self._consume_one_time_token(token, PURPOSE_VERIFY_EMAIL)
-        user = await self.user_service.get_by_id(stored.user_id)
-        await self.user_service.mark_email_verified(user)
+        user = await self.user_use_cases.get_by_id(stored.user_id)
+        await self.user_use_cases.mark_email_verified(user)
         await self.audit.record("auth.email.verified", actor_id=user.id)
         logger.info("auth_email_verified", user_id=user.id)
 
@@ -188,7 +188,7 @@ class AuthService:
 
     async def forgot_password(self, email: str) -> None:
         """Emails a single-use reset link. Always succeeds, so it can't be used to discover accounts."""
-        user = await self.user_service.get_by_email(email)
+        user = await self.user_use_cases.get_by_email(email)
         if user is None:
             logger.info("auth_password_reset_unknown_email")
             return
@@ -203,11 +203,11 @@ class AuthService:
     async def reset_password(self, token: str, new_password: str) -> None:
         """Sets a new password from a reset link and signs the user out everywhere."""
         stored = await self._consume_one_time_token(token, PURPOSE_RESET_PASSWORD)
-        user = await self.user_service.get_by_id(stored.user_id)
+        user = await self.user_use_cases.get_by_id(stored.user_id)
         await self._replace_password(user, new_password)
-        await self.user_service.reset_failed_logins(user)
+        await self.user_use_cases.reset_failed_logins(user)
         # Receiving the reset email proves control of the address.
-        await self.user_service.mark_email_verified(user)
+        await self.user_use_cases.mark_email_verified(user)
         await self.audit.record("auth.password.reset", actor_id=user.id)
 
     async def change_password(
@@ -227,7 +227,7 @@ class AuthService:
         if user.mfa_enabled_at is not None:
             raise BadRequestError("MFA is already enabled", code="mfa_already_enabled")
         secret = pyotp.random_base32()
-        await self.user_service.set_mfa_secret(user, encrypt_field(secret), enabled=False)
+        await self.user_use_cases.set_mfa_secret(user, encrypt_field(secret), enabled=False)
         uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=config.PROJECT_NAME)
         return MfaSetupDetails(secret=secret, otpauth_uri=uri)
 
@@ -236,14 +236,14 @@ class AuthService:
             raise BadRequestError("Start MFA setup first", code="mfa_not_started")
         if not self._totp_ok(user, code):
             raise BadRequestError("Invalid authentication code", code="invalid_mfa_code")
-        await self.user_service.set_mfa_secret(user, user.mfa_secret_encrypted, enabled=True)
+        await self.user_use_cases.set_mfa_secret(user, user.mfa_secret_encrypted, enabled=True)
         await self.audit.record("auth.mfa.enabled", actor_id=user.id)
         logger.info("auth_mfa_enabled", user_id=user.id)
 
     async def disable_mfa(self, user: UserAccount, code: str) -> None:
         if user.mfa_enabled_at is None or not self._totp_ok(user, code):
             raise BadRequestError("Invalid authentication code", code="invalid_mfa_code")
-        await self.user_service.set_mfa_secret(user, None, enabled=False)
+        await self.user_use_cases.set_mfa_secret(user, None, enabled=False)
         await self.audit.record("auth.mfa.disabled", actor_id=user.id)
         logger.info("auth_mfa_disabled", user_id=user.id)
 
@@ -291,7 +291,7 @@ class AuthService:
         ), stored
 
     async def _replace_password(self, user: UserAccount, new_password: str) -> None:
-        await self.user_service.set_password(user, await hash_password_async(new_password))
+        await self.user_use_cases.set_password(user, await hash_password_async(new_password))
         await self.refresh_tokens.revoke_all_for_user(user.id)
         await self.one_time_tokens.invalidate_for_user(user.id, PURPOSE_RESET_PASSWORD)
         subject, html = emails.password_changed_email(user.username)

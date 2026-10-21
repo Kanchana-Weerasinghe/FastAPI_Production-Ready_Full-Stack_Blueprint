@@ -12,8 +12,8 @@ from app.modules.acquisition_jobs.application.use_cases import (
     RetryJob,
     StartJob,
 )
-from app.modules.acquisition_jobs.infrastructure.events import LoggingEventPublisher
-from app.modules.acquisition_jobs.infrastructure.persistence.repository import SqlAlchemyJobRepository
+from app.modules.acquisition_jobs.infrastructure.logging_event_publisher import LoggingEventPublisher
+from app.modules.acquisition_jobs.infrastructure.persistence.sqlalchemy_job_repository import SqlAlchemyJobRepository
 
 
 class AcquisitionJobsContainer(containers.DeclarativeContainer):

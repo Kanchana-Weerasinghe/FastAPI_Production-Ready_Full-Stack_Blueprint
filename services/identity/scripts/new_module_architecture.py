@@ -87,23 +87,25 @@ def ensure_name_available(name: str, *, already_exists: bool) -> None:
 ''',
     "application/__init__.py": '"""Application workflows for {{plural_words}}."""\n',
     "application/ports/__init__.py": '"""Interfaces required by {{plural_words}} use cases."""\n',
-    "application/ports/repository.py": '''"""Persistence port consumed by {{plural_words}} use cases."""
+    "application/ports/{{singular_module}}_repository.py": '''"""Persistence port consumed by {{plural_words}} use cases (implemented in infrastructure)."""
 
-from typing import Protocol
+from abc import ABC, abstractmethod
 from uuid import UUID
 
 from app.modules.{{module}}.domain.entities import {{Singular}}
 
 
-class {{Singular}}Repository(Protocol):
-    """Contract implemented by infrastructure persistence adapters."""
+class {{Singular}}Repository(ABC):
+    """Contract implemented explicitly by infrastructure adapters and test fakes."""
 
+    @abstractmethod
     async def exists_by_name(self, user_id: UUID, name: str) -> bool: ...
 
+    @abstractmethod
     async def add(self, entity: {{Singular}}) -> {{Singular}}: ...
 ''',
     "application/use_cases/__init__.py": '"""Use cases for {{plural_words}}."""\n',
-    "service.py": '''"""Public application API for {{plural_words}} workflows and domain records."""
+    "public.py": '''"""Public API of the {{plural_words}} module: the only file other modules may import from."""
 
 from app.modules.{{module}}.application.use_cases.create import Create{{Singular}}
 from app.modules.{{module}}.domain.entities import {{Singular}}
@@ -116,7 +118,7 @@ __all__ = ["Create{{Singular}}", "{{Singular}}", "{{Singular}}Name"]
 from uuid import UUID
 
 from app.core.errors import BadRequestError, ConflictError
-from app.modules.{{module}}.application.ports.repository import {{Singular}}Repository
+from app.modules.{{module}}.application.ports.{{singular_module}}_repository import {{Singular}}Repository
 from app.modules.{{module}}.domain.entities import {{Singular}}
 from app.modules.{{module}}.domain.exceptions import {{Singular}}NameAlreadyExists, {{Singular}}NameInvalid
 from app.modules.{{module}}.domain.policies import ensure_name_available
@@ -164,7 +166,7 @@ class {{Plural}}(BaseModel):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
 ''',
-    "infrastructure/persistence/repository.py": '''"""SQLAlchemy implementation of the {{plural_words}} repository port."""
+    "infrastructure/persistence/sqlalchemy_{{singular_module}}_repository.py": '''"""SQLAlchemy implementation of the {{plural_words}} repository port."""
 
 from uuid import UUID
 
@@ -173,13 +175,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ConflictError
-from app.modules.{{module}}.application.ports.repository import {{Singular}}Repository as {{Singular}}RepositoryPort
+from app.modules.{{module}}.application.ports.{{singular_module}}_repository import {{Singular}}Repository
 from app.modules.{{module}}.domain.entities import {{Singular}}
 from app.modules.{{module}}.domain.value_objects import {{Singular}}Name
 from app.modules.{{module}}.infrastructure.persistence.models import {{Plural}}
 
 
-class SqlAlchemy{{Singular}}Repository({{Singular}}RepositoryPort):
+class SqlAlchemy{{Singular}}Repository({{Singular}}Repository):
     """Maps between the pure domain entity and its SQLAlchemy persistence model."""
 
     def __init__(self, session: AsyncSession) -> None:
@@ -248,7 +250,7 @@ from dependency_injector import containers, providers
 
 from app.core.database import Database
 from app.modules.{{module}}.application.use_cases.create import Create{{Singular}}
-from app.modules.{{module}}.infrastructure.persistence.repository import SqlAlchemy{{Singular}}Repository
+from app.modules.{{module}}.infrastructure.persistence.sqlalchemy_{{singular_module}}_repository import SqlAlchemy{{Singular}}Repository
 
 
 class {{Plural}}Container(containers.DeclarativeContainer):
@@ -266,7 +268,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
 from app.modules.auth.dependencies import CurrentUserDep
-from app.modules.{{module}}.service import Create{{Singular}}
+from app.modules.{{module}}.public import Create{{Singular}}
 from app.modules.{{module}}.schemas import {{Singular}}Create, {{Singular}}Response
 
 router = APIRouter(prefix="/{{route}}", tags=["{{module}}"])
@@ -316,12 +318,13 @@ def test_blank_name_is_rejected() -> None:
 import pytest
 
 from app.core.errors import ConflictError
+from app.modules.{{module}}.application.ports.{{singular_module}}_repository import {{Singular}}Repository
 from app.modules.{{module}}.application.use_cases.create import Create{{Singular}}
 from app.modules.{{module}}.domain.entities import {{Singular}}
 from app.modules.{{module}}.domain.value_objects import {{Singular}}Name
 
 
-class Fake{{Singular}}Repository:
+class Fake{{Singular}}Repository({{Singular}}Repository):
     def __init__(self, *, name_exists: bool = False) -> None:
         self.name_exists = name_exists
         self.saved: {{Singular}} | None = None
@@ -414,7 +417,7 @@ def main() -> None:
     }
     module_dir.mkdir(parents=True)
     for relative_path, template in TEMPLATES.items():
-        output_path = module_dir / relative_path
+        output_path = module_dir / _render(relative_path, context)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(_render(template, context), encoding="utf-8", newline="")
 

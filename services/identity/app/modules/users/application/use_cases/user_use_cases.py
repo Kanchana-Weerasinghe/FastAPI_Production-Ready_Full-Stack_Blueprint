@@ -1,5 +1,5 @@
 """
-Use cases of the users module, behind one public `UserService` (auth and the router call it).
+Use cases of the users module, grouped in `UserUseCases` (auth and the router call them).
 
 Every method follows the same steps: build or receive the `UserAccount`, let the entity apply its
 rule, then persist only the fields that changed. Business decisions live in the domain layer
@@ -15,8 +15,8 @@ from uuid import UUID
 from app.core.config import config
 from app.core.errors import BadRequestError
 from app.core.logging import logger
-from app.modules.audit.service import AuditService
-from app.modules.users.application.ports.user_repository import UserRepositoryPort
+from app.modules.audit.public import AuditService
+from app.modules.users.application.ports.user_repository import UserRepository
 from app.modules.users.domain.entities import UserAccount
 from app.modules.users.domain.exceptions import UserRuleViolation
 from app.modules.users.domain.policies import lockout_expiry
@@ -38,12 +38,12 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
-class UserService:
-    """Users application API; orchestrates account use cases through application ports."""
+class UserUseCases:
+    """The operations on user accounts: load the account, apply an entity behaviour, save the changes."""
 
     def __init__(
         self,
-        user_repository: UserRepositoryPort,
+        user_repository: UserRepository,
         uow: UnitOfWork,
         storage: FileStorage,
         audit: AuditService,

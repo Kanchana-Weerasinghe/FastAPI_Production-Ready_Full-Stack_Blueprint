@@ -2031,12 +2031,12 @@
 > flowchart TD
 >     Client([Client Frontend])
 >     Router[Users Router]
->     Service[UserService]
+>     Service[UserUseCases]
 >     Repo[Repositories]
 >     DB[(PostgreSQL)]
 >
 >     Client -->|1. GET /v2/users/| Router
->     Router -->|2. require_permission + UserService.get_list| Service
+>     Router -->|2. require_permission + UserUseCases.get_list| Service
 >     Service -->|3. Paginated query| Repo
 >     Repo -->|4. SELECT users| DB
 >     Router -->|5. 200 page of users| Client

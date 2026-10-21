@@ -1,11 +1,11 @@
-"""SQLAlchemy adapter for the `JobRepository` port: maps rows <-> the AcquisitionJob aggregate."""
+"""SQLAlchemy implementation of the `JobRepository` port: maps rows <-> the AcquisitionJob aggregate."""
 
 from uuid import UUID
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.acquisition_jobs.application.ports import JobPage, JobQuery
+from app.modules.acquisition_jobs.application.ports import JobPage, JobQuery, JobRepository
 from app.modules.acquisition_jobs.domain.entities import AcquisitionJob
 from app.modules.acquisition_jobs.domain.exceptions import ConcurrentModification, JobNotFound
 from app.modules.acquisition_jobs.domain.value_objects import (
@@ -19,7 +19,7 @@ from app.modules.acquisition_jobs.domain.value_objects import (
 from app.modules.acquisition_jobs.infrastructure.persistence.models import AcquisitionJobs
 
 
-class SqlAlchemyJobRepository:
+class SqlAlchemyJobRepository(JobRepository):
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 

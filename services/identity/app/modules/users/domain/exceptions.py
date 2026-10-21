@@ -2,7 +2,7 @@
 Named business errors of the users domain.
 
 Plain Python (the domain may not import `app.core`). Each error carries a stable `code`; the
-application layer (`UserService`) translates them into `BadRequestError`, which the HTTP handlers
+application layer (`UserUseCases`) translates them into `BadRequestError`, which the HTTP handlers
 render as RFC 9457 responses.
 """
 

@@ -66,9 +66,9 @@ from app.core.config import config
 from app.main import app as app_instance
 from app.main import container
 from app.modules.todos.infrastructure.persistence.repository import TodoRepository
-from app.modules.todos.service import TodoService
-from app.modules.users.infrastructure.persistence.repository import UserRepository
-from app.modules.users.service import UserService
+from app.modules.todos.public import TodoService
+from app.modules.users.infrastructure.persistence.sqlalchemy_user_repository import SqlAlchemyUserRepository
+from app.modules.users.public import UserUseCases
 from app.shared.models import BaseModel
 from app.shared.storage import LocalFileStorage
 from tests.factories import load_test_data
@@ -76,7 +76,7 @@ from tests.mocks.audit import FakeAuditService
 from tests.mocks.autosend import MockAutosendClient
 from tests.mocks.todo_repository import MockTodoRepository
 from tests.mocks.uow import FakeUnitOfWork
-from tests.mocks.user_repository import MockUserRepository
+from tests.mocks.user_repository import FakeUserRepository
 
 engine = create_async_engine(
     url=config.SQLALCHEMY_DATABASE_URI,
@@ -145,8 +145,8 @@ def mock_autosend() -> Any:
 
 
 @pytest.fixture
-def mock_user_repository() -> MockUserRepository:
-    return MockUserRepository()
+def mock_user_repository() -> FakeUserRepository:
+    return FakeUserRepository()
 
 
 @pytest.fixture
@@ -160,8 +160,8 @@ def fake_uow() -> FakeUnitOfWork:
 
 
 @pytest.fixture
-def user_service(mock_user_repository: MockUserRepository, fake_uow: FakeUnitOfWork) -> UserService:
-    return UserService(
+def user_use_cases(mock_user_repository: FakeUserRepository, fake_uow: FakeUnitOfWork) -> UserUseCases:
+    return UserUseCases(
         user_repository=mock_user_repository, uow=fake_uow, storage=LocalFileStorage(), audit=FakeAuditService()
     )
 
@@ -198,8 +198,8 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture
-def user_repository(db_session: AsyncSession) -> UserRepository:
-    return UserRepository(db_session)
+def user_repository(db_session: AsyncSession) -> SqlAlchemyUserRepository:
+    return SqlAlchemyUserRepository(db_session)
 
 
 @pytest.fixture

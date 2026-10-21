@@ -21,10 +21,10 @@ from sqlalchemy import select  # noqa: E402
 from app import models as _models  # noqa: E402,F401
 from app.container import Container  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
+from app.modules.auth.public import generate_username  # noqa: E402
 from app.modules.auth.schemas import SignUp  # noqa: E402
-from app.modules.auth.service import generate_username  # noqa: E402
 from app.modules.users.infrastructure.persistence.models import Users  # noqa: E402
-from app.modules.users.service import Role  # noqa: E402
+from app.modules.users.public import Role  # noqa: E402
 
 
 async def main() -> None:

@@ -8,8 +8,8 @@ from app.core.conditional import check_if_match, set_etag
 from app.core.security import rate_limit
 from app.modules.auth.dependencies import CurrentUserDep, check_ownership
 from app.modules.todos.domain.entities import TodoRecord
+from app.modules.todos.public import TodoService
 from app.modules.todos.schemas import FindTodo, Todo, TodoCreate, TodoListResponse, TodoUpdate
-from app.modules.todos.service import TodoService
 
 router = APIRouter(tags=["todos"])
 

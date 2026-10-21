@@ -7,7 +7,7 @@ from shutil import copyfile
 def test_scaffold_creates_the_standard_module_layers(
     tmp_path: Path,
 ) -> None:
-    """Verify generated modules match the established layers and public service API."""
+    """Verify generated modules match the established layers, naming and public API."""
     server_dir = tmp_path / "server"
     app_dir = server_dir / "app"
     app_dir.mkdir(parents=True)
@@ -48,7 +48,13 @@ def test_scaffold_creates_the_standard_module_layers(
         assert layer_dir.is_dir()
         assert (layer_dir / "__init__.py").is_file()
 
-    service_source = (module_dir / "service.py").read_text(encoding="utf-8")
+    public_source = (module_dir / "public.py").read_text(encoding="utf-8")
     router_source = (module_dir / "router.py").read_text(encoding="utf-8")
-    assert "CreateProject" in service_source
-    assert "from app.modules.projects.service import CreateProject" in router_source
+    port_source = (module_dir / "application/ports/project_repository.py").read_text(encoding="utf-8")
+    adapter_source = (module_dir / "infrastructure/persistence/sqlalchemy_project_repository.py").read_text(
+        encoding="utf-8"
+    )
+    assert "CreateProject" in public_source
+    assert "from app.modules.projects.public import CreateProject" in router_source
+    assert "class ProjectRepository(ABC):" in port_source
+    assert "class SqlAlchemyProjectRepository(ProjectRepository):" in adapter_source

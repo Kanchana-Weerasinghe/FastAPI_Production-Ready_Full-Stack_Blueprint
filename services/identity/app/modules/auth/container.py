@@ -1,11 +1,11 @@
 from dependency_injector import containers, providers
 
 from app.core.database import Database, UnitOfWork
-from app.modules.audit.service import AuditService
+from app.modules.audit.public import AuditService
 from app.modules.auth.application.ports.email_sender import EmailSender
 from app.modules.auth.application.use_cases.service import AuthService
 from app.modules.auth.infrastructure.persistence.repository import OneTimeTokenRepository, RefreshTokenRepository
-from app.modules.users.service import UserService
+from app.modules.users.public import UserUseCases
 
 
 class AuthContainer(containers.DeclarativeContainer):
@@ -13,7 +13,7 @@ class AuthContainer(containers.DeclarativeContainer):
 
     db = providers.Dependency(instance_of=Database)
     uow = providers.Dependency(instance_of=UnitOfWork)
-    user_service = providers.Dependency(instance_of=UserService)
+    user_use_cases = providers.Dependency(instance_of=UserUseCases)
     email_client: providers.Dependency[EmailSender] = providers.Dependency()
     audit_service = providers.Dependency(instance_of=AuditService)
 
@@ -21,7 +21,7 @@ class AuthContainer(containers.DeclarativeContainer):
     one_time_tokens = providers.Factory(OneTimeTokenRepository, session=db.provided.scoped_session)
     service = providers.Factory(
         AuthService,
-        user_service=user_service,
+        user_use_cases=user_use_cases,
         refresh_tokens=refresh_tokens,
         one_time_tokens=one_time_tokens,
         email_client=email_client,

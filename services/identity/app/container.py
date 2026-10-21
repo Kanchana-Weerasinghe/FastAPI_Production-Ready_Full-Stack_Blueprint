@@ -67,6 +67,6 @@ class Container(containers.DeclarativeContainer):
     users = providers.Container(UsersContainer, db=db, uow=uow, storage=file_storage, audit_service=audit.service)
     todos = providers.Container(TodosContainer, db=db)
     auth = providers.Container(
-        AuthContainer, db=db, uow=uow, user_service=users.service, email_client=mailer, audit_service=audit.service
+        AuthContainer, db=db, uow=uow, user_use_cases=users.use_cases, email_client=mailer, audit_service=audit.service
     )
     # [scaffold:container-providers]

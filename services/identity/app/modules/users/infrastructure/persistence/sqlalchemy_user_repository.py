@@ -6,17 +6,19 @@ from pydantic import BaseModel
 from sqlalchemy import case, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.users.application.ports.user_repository import UserRepository
 from app.modules.users.domain.entities import UserAccount
 from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 from app.modules.users.infrastructure.persistence.models import Users
 from app.shared.repository import BaseRepository
 
 
-class UserRepository(BaseRepository[Users, BaseModel]):
+class SqlAlchemyUserRepository(BaseRepository[Users, BaseModel], UserRepository):
     """
-    Repository layer for managing User accounts.
+    SQLAlchemy implementation of the `UserRepository` port.
 
-    Handles user profile persistence and authentication-related lookups.
+    Maps `Users` rows to `UserAccount` entities and back; counters that must be safe under concurrent
+    requests (failed sign-ins, token version) are updated atomically in SQL.
     """
 
     def __init__(self, session: AsyncSession):

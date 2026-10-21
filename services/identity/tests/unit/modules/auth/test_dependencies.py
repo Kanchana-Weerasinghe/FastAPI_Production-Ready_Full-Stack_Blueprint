@@ -9,7 +9,7 @@ from fastapi import Request
 from app.core.errors import AuthenticationError, BadRequestError, NotFoundError, PermissionDeniedError
 from app.modules.auth.dependencies import check_ownership, get_current_user
 from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
-from app.modules.users.service import UserAccount
+from app.modules.users.public import UserAccount
 
 
 def _user(token_version: int = 0, user_id: UUID | None = None) -> UserAccount:
@@ -36,7 +36,7 @@ async def test_get_current_user_success() -> None:
     user = _user(token_version=2)
     mock_service = AsyncMock()
     mock_service.get_by_id.return_value = user
-    result = await get_current_user(claims={"sub": str(user.id), "ver": 2}, service=mock_service)
+    result = await get_current_user(claims={"sub": str(user.id), "ver": 2}, users=mock_service)
     assert result.id == user.id
     mock_service.get_by_id.assert_called_once_with(user.id)
 
@@ -47,7 +47,7 @@ async def test_get_current_user_revoked_token_version() -> None:
     mock_service = AsyncMock()
     mock_service.get_by_id.return_value = user
     with pytest.raises(AuthenticationError) as exc_info:
-        await get_current_user(claims={"sub": str(user.id), "ver": 2}, service=mock_service)
+        await get_current_user(claims={"sub": str(user.id), "ver": 2}, users=mock_service)
     assert exc_info.value.code == "token_revoked"
 
 
@@ -55,7 +55,7 @@ async def test_get_current_user_invalid_subject() -> None:
     """Test get_current_user raises AuthenticationError when the subject claim is missing or malformed."""
     for claims in ({}, {"sub": "not-a-uuid"}):
         with pytest.raises(AuthenticationError, match="Invalid token"):
-            await get_current_user(claims=claims, service=AsyncMock())
+            await get_current_user(claims=claims, users=AsyncMock())
 
 
 async def test_get_current_user_not_found() -> None:
@@ -63,7 +63,7 @@ async def test_get_current_user_not_found() -> None:
     mock_service = AsyncMock()
     mock_service.get_by_id.side_effect = NotFoundError("Record not found")
     with pytest.raises(AuthenticationError, match="User not found"):
-        await get_current_user(claims={"sub": str(uuid.uuid4()), "ver": 0}, service=mock_service)
+        await get_current_user(claims={"sub": str(uuid.uuid4()), "ver": 0}, users=mock_service)
 
 
 async def test_check_ownership_success() -> None:

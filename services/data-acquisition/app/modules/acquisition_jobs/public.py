@@ -1,5 +1,5 @@
 """
-Public application API of the acquisition-jobs module (re-exports only).
+Public API of the acquisition-jobs module: the only file other modules may import from (re-exports only).
 
 Other modules *inside this service* call these use cases. Other *services* never import this file:
 they call the HTTP API (`/v1/acquisition-jobs`) or consume the published domain events.

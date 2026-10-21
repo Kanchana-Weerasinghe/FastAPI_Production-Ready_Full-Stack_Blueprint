@@ -84,7 +84,7 @@ The application resides in the `services/identity/app/` directory and is a **mod
   * `domain/` contains persistence- and framework-independent entities, value objects, policies, and domain exceptions.
   * `application/` coordinates use cases and defines ports. It must not import HTTP schemas, web frameworks, ORM models, or infrastructure adapters.
   * `infrastructure/persistence/` implements application ports and maps between domain records and SQLAlchemy models.
-  * The root `service.py` is the module's public application API for routes and other modules; keep it to re-exports, not business logic. Put use-case implementations under `application/use_cases/`.
+  * The root `public.py` is the module's public API: the only file other modules may import from. Keep it to re-exports, not business logic. Put use-case implementations under `application/use_cases/`.
   * `router.py` and `schemas.py` translate and validate HTTP input/output; keep business rules in the domain and application layers.
   * Cross-module workflows use another module's public service/application API. Do not import another module's repository, infrastructure, router, or container. Keep domain entities module-local; use application contracts for cross-module data.
   * `auth/dependencies.py` provides `CurrentUserDep` and `check_ownership(...)` for route authentication and resource ownership checks.
@@ -100,10 +100,21 @@ The application resides in the `services/identity/app/` directory and is a **mod
 Same layering as the identity service modules, but the service *is* the bounded context and its modules are its aggregates (e.g. `app/modules/acquisition_jobs/`):
 
 * `domain/`: `entities.py` (aggregate with behaviour methods and domain events), `value_objects.py`, `policies.py`, `events.py`, `exceptions.py` (extend `platform_kit.errors`). Plain Python: no FastAPI, Pydantic, SQLAlchemy or `app.config`.
-* `application/ports/` (`Protocol` interfaces) and `application/use_cases/` (one class per use case; receives a `Principal` and transport-neutral values). May import only `platform_kit.errors` and `platform_kit.auth` from platform-kit.
-* `infrastructure/`: SQLAlchemy models (the service's schema via `app/db.py`), repository adapter, event publisher adapter, HTTP clients to other services.
-* `router.py`, `schemas.py`, `container.py`, `service.py` as in the identity service; `app/auth.py` resolves the caller from the bearer token.
+* `application/ports/` (abstract base classes; adapters and fakes inherit them explicitly) and `application/use_cases/` (one class per use case; receives a `Principal` and transport-neutral values). May import only `platform_kit.errors` and `platform_kit.auth` from platform-kit.
+* `infrastructure/`: SQLAlchemy models (the service's schema via `app/db.py`), `SqlAlchemy…Repository` and other adapters, each inheriting the port it implements; HTTP clients to other services.
+* `router.py`, `schemas.py`, `container.py`, `public.py` as in the identity service; `app/auth.py` resolves the caller from the bearer token.
 * Never import another service's code or read another service's schema; reference other aggregates by ID, call their API through a port, or consume their events. `tests/architecture/test_layers.py` enforces the layer rules.
+
+### Naming conventions (all services)
+
+| Role | File | Class |
+| :--- | :--- | :--- |
+| Module public API | `public.py` (re-exports only) | — |
+| Use cases | `application/use_cases/<entity>_use_cases.py` or one file per use case | `UserUseCases`, `CreateJob` |
+| Port | `application/ports/<entity>_repository.py` | `UserRepository(ABC)` |
+| Database adapter | `infrastructure/persistence/sqlalchemy_<entity>_repository.py` | `SqlAlchemyUserRepository(UserRepository)` |
+| Other adapter | `infrastructure/<technology>_<port>.py` | `LoggingEventPublisher(EventPublisher)` |
+| Test double | `tests/fakes.py` / `tests/mocks/` | `FakeUserRepository(UserRepository)` |
 
 ### Frontend Folder Structure (`web/`)
 
@@ -254,9 +265,9 @@ Start from the layered scaffold, then adapt its example business rule rather tha
 
 - **Define domain concepts** in `app/modules/<name>/domain/`. Put entity identity and behavior in `entities.py`, validated values in `value_objects.py`, business decisions in `policies.py`, and domain-specific violations in `exceptions.py`. Keep this layer independent of FastAPI, Pydantic, SQLAlchemy, and other modules.
 
-- **Define application contracts and use cases** in `application/ports/` and `application/use_cases/`. Use cases coordinate domain rules and persistence through a `Protocol` port; they should receive transport-neutral values and return domain/application records.
+- **Define application contracts and use cases** in `application/ports/` and `application/use_cases/`. Use cases coordinate domain rules and persistence through a port (an ABC such as `UserRepository`); they should receive transport-neutral values and return domain/application records.
 
-- **Implement persistence** in `infrastructure/persistence/`. Define SQLAlchemy models in `models.py`; implement the repository port in `repository.py`; map ORM models to and from domain entities explicitly.
+- **Implement persistence** in `infrastructure/persistence/`. Define SQLAlchemy models in `models.py`; implement the repository port in `sqlalchemy_<entity>_repository.py` as `class SqlAlchemy<Entity>Repository(<Entity>Repository)`; map ORM models to and from domain entities explicitly.
 
 - **Finish the HTTP boundary** in `schemas.py` and `router.py`. Validate request/response shapes there, resolve authentication and ownership with the existing auth dependencies, call the use case through dependency injection, and map the returned entity to a response schema.
 

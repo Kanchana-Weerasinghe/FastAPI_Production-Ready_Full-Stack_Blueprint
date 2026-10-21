@@ -5,7 +5,7 @@ Architecture rules for the modular monolith, enforced on every test run.
    from `modules`.
 2. Domain code is framework- and persistence-agnostic. Application workflows never import HTTP
    frameworks. Persistence implementations belong under `infrastructure/`.
-3. A module may use another module only through its public API (`service`, `schemas`,
+3. A module may use another module only through its public API (`public`, `schemas`,
    `dependencies`, `permissions`), never its persistence adapter, router or container.
 4. Modules never import the composition root (`app.container`, `app.api`, `app.main`); routes
    resolve services by container path, e.g. `Provide["todos.service"]`.
@@ -22,8 +22,8 @@ import pytest
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 APPLICATION_ORCHESTRATION_MODULES: set[str] = set()
 REQUIRED_DOMAIN_MODULES = {"audit", "auth", "todos", "users"}
-PUBLIC_MODULE_FILES = {"service", "schemas", "dependencies", "permissions"}
-FRAMEWORK_FREE_FILES = {"service", "repository", "models"}
+PUBLIC_MODULE_FILES = {"public", "schemas", "dependencies", "permissions"}
+FRAMEWORK_FREE_FILES = {"public", "repository", "models"}
 COMPOSITION_ROOT = ("app.container", "app.api", "app.main")
 
 
@@ -70,7 +70,7 @@ def test_module_boundaries(path: Path) -> None:
         if name.startswith(COMPOSITION_ROOT):
             violations.append(f"imports composition root {name}")
         if name.split(".")[0] in {"fastapi", "starlette"} and (
-            path.stem in FRAMEWORK_FREE_FILES or "application" in module_parts
+            path.stem in FRAMEWORK_FREE_FILES or path.stem.endswith("_repository") or "application" in module_parts
         ):
             violations.append(f"business code imports framework {name}")
         if "domain" in module_parts and name.split(".")[0] in {"fastapi", "starlette", "sqlalchemy"}:
@@ -166,9 +166,9 @@ def test_modules_follow_their_declared_layer_structure() -> None:
     "module",
     sorted(path.name for path in (APP_DIR / "modules").iterdir() if path.is_dir() and not path.name.startswith("__")),
 )
-def test_root_service_is_a_public_application_facade(module: str) -> None:
-    """Keep module public service imports stable without leaving implementation in the module root."""
-    service_path = APP_DIR / "modules" / module / "service.py"
+def test_root_public_api_is_a_facade(module: str) -> None:
+    """Keep each module's public API (`public.py`) stable and free of implementation."""
+    service_path = APP_DIR / "modules" / module / "public.py"
     tree = ast.parse(service_path.read_text(encoding="utf-8"))
     imports = _imports(service_path)
     assert not any(isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) for node in tree.body), (

@@ -4,8 +4,8 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Query
 
 from app.core.security import rate_limit
+from app.modules.audit.public import AuditService
 from app.modules.audit.schemas import AuditLogPage, FindAuditLog
-from app.modules.audit.service import AuditService
 from app.modules.auth.dependencies import require_permission
 from app.modules.auth.permissions import Permission
 

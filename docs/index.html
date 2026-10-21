@@ -1368,7 +1368,7 @@
 │           │   └── persistence/  SQLAlchemy model + repository
 │           ├── router.py · schemas.py      HTTP boundary
 │           ├── container.py              wiring of ports to adapters
-│           └── service.py                public API of the module
+│           └── public.py                 public API of the module
 ├── migrations/                   Alembic history for this service's schema only
 ├── tests/                        unit · architecture · integration
 ├── scripts/                      contract export and helpers
@@ -1399,7 +1399,7 @@
                     Everything about one aggregate, from rules to HTTP. Add a
                     folder per aggregate (e.g. <code>data_sources/</code>).
                   </td>
-                  <td>Other modules of the same service via their <code>service.py</code></td>
+                  <td>Other modules of the same service via their <code>public.py</code></td>
                   <td>Import another module's infrastructure or router</td>
                 </tr>
                 <tr>
@@ -1415,7 +1415,7 @@
                 <tr>
                   <td><code>application/ports/</code></td>
                   <td>
-                    Interfaces (<code>Protocol</code>) describing what use cases
+                    Abstract base classes (<code>ABC</code>) describing what use cases
                     need: storage, event publishing, other services.
                   </td>
                   <td>Domain</td>
@@ -1541,8 +1541,8 @@
                 <tr><th>File</th><th>What it does</th><th>Change it when</th></tr>
               </thead>
               <tbody>
-                <tr><td><code>ports/job_repository.py</code></td><td><code>JobRepository</code> protocol (<code>add</code>, <code>get</code>, <code>save</code>, <code>find</code>, <code>count_active</code>) plus <code>JobQuery</code>/<code>JobPage</code>.</td><td>A use case needs a new kind of read or write</td></tr>
-                <tr><td><code>ports/event_publisher.py</code></td><td><code>EventPublisher</code> protocol: publish events only if the transaction commits.</td><td>Rarely</td></tr>
+                <tr><td><code>ports/job_repository.py</code></td><td><code>JobRepository</code> abstract base class (<code>add</code>, <code>get</code>, <code>save</code>, <code>find</code>, <code>count_active</code>) plus <code>JobQuery</code>/<code>JobPage</code>.</td><td>A use case needs a new kind of read or write</td></tr>
+                <tr><td><code>ports/event_publisher.py</code></td><td><code>EventPublisher</code> abstract base class: publish events only if the transaction commits.</td><td>Rarely</td></tr>
                 <tr><td><code>use_cases/_base.py</code></td><td>Shared steps: load for owner (404 for strangers, If-Match check), load for worker (role check), save and publish events; the injectable clock.</td><td>A new access rule shared by many use cases</td></tr>
                 <tr><td><code>use_cases/create_job.py</code></td><td><code>CreateJob</code> + <code>CreateJobCommand</code>: validate values, fetch the active count, apply the policy, create, persist, publish.</td><td>Creation rules change</td></tr>
                 <tr><td><code>use_cases/owner_actions.py</code></td><td><code>CancelJob</code>, <code>RetryJob</code>: actions the job's owner takes.</td><td>Adding an owner action</td></tr>
@@ -1561,8 +1561,8 @@
               </thead>
               <tbody>
                 <tr><td><code>persistence/models.py</code></td><td><code>AcquisitionJobs</code> SQLAlchemy table: columns, check constraints, indexes. Only the repository uses it.</td><td>A new stored field (then create a migration)</td></tr>
-                <tr><td><code>persistence/repository.py</code></td><td><code>SqlAlchemyJobRepository</code>: implements the port, maps rows ↔ entity, compare-and-set on <code>version</code> (409 on concurrent change), filtered and paginated queries.</td><td>A new port method or stored field</td></tr>
-                <tr><td><code>events.py</code></td><td><code>LoggingEventPublisher</code>: logs events after commit. Replace with an outbox/broker adapter when another domain consumes events.</td><td>Introducing a message broker</td></tr>
+                <tr><td><code>persistence/sqlalchemy_job_repository.py</code></td><td><code>SqlAlchemyJobRepository(JobRepository)</code>: implements the port, maps rows ↔ entity, compare-and-set on <code>version</code> (409 on concurrent change), filtered and paginated queries.</td><td>A new port method or stored field</td></tr>
+                <tr><td><code>logging_event_publisher.py</code></td><td><code>LoggingEventPublisher(EventPublisher)</code>: logs events after commit. Replace with an outbox/broker adapter when another domain consumes events.</td><td>Introducing a message broker</td></tr>
               </tbody>
             </table>
           </div>
@@ -1577,7 +1577,7 @@
                 <tr><td><code>router.py</code></td><td>Endpoints under <code>/v1/acquisition-jobs</code>: resolve the caller, translate the request into a command, call one use case, map the result, set <code>ETag</code>/<code>Location</code>.</td><td>A new endpoint</td></tr>
                 <tr><td><code>schemas.py</code></td><td>Pydantic request/response models (camelCase JSON) and <code>Job.from_entity</code> mapping. Validates shape only; rules stay in the domain.</td><td>Request or response shape changes</td></tr>
                 <tr><td><code>container.py</code></td><td>Binds ports to adapters (repository, event publisher) and builds each use case.</td><td>A new use case or adapter</td></tr>
-                <tr><td><code>service.py</code></td><td>Public API of the module for other modules <em>in the same service</em> (re-exports only).</td><td>Another module needs a use case</td></tr>
+                <tr><td><code>public.py</code></td><td>Public API of the module for other modules <em>in the same service</em> (re-exports only).</td><td>Another module needs a use case</td></tr>
               </tbody>
             </table>
           </div>
@@ -1620,10 +1620,10 @@
                 <tr><td>3</td><td><code>app/auth.py</code></td><td>Verifies the token → <code>Principal(user_id, role)</code> (401 if invalid).</td></tr>
                 <tr><td>4</td><td><code>router.py</code> → <code>create_job</code></td><td>Builds a <code>CreateJobCommand</code> and calls the use case from <code>container.py</code>.</td></tr>
                 <tr><td>5</td><td><code>use_cases/create_job.py</code></td><td>Creates <code>JobName</code>, <code>DataSource</code>, <code>MaxAttempts</code> (<code>value_objects.py</code>, 422 <code>invalid_source</code> etc.).</td></tr>
-                <tr><td>6</td><td><code>ports/job_repository.py</code> → <code>repository.py</code></td><td><code>count_active(owner)</code>; then <code>policies.py</code> checks the limit (409 <code>active_job_limit_reached</code>).</td></tr>
+                <tr><td>6</td><td><code>ports/job_repository.py</code> → <code>sqlalchemy_job_repository.py</code></td><td><code>count_active(owner)</code>; then <code>policies.py</code> checks the limit (409 <code>active_job_limit_reached</code>).</td></tr>
                 <tr><td>7</td><td><code>entities.py</code></td><td><code>AcquisitionJob.create(...)</code> → status <code>queued</code>, records <code>AcquisitionJobQueued</code>.</td></tr>
-                <tr><td>8</td><td><code>repository.py</code> + <code>models.py</code></td><td>Maps the entity to a row and inserts it into <code>data_acquisition.acquisition_jobs</code>.</td></tr>
-                <tr><td>9</td><td><code>infrastructure/events.py</code></td><td>Schedules event publishing for after the commit.</td></tr>
+                <tr><td>8</td><td><code>sqlalchemy_job_repository.py</code> + <code>models.py</code></td><td>Maps the entity to a row and inserts it into <code>data_acquisition.acquisition_jobs</code>.</td></tr>
+                <tr><td>9</td><td><code>infrastructure/logging_event_publisher.py</code></td><td>Schedules event publishing for after the commit.</td></tr>
                 <tr><td>10</td><td><code>router.py</code> + <code>schemas.py</code></td><td><code>Job.from_entity</code>, 201 with <code>Location</code> and <code>ETag: W/"1"</code>.</td></tr>
                 <tr><td>11</td><td><code>platform_kit/http/middleware.py</code></td><td>Commits (any 4xx/5xx would roll back), runs after-commit callbacks, adds <code>X-Request-ID</code>.</td></tr>
               </tbody>
@@ -1678,7 +1678,7 @@
               <h3>Storage (only if a field is added)</h3>
               <p>
                 Change <code>persistence/models.py</code> and the mapping in
-                <code>repository.py</code>, run
+                <code>sqlalchemy_job_repository.py</code>, run
                 <code>uv run alembic revision --autogenerate -m "..."</code>,
                 review it, <code>uv run task upgrade</code>, and update
                 <code>docs/DATABASE_DESIGN.md</code>.
@@ -2497,14 +2497,15 @@ return await repository.add(Project.create(user_id=user_id, name=name))</code></
             <div>
               <h3>Use ports to orchestrate external checks</h3>
               <p>
-                Define a protocol in
+                Define an abstract port in
                 <code>application/ports/eligibility.py</code> for any remote
                 decision, inject it into <code>CreateProject</code>, and provide
                 its adapter in the module container. The use case decides what
                 to do with the result; the adapter owns HTTP, timeouts, and
                 provider-specific response parsing.
               </p>
-              <pre><code>class ProjectEligibility(Protocol):
+              <pre><code>class ProjectEligibility(ABC):
+    @abstractmethod
     async def may_create(self, owner_id: UUID) -&gt; bool: ...
 
 # In the use case, before persistence:
@@ -2526,7 +2527,7 @@ if not await eligibility.may_create(user_id):
                 Keep the SQLAlchemy <code>Projects</code> model in
                 <code>infrastructure/persistence/models.py</code>. Implement the
                 application repository port in
-                <code>infrastructure/persistence/repository.py</code>, map ORM
+                <code>infrastructure/persistence/sqlalchemy_project_repository.py</code> as <code>SqlAlchemyProjectRepository(ProjectRepository)</code>, map ORM
                 rows to domain entities on reads, and map entities to rows on
                 writes. Never return ORM models from the application boundary.
               </p>

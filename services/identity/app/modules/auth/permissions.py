@@ -13,7 +13,7 @@ To add a permission: add it to `Permission`, grant it to roles below, and protec
 
 from enum import StrEnum
 
-from app.modules.users.service import Role
+from app.modules.users.public import Role
 
 __all__ = ["ROLE_PERMISSIONS", "Permission", "Role", "has_permission"]
 

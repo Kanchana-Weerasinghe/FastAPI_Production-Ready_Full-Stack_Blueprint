@@ -15,7 +15,7 @@ from fastapi import Depends, Request
 from app.core.errors import AuthenticationError, BadRequestError, NotFoundError, PermissionDeniedError
 from app.core.security import JWTCookieAuth
 from app.modules.auth.permissions import has_permission
-from app.modules.users.service import UserAccount, UserService
+from app.modules.users.public import UserAccount, UserUseCases
 
 
 class ResourceLookup(Protocol):
@@ -25,7 +25,7 @@ class ResourceLookup(Protocol):
 @inject
 async def get_current_user(
     claims: dict[str, Any] = Depends(JWTCookieAuth()),
-    service: UserService = Depends(Provide["users.service"]),
+    users: UserUseCases = Depends(Provide["users.use_cases"]),
 ) -> UserAccount:
     """
     Resolves the authenticated user from the access token cookie.
@@ -38,7 +38,7 @@ async def get_current_user(
     except (KeyError, ValueError) as e:
         raise AuthenticationError(detail="Invalid token", code="invalid_token") from e
     try:
-        user = await service.get_by_id(user_id)
+        user = await users.get_by_id(user_id)
     except NotFoundError as e:
         raise AuthenticationError(detail="User not found", code="invalid_token") from e
     if claims.get("ver") != user.token_version:

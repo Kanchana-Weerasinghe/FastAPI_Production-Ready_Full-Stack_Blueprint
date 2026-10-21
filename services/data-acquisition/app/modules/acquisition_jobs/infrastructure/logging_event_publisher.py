@@ -12,10 +12,11 @@ from dataclasses import asdict
 from platform_kit.database import UnitOfWork
 from platform_kit.logging import logger
 
+from app.modules.acquisition_jobs.application.ports import EventPublisher
 from app.modules.acquisition_jobs.domain.events import DomainEvent
 
 
-class LoggingEventPublisher:
+class LoggingEventPublisher(EventPublisher):
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
 
