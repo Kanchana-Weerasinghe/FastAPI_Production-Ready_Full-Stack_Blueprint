@@ -2026,6 +2026,12 @@
 
         <section id="service-trace">
           <h2>Trace a request through the files</h2>
+          <p class="lede">
+            Two real requests followed step by step: one in a domain service
+            (Bearer token) and one in the identity service (browser cookies,
+            CSRF and a side effect that runs only after the commit).
+          </p>
+          <h3>Example 1 · Create an acquisition job (data-acquisition)</h3>
           <p>
             <code>POST /v1/acquisition-jobs/</code> with a Bearer token and
             <code>{"name": "Catalogue crawl", "sourceType": "web", "sourceUri": "https://example.org"}</code>:
@@ -2047,6 +2053,88 @@
                 <tr><td>9</td><td><code>infrastructure/logging_event_publisher.py</code></td><td>Schedules event publishing for after the commit.</td></tr>
                 <tr><td>10</td><td><code>router.py</code> + <code>schemas.py</code></td><td><code>Job.from_entity</code>, 201 with <code>Location</code> and <code>ETag: W/"1"</code>.</td></tr>
                 <tr><td>11</td><td><code>platform_kit/http/middleware.py</code></td><td>Commits (any 4xx/5xx would roll back), runs after-commit callbacks, adds <code>X-Request-ID</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Example 2 · Delete my account (identity)</h3>
+          <p>
+            <code>DELETE /v2/user/me</code> from the web app, handled by
+            <code>delete_me</code> in
+            <code>services/identity/app/modules/users/router.py</code>.
+          </p>
+          <pre><code>DELETE /v2/user/me
+Cookies: x-path-token=&lt;access JWT&gt;, csrf_token=abc   Header: X-CSRF-Token: abc
+        │
+        ▼
+0. Middleware (app/core)
+   a. Request ID + log context; body too large?                    → 413
+   b. Open ONE database transaction for this request
+   c. CSRF check (unsafe method + session cookie):
+      X-CSRF-Token header ≠ csrf_token cookie?                     → 403
+        │
+        ▼
+1. Route match: /v2 (app/api.py) + /user (router) + /me  → delete_me()
+2. Rate limit check: more than 5 calls/minute?                     → 429
+3. Who is calling?  CurrentUserDep → get_current_user()
+      a. JWTCookieAuth reads cookie x-path-token; missing?         → 401 not_authenticated
+      b. decode_token(): bad signature / expired?                  → 401
+      c. users.get_by_id(sub): user gone or inactive?              → 401 invalid_token
+      d. token "ver" ≠ user.token_version (signed out everywhere)? → 401 token_revoked
+      → current_user = UserAccount(...)
+4. Container builds the use cases:  Provide["users.use_cases"]
+      UserUseCases( SqlAlchemyUserRepository(session), uow, storage, audit )
+5. delete_me() calls  users.delete_account(current_user)
+      a. repository.delete_account(user.id)
+            SELECT the row → DELETE FROM users WHERE id = …
+            (the user's todos are deleted too: ON DELETE CASCADE)
+      b. audit.record("user.deleted", actor_id=user.id, ...)       → INSERT INTO audit_logs
+      c. uow.after_commit(storage.delete_owner, user.id)           → scheduled, NOT run yet
+6. clear_auth_cookies(response)
+      expires x-path-token, x-refresh-token and csrf_token        → browser is logged out
+        │
+        ▼
+7. Response 204 No Content (empty body)
+8. Middleware: status &lt; 400 → COMMIT  (user row + audit entry saved together)
+9. After the body is sent: storage.delete_owner(user.id)
+      removes the user's files (uploads/&lt;user_id&gt;/ or S3 prefix)</code></pre>
+
+          <h4>If something fails in the middle</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Fails at</th><th>Result</th><th>What is saved</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Steps 0–3 (CSRF, rate limit, authentication)</td><td>403 / 429 / 401</td><td>Nothing: <code>delete_me</code> never runs</td></tr>
+                <tr><td>Step 5 (for example a database error)</td><td>500</td><td><strong>Rolled back</strong>: the user still exists, no audit entry, files untouched</td></tr>
+                <tr><td>Step 9 (file cleanup)</td><td>Logged as <code>after_commit_callback_failed</code></td><td>The account <strong>stays deleted</strong>; only leftover files need cleaning up</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <strong>Why are the files deleted last?</strong> If they were deleted
+            in step 5 and the commit then failed, the user would still exist but
+            their files would be gone. Registering the cleanup with
+            <code>uow.after_commit</code> runs it only after a successful commit.
+          </div>
+
+          <h4>Files involved</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Step</th><th>File (under <code>services/identity/app/</code>)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>0</td><td><code>core/middleware.py</code>, <code>core/csrf.py</code></td></tr>
+                <tr><td>1</td><td><code>api.py</code>, <code>modules/users/router.py</code></td></tr>
+                <tr><td>2</td><td><code>core/security.py</code> (<code>rate_limit</code>)</td></tr>
+                <tr><td>3</td><td><code>modules/auth/dependencies.py</code> (<code>get_current_user</code>), <code>core/security.py</code> (<code>decode_token</code>)</td></tr>
+                <tr><td>4</td><td><code>container.py</code> → <code>modules/users/container.py</code></td></tr>
+                <tr><td>5</td><td><code>modules/users/application/use_cases/user_use_cases.py</code> → <code>modules/users/infrastructure/persistence/sqlalchemy_user_repository.py</code>, <code>modules/audit</code></td></tr>
+                <tr><td>6</td><td><code>core/security.py</code> (<code>clear_auth_cookies</code>)</td></tr>
+                <tr><td>8</td><td><code>core/middleware.py</code> (commit or roll back)</td></tr>
+                <tr><td>9</td><td><code>shared/storage.py</code> (<code>delete_owner</code>)</td></tr>
               </tbody>
             </table>
           </div>
