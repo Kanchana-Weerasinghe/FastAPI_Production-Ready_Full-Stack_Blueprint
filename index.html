@@ -386,6 +386,98 @@
         font-weight: 450;
       }
 
+      .diagram.wide svg {
+        min-width: 1040px;
+      }
+
+      .diagram .zone {
+        fill: #f4f8fc;
+        stroke: #c3d3e3;
+        stroke-width: 1.5;
+      }
+
+      .diagram .zone.cluster {
+        fill: #eef7f5;
+        stroke: #9fcfc6;
+      }
+
+      .diagram .zone.data {
+        fill: #fbf6ec;
+        stroke: #e2cc9b;
+      }
+
+      .diagram .zone.ops {
+        fill: #f6f3fb;
+        stroke: #cbbfe3;
+      }
+
+      .diagram .zone.domain {
+        fill: #eef7f0;
+        stroke: #9fcdb0;
+      }
+
+      .diagram .zone-label {
+        fill: #27445f;
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-anchor: start;
+      }
+
+      .diagram .node.kit {
+        fill: #e9f2fc;
+        stroke: #8fb0d3;
+      }
+
+      .diagram .node.planned {
+        fill: #fbfdff;
+        stroke-dasharray: 6 5;
+      }
+
+      .diagram .edge.dashed {
+        stroke-dasharray: 6 5;
+      }
+
+      .diagram .edge-label {
+        fill: #536579;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.4rem;
+        margin: 0.8rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .legend li + li {
+        margin-top: 0;
+      }
+
+      .legend .key {
+        display: inline-block;
+        width: 2rem;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+        border-top: 2.2px solid #5484a7;
+      }
+
+      .legend .key.dashed {
+        border-top-style: dashed;
+      }
+
+      .legend .key.box {
+        width: 1.4rem;
+        height: 0.9rem;
+        border: 2px dashed #9bb4cb;
+        border-radius: 4px;
+      }
+
       .request-diagram {
         overflow-x: auto;
         margin: 1.4rem 0;
@@ -665,6 +757,7 @@
           <a href="#technology">Technology</a>
           <a href="#principles">Principles and patterns</a>
           <a href="#architecture">Architecture at a glance</a>
+          <a href="#architecture-diagram">Architecture diagrams</a>
           <a href="#services">Service landscape</a>
           <a href="#service-folders">Service anatomy · folders</a>
           <a href="#service-files">Service anatomy · files</a>
@@ -1221,6 +1314,333 @@
             API registration are application-level infrastructure. The browser
             never talks directly to repositories.
           </p>
+        </section>
+
+        <section id="architecture-diagram">
+          <h2>Architecture diagrams</h2>
+          <p class="lede">
+            Two views of the same solution: how the deployable pieces fit
+            together, and how code is layered inside one domain service. Scroll
+            horizontally on narrow screens.
+          </p>
+
+          <h3>1 · System architecture</h3>
+          <div class="diagram wide" tabindex="0">
+            <svg viewBox="0 0 1180 660" role="img" aria-labelledby="sys-title sys-desc">
+              <title id="sys-title">System architecture</title>
+              <desc id="sys-desc">
+                Web apps, portals, acquisition workers and other services call
+                the platform through the Kubernetes ingress; an API gateway is
+                planned. The identity service handles sign-in, users and audit,
+                issues access tokens and runs an ARQ worker with an outbox for
+                emails. The data acquisition service owns acquisition jobs and
+                verifies identity's tokens offline. Both use one PostgreSQL
+                server with a separate schema each. Identity also uses Redis,
+                S3 and an email provider. Shared technical code lives in
+                platform-kit. Observability covers logs, metrics, traces and
+                errors; Docker, Helm, Terraform and Argo CD build and deploy.
+              </desc>
+
+              <!-- Clients -->
+              <rect class="zone" x="15" y="40" width="200" height="410" rx="14"></rect>
+              <text class="zone-label" x="30" y="64">CLIENTS</text>
+              <rect class="node" x="30" y="85" width="170" height="62" rx="10"></rect>
+              <text x="115" y="111">Web app (React)</text>
+              <text class="small" x="115" y="132">web/ · cookies + CSRF</text>
+              <rect class="node" x="30" y="170" width="170" height="62" rx="10"></rect>
+              <text x="115" y="196">Portals / BFFs</text>
+              <text class="small" x="115" y="217">Bearer access token</text>
+              <rect class="node" x="30" y="255" width="170" height="62" rx="10"></rect>
+              <text x="115" y="281">Acquisition workers</text>
+              <text class="small" x="115" y="302">role acquisition_worker</text>
+              <rect class="node" x="30" y="340" width="170" height="62" rx="10"></rect>
+              <text x="115" y="366">Other services</text>
+              <text class="small" x="115" y="387">HTTP + Bearer token</text>
+
+              <!-- Edge -->
+              <rect class="zone" x="245" y="40" width="180" height="410" rx="14"></rect>
+              <text class="zone-label" x="260" y="64">EDGE</text>
+              <rect class="node" x="260" y="85" width="150" height="110" rx="10"></rect>
+              <text x="335" y="120">Ingress</text>
+              <text class="small" x="335" y="143">TLS · host routing</text>
+              <text class="small" x="335" y="162">request size limits</text>
+              <rect class="node planned" x="260" y="230" width="150" height="110" rx="10"></rect>
+              <text x="335" y="265">API gateway</text>
+              <text class="small" x="335" y="288">planned: path routing,</text>
+              <text class="small" x="335" y="307">rate limits, JWT check</text>
+
+              <!-- Cluster -->
+              <rect class="zone cluster" x="455" y="40" width="360" height="410" rx="14"></rect>
+              <text class="zone-label" x="470" y="64">KUBERNETES CLUSTER</text>
+              <rect class="node" x="475" y="80" width="320" height="150" rx="10"></rect>
+              <text x="635" y="106">services/identity</text>
+              <text class="small" x="635" y="128">auth · users · audit · todos (example)</text>
+              <text class="small" x="635" y="147">sign-in · sessions · MFA · issues access tokens</text>
+              <text class="small" x="635" y="166">/v1/auth · /v2/user · /v2/users · /v2/audit-logs</text>
+              <rect class="node kit" x="495" y="182" width="280" height="36" rx="8"></rect>
+              <text class="small" x="635" y="205">ARQ worker · outbox relay (emails, retries)</text>
+              <rect class="node" x="475" y="255" width="320" height="110" rx="10"></rect>
+              <text x="635" y="283">services/data-acquisition</text>
+              <text class="small" x="635" y="305">AcquisitionJob rules · own schema · own image</text>
+              <text class="small" x="635" y="324">/v1/acquisition-jobs</text>
+              <text class="small" x="635" y="343">verifies tokens offline (no call to identity)</text>
+              <rect class="node kit" x="475" y="383" width="320" height="56" rx="10"></rect>
+              <text x="635" y="404">packages/platform-kit</text>
+              <text class="small" x="635" y="425">settings · UoW · errors · middleware · auth · client</text>
+
+              <!-- Data and external -->
+              <rect class="zone data" x="845" y="40" width="320" height="410" rx="14"></rect>
+              <text class="zone-label" x="860" y="64">MANAGED DATA &amp; EXTERNAL SYSTEMS</text>
+              <rect class="node" x="865" y="80" width="280" height="150" rx="10"></rect>
+              <text x="1005" y="106">PostgreSQL (one server)</text>
+              <rect class="node kit" x="880" y="120" width="250" height="42" rx="8"></rect>
+              <text class="small" x="1005" y="146">schema public · identity tables</text>
+              <rect class="node kit" x="880" y="172" width="250" height="42" rx="8"></rect>
+              <text class="small" x="1005" y="198">schema data_acquisition · jobs</text>
+              <rect class="node" x="865" y="245" width="280" height="55" rx="10"></rect>
+              <text x="1005" y="268">Redis</text>
+              <text class="small" x="1005" y="288">job queue · rate-limit counters</text>
+              <rect class="node" x="865" y="312" width="280" height="55" rx="10"></rect>
+              <text x="1005" y="335">Object storage (S3)</text>
+              <text class="small" x="1005" y="355">private user files</text>
+              <rect class="node" x="865" y="380" width="280" height="55" rx="10"></rect>
+              <text x="1005" y="403">Email provider (Autosend)</text>
+              <text class="small" x="1005" y="423">welcome · verify · reset emails</text>
+
+              <!-- Observability -->
+              <rect class="zone ops" x="15" y="480" width="575" height="160" rx="14"></rect>
+              <text class="zone-label" x="30" y="504">OBSERVABILITY</text>
+              <rect class="node" x="30" y="525" width="125" height="70" rx="10"></rect>
+              <text x="92" y="554">Logs</text>
+              <text class="small" x="92" y="576">JSON · request_id</text>
+              <rect class="node" x="170" y="525" width="125" height="70" rx="10"></rect>
+              <text x="232" y="554">Prometheus</text>
+              <text class="small" x="232" y="576">metrics · Grafana</text>
+              <rect class="node" x="310" y="525" width="125" height="70" rx="10"></rect>
+              <text x="372" y="554">OpenTelemetry</text>
+              <text class="small" x="372" y="576">traces → collector</text>
+              <rect class="node" x="450" y="525" width="125" height="70" rx="10"></rect>
+              <text x="512" y="554">Sentry</text>
+              <text class="small" x="512" y="576">errors · releases</text>
+
+              <!-- Build and delivery -->
+              <rect class="zone ops" x="605" y="480" width="560" height="160" rx="14"></rect>
+              <text class="zone-label" x="620" y="504">BUILD &amp; DELIVERY</text>
+              <rect class="node" x="620" y="525" width="125" height="70" rx="10"></rect>
+              <text x="682" y="554">Docker images</text>
+              <text class="small" x="682" y="576">non-root user</text>
+              <rect class="node" x="755" y="525" width="125" height="70" rx="10"></rect>
+              <text x="817" y="554">Helm charts</text>
+              <text class="small" x="817" y="576">one per service</text>
+              <rect class="node" x="890" y="525" width="125" height="70" rx="10"></rect>
+              <text x="952" y="554">Terraform</text>
+              <text class="small" x="952" y="576">AWS: RDS · S3</text>
+              <rect class="node planned" x="1025" y="525" width="125" height="70" rx="10"></rect>
+              <text x="1087" y="554">CI pipeline</text>
+              <text class="small" x="1087" y="576">not set up yet</text>
+
+              <!-- Edges: clients to edge -->
+              <path class="edge" d="M200 116 H253"></path>
+              <path class="edge" d="M200 201 C228 201 228 168 253 168"></path>
+              <path class="edge" d="M200 286 C232 286 232 180 253 180"></path>
+              <path class="edge" d="M200 371 C236 371 236 190 253 190"></path>
+              <!-- Edge to services -->
+              <path class="edge" d="M410 120 H468"></path>
+              <path class="edge" d="M410 170 C440 170 440 300 468 300"></path>
+              <!-- Services to data -->
+              <path class="edge" d="M795 141 H873"></path>
+              <path class="edge" d="M795 300 C830 300 842 193 873 193"></path>
+              <path class="edge" d="M775 196 C820 196 830 272 858 272"></path>
+              <path class="edge" d="M795 224 C835 224 838 339 858 339"></path>
+              <path class="edge" d="M775 210 C845 210 842 407 858 407"></path>
+              <!-- Token trust -->
+              <path class="edge dashed" d="M560 230 V248"></path>
+              <text class="edge-label" x="690" y="246">tokens verified offline</text>
+              <!-- Observability and delivery -->
+              <path class="edge dashed" d="M470 452 V473"></path>
+              <text class="edge-label" x="360" y="469">logs · metrics · traces · errors</text>
+              <path class="edge dashed" d="M760 474 V457"></path>
+              <text class="edge-label" x="815" y="469">builds &amp; deploys</text>
+            </svg>
+          </div>
+          <ul class="legend" aria-label="Diagram legend">
+            <li><span class="key"></span>calls / depends on</li>
+            <li><span class="key dashed"></span>trust, telemetry or deployment</li>
+            <li><span class="key box"></span>planned or missing, not built yet</li>
+          </ul>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Zone</th><th>What it contains</th><th>Key rule</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Clients</td><td>Web app, portals/BFFs, acquisition workers, other services</td><td>Never talk to a database; only to service APIs</td></tr>
+                <tr><td>Edge</td><td>Kubernetes ingress today; an API gateway is the next platform piece</td><td>One public entry point with TLS and limits</td></tr>
+                <tr><td>Services</td><td><code>identity</code> (platform), <code>data-acquisition</code> (domain)</td><td>Each owns its rules, schema, image and release; no service imports another</td></tr>
+                <tr><td>platform-kit</td><td>Shared technical building blocks</td><td>No business rules; versioned like a library</td></tr>
+                <tr><td>Data</td><td>One PostgreSQL server, one schema per service; Redis, S3, email provider</td><td>No cross-schema joins or foreign keys</td></tr>
+                <tr><td>Observability · delivery</td><td>Logs, metrics, traces, errors; images, Helm, Terraform</td><td>Same image promoted through environments; CI pipeline still to add</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>2 · Inside a domain service (data-acquisition)</h3>
+          <div class="diagram wide" tabindex="0">
+            <svg viewBox="0 0 1180 660" role="img" aria-labelledby="svc-title svc-desc">
+              <title id="svc-title">Layers inside a domain service</title>
+              <desc id="svc-desc">
+                An HTTP request with a Bearer token reaches router.py, which
+                validates input with schemas.py and resolves the caller with
+                app/auth.py, then calls a use case. Use cases depend on port
+                interfaces and call the domain layer: entities, value objects,
+                policies, events and errors. Infrastructure adapters implement
+                the ports: the SQLAlchemy repository writes to the service's
+                PostgreSQL schema and the event publisher will later send to a
+                message broker. The composition root wires everything, and
+                platform-kit provides middleware, the unit of work, error
+                handlers, token verification and the service client.
+              </desc>
+
+              <rect class="node kit" x="30" y="10" width="220" height="40" rx="10"></rect>
+              <text x="140" y="35">HTTP request · Bearer</text>
+
+              <!-- HTTP boundary -->
+              <rect class="zone" x="15" y="70" width="250" height="250" rx="14"></rect>
+              <text class="zone-label" x="30" y="94">HTTP BOUNDARY</text>
+              <rect class="node" x="30" y="110" width="220" height="60" rx="10"></rect>
+              <text x="140" y="135">router.py</text>
+              <text class="small" x="140" y="156">endpoints · status · ETag</text>
+              <rect class="node" x="30" y="180" width="220" height="60" rx="10"></rect>
+              <text x="140" y="205">schemas.py</text>
+              <text class="small" x="140" y="226">validate JSON in and out</text>
+              <rect class="node" x="30" y="250" width="220" height="60" rx="10"></rect>
+              <text x="140" y="275">app/auth.py</text>
+              <text class="small" x="140" y="296">token → Principal</text>
+
+              <!-- Application -->
+              <rect class="zone" x="295" y="70" width="320" height="250" rx="14"></rect>
+              <text class="zone-label" x="310" y="94">APPLICATION</text>
+              <rect class="node" x="310" y="110" width="145" height="200" rx="10"></rect>
+              <text x="382" y="140">use_cases/</text>
+              <text class="small" x="382" y="166">one class per</text>
+              <text class="small" x="382" y="184">operation</text>
+              <text class="small" x="382" y="210">load → rule →</text>
+              <text class="small" x="382" y="228">save → publish</text>
+              <text class="small" x="382" y="256">CreateJob,</text>
+              <text class="small" x="382" y="274">StartJob, …</text>
+              <rect class="node kit" x="465" y="110" width="135" height="200" rx="10"></rect>
+              <text x="532" y="140">ports/</text>
+              <text class="small" x="532" y="166">ABC interfaces</text>
+              <text class="small" x="532" y="196">JobRepository</text>
+              <text class="small" x="532" y="216">EventPublisher</text>
+              <text class="small" x="532" y="248">what use cases</text>
+              <text class="small" x="532" y="266">need from outside</text>
+
+              <!-- Infrastructure -->
+              <rect class="zone" x="645" y="70" width="290" height="250" rx="14"></rect>
+              <text class="zone-label" x="660" y="94">INFRASTRUCTURE</text>
+              <rect class="node" x="660" y="110" width="260" height="60" rx="10"></rect>
+              <text x="790" y="135">SqlAlchemyJobRepository</text>
+              <text class="small" x="790" y="156">implements JobRepository · maps rows</text>
+              <rect class="node" x="660" y="180" width="260" height="50" rx="10"></rect>
+              <text x="790" y="202">models.py</text>
+              <text class="small" x="790" y="220">table acquisition_jobs</text>
+              <rect class="node" x="660" y="240" width="260" height="60" rx="10"></rect>
+              <text x="790" y="265">LoggingEventPublisher</text>
+              <text class="small" x="790" y="286">implements EventPublisher</text>
+
+              <!-- External -->
+              <rect class="zone data" x="965" y="70" width="200" height="250" rx="14"></rect>
+              <text class="zone-label" x="980" y="94">EXTERNAL</text>
+              <rect class="node" x="980" y="110" width="170" height="60" rx="10"></rect>
+              <text x="1065" y="135">PostgreSQL</text>
+              <text class="small" x="1065" y="156">schema data_acquisition</text>
+              <rect class="node planned" x="980" y="180" width="170" height="60" rx="10"></rect>
+              <text x="1065" y="205">Message broker</text>
+              <text class="small" x="1065" y="226">planned (outbox)</text>
+              <rect class="node planned" x="980" y="250" width="170" height="60" rx="10"></rect>
+              <text x="1065" y="275">Other services</text>
+              <text class="small" x="1065" y="296">via ServiceClient</text>
+
+              <!-- Domain -->
+              <rect class="zone domain" x="295" y="350" width="640" height="150" rx="14"></rect>
+              <text class="zone-label" x="480" y="374">DOMAIN · PURE PYTHON</text>
+              <rect class="node" x="310" y="390" width="145" height="90" rx="10"></rect>
+              <text x="382" y="418">entities.py</text>
+              <text class="small" x="382" y="442">AcquisitionJob</text>
+              <text class="small" x="382" y="460">behaviours</text>
+              <rect class="node" x="465" y="390" width="145" height="90" rx="10"></rect>
+              <text x="537" y="418">value objects</text>
+              <text class="small" x="537" y="442">JobName</text>
+              <text class="small" x="537" y="460">DataSource</text>
+              <rect class="node" x="620" y="390" width="145" height="90" rx="10"></rect>
+              <text x="692" y="418">policies.py</text>
+              <text class="small" x="692" y="442">active-job</text>
+              <text class="small" x="692" y="460">limit</text>
+              <rect class="node" x="775" y="390" width="145" height="90" rx="10"></rect>
+              <text x="847" y="418">events · errors</text>
+              <text class="small" x="847" y="442">domain facts</text>
+              <text class="small" x="847" y="460">named errors</text>
+
+              <!-- Composition root -->
+              <rect class="zone ops" x="15" y="350" width="250" height="150" rx="14"></rect>
+              <text class="zone-label" x="30" y="374">COMPOSITION ROOT</text>
+              <rect class="node" x="30" y="385" width="220" height="28" rx="8"></rect>
+              <text class="small" x="140" y="404">main.py · api.py (/v1)</text>
+              <rect class="node" x="30" y="420" width="220" height="28" rx="8"></rect>
+              <text class="small" x="140" y="439">app/container.py</text>
+              <rect class="node" x="30" y="455" width="220" height="28" rx="8"></rect>
+              <text class="small" x="140" y="474">module container.py · public.py</text>
+
+              <!-- platform-kit -->
+              <rect class="zone cluster" x="15" y="530" width="1150" height="110" rx="14"></rect>
+              <text class="zone-label" x="30" y="554">PACKAGES/PLATFORM-KIT · CROSS-CUTTING, NO BUSINESS RULES</text>
+              <rect class="node kit" x="30" y="565" width="210" height="60" rx="10"></rect>
+              <text x="135" y="590">Request middleware</text>
+              <text class="small" x="135" y="611">request ID · one transaction</text>
+              <rect class="node kit" x="250" y="565" width="210" height="60" rx="10"></rect>
+              <text x="355" y="590">UnitOfWork</text>
+              <text class="small" x="355" y="611">commit once · after_commit</text>
+              <rect class="node kit" x="470" y="565" width="210" height="60" rx="10"></rect>
+              <text x="575" y="590">Error handlers</text>
+              <text class="small" x="575" y="611">RFC 9457 problem details</text>
+              <rect class="node kit" x="690" y="565" width="210" height="60" rx="10"></rect>
+              <text x="795" y="590">TokenVerifier</text>
+              <text class="small" x="795" y="611">JWT → Principal</text>
+              <rect class="node kit" x="910" y="565" width="210" height="60" rx="10"></rect>
+              <text x="1015" y="590">ServiceClient · health</text>
+              <text class="small" x="1015" y="611">timeouts · probes</text>
+
+              <!-- Edges -->
+              <path class="edge" d="M215 50 V103"></path>
+              <path class="edge" d="M250 140 H303"></path>
+              <path class="edge" d="M382 310 V383"></path>
+              <path class="edge" d="M790 320 V383"></path>
+              <path class="edge dashed" d="M660 140 H607"></path>
+              <path class="edge dashed" d="M660 270 H607"></path>
+              <path class="edge" d="M920 140 H973"></path>
+              <path class="edge dashed" d="M920 270 C945 270 950 210 973 210"></path>
+              <path class="edge dashed" d="M140 350 V317"></path>
+              <path class="edge dashed" d="M140 530 V507"></path>
+              <text class="edge-label" x="630" y="104">implements</text>
+              <text class="edge-label" x="445" y="342">calls behaviours</text>
+              <text class="edge-label" x="852" y="342">maps rows ↔ entities</text>
+              <text class="edge-label" x="200" y="337">wires</text>
+            </svg>
+          </div>
+          <ul class="legend" aria-label="Diagram legend">
+            <li><span class="key"></span>calls / depends on (always toward the domain)</li>
+            <li><span class="key dashed"></span>implements a port, wires, or planned link</li>
+            <li><span class="key box"></span>planned, not built yet</li>
+          </ul>
+          <div class="callout">
+            <strong>Dependency rule:</strong> every solid arrow points toward the
+            domain. The domain depends on nothing; application depends only on
+            the domain and its own ports; infrastructure implements those ports.
+            <code>tests/architecture/test_layers.py</code> fails the build when
+            an import breaks this.
+          </div>
         </section>
 
         <section id="services">
