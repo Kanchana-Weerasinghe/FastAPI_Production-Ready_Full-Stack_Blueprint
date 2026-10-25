@@ -780,7 +780,7 @@
           <a href="#area-12">12 · Frontend</a>
           <a href="#area-13">13 · Developer experience</a>
           <a href="#area-14">14 · Governance</a>
-          <a href="#example">Add a Project entity</a>
+          <a href="#example">Worked example · User entity</a>
           <a href="#production">Production adoption checklist</a>
           <a href="#references">Repository references</a>
         </div>
@@ -3098,298 +3098,541 @@ uv run task openapi     # export the contract and commit it</code></pre>
         </section>
 
         <section id="example">
-          <h2>Worked example · add a <code>Project</code> entity</h2>
+          <h2>Worked example · implement the <code>User</code> entity end to end</h2>
           <p class="lede">
-            The example creates a project owned by the authenticated user, with
-            a name, standard audit/version fields, paginated listing, and
-            ownership-checked read/update/delete operations. It demonstrates the
-            template workflow; generated code must be reviewed and adapted to
-            your domain.
+            This walkthrough takes a real-world user from business rules to a published API, mapping each
+            step to the DDD concept it implements. Every snippet comes from
+            <code>services/identity/app/modules/users/</code>, so you can open the files side by side.
           </p>
-
-          <div class="callout warning">
-            <strong>Where does this apply?</strong> The generator works inside
-            <code>services/identity</code> and is the quickest way to learn the
-            layers. For a real business domain, build a separate service by
-            following <a href="#service-extend">Extend a service or add one</a>
-            and use <code>services/data-acquisition</code> as the reference.
-          </div>
-
-          <p class="small-text muted">
-            The request lifecycle is shown once in
-            <a href="#request-workflow">End-to-end request workflow</a>. The
-            steps below focus on implementing the module; they do not repeat the
-            runtime path.
-          </p>
+          <pre><code>Business rules → value objects → exceptions → entity (properties, invariants, behaviours, guard)
+→ policy → port → use cases → ORM model + migration → repository adapter → container + public API
+→ schemas → router + permissions → mount in api.py → tests → Swagger + openapi.json</code></pre>
 
           <div class="step">
             <div class="step-number">1</div>
             <div>
-              <h3>Generate the domain scaffold</h3>
-              <pre><code>cd services/identity
-uv run python scripts/new_module.py projects</code></pre>
-              <p>
-                The layered generator creates
-                <code>app/modules/projects/</code> with <code>domain/</code>,
-                <code>application/ports/</code>,
-                <code>application/use_cases/</code>,
-                <code>infrastructure/persistence/</code>, HTTP schemas/routes,
-                DI wiring, and focused unit-test skeletons. It also registers
-                the ORM model, container, and versioned router. Review all
-                generated changes before continuing.
-              </p>
+              <h3>Start from the business rules</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Ubiquitous language · <strong>File:</strong> <code>BRD</code></p>
+              
+              <p>Write the rules in business words, one per line, with an ID. These are the rules the
+              users module implements:</p>
+              <div class="table-wrap"><table><thead><tr><th>ID</th><th>Business rule</th><th>Lands in</th></tr></thead><tbody>
+<tr><td><strong style="white-space:nowrap">BR-01</strong></td><td>Every user has an email address that must be a valid address.</td><td>Value object</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-02</strong></td><td>A username is 3–50 letters, digits, dots, underscores or hyphens.</td><td>Value object</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-03</strong></td><td>Only a password <em>hash</em> is ever stored, never the plain password.</td><td>Value object</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-04</strong></td><td>A user's role is either <code>user</code> or <code>admin</code>.</td><td>Value object (enum)</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-05</strong></td><td>An email must be unique across all users.</td><td>Use case + DB unique constraint</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-06</strong></td><td>Verifying an email twice keeps the first verification date.</td><td>Entity behaviour</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-07</strong></td><td>MFA must be set up before it can be enabled, and cannot be set up again while enabled.</td><td>Entity behaviour + lifecycle</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-08</strong></td><td>After 5 failed sign-ins the account is locked for a configurable 15 minutes.</td><td>Policy + use case + atomic repository update</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>A locked user cannot sign in until the lock expires.</td><td>Entity guard</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td>Use case + after-commit side effect</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td>Router + permission policy</td></tr>
+</tbody></table></div>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">2</div>
             <div>
-              <h3>Define domain value and entity</h3>
-              <p>
-                Domain classes are plain Python and must not import HTTP,
-                SQLAlchemy, or infrastructure. The name value object owns the
-                normalization and length invariant. The entity carries its
-                identity and owner; it is not the SQLAlchemy row.
-              </p>
-              <pre><code>@dataclass(frozen=True, slots=True)
-class ProjectName:
-    value: str
-
-    def __post_init__(self) -&gt; None:
-        normalized = self.value.strip()
-        if not normalized or len(normalized) &gt; 200:
-            raise ProjectNameInvalid("Name must contain 1–200 characters")
-        object.__setattr__(self, "value", normalized)
-
-
-@dataclass(frozen=True, slots=True)
-class Project:
-    id: UUID
-    user_id: UUID
-    name: ProjectName</code></pre>
+              <h3>Turn the real-world user into model elements</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Classification · <strong>File:</strong> <code>—</code></p>
+              
+              <p>Use the <a href="#entity-vs-service">identification guide</a>: one value → value object;
+              the user's own state → entity behaviour or guard; facts from outside → policy; workflow →
+              use case; data → repository.</p>
+              <div class="table-wrap"><table><thead><tr><th>Source</th><th>DDD element</th><th>Name</th><th>File</th></tr></thead><tbody>
+<tr><td>Account with identity that changes over time</td><td>Entity / aggregate root</td><td><code>UserAccount</code></td><td>domain/entities.py</td></tr>
+<tr><td>BR-01, BR-02, BR-03, BR-04</td><td>Value objects</td><td><code>EmailAddress</code>, <code>Username</code>, <code>PasswordHash</code>, <code>Role</code></td><td>domain/value_objects.py</td></tr>
+<tr><td>"Can never hold an invalid value"</td><td>Invariant</td><td><code>UserAccount.__post_init__</code></td><td>domain/entities.py</td></tr>
+<tr><td>BR-06, BR-07</td><td>Entity behaviours + lifecycle</td><td><code>verify_email</code>, <code>start_mfa_setup</code>, <code>enable_mfa</code>, <code>disable_mfa</code></td><td>domain/entities.py</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>Guard</td><td><code>is_locked(now)</code></td><td>domain/entities.py</td></tr>
+<tr><td>BR-08 (duration)</td><td>Policy</td><td><code>lockout_expiry(now, lockout_minutes)</code></td><td>domain/policies.py</td></tr>
+<tr><td>Every "cannot / must"</td><td>Domain exceptions</td><td><code>InvalidEmailAddress</code>, <code>MfaNotStarted</code>, …</td><td>domain/exceptions.py</td></tr>
+<tr><td>Data the workflows need</td><td>Repository port</td><td><code>UserRepository(ABC)</code></td><td>application/ports/user_repository.py</td></tr>
+<tr><td>BR-05, BR-08, BR-10 workflows</td><td>Use cases (application service)</td><td><code>UserUseCases</code></td><td>application/use_cases/user_use_cases.py</td></tr>
+<tr><td>How a user is stored</td><td>ORM model</td><td><code>Users</code></td><td>infrastructure/persistence/models.py</td></tr>
+<tr><td>Port implementation</td><td>Repository adapter</td><td><code>SqlAlchemyUserRepository(UserRepository)</code></td><td>infrastructure/persistence/sqlalchemy_user_repository.py</td></tr>
+<tr><td>Port → adapter wiring</td><td>Composition</td><td><code>UsersContainer</code></td><td>container.py</td></tr>
+<tr><td>BR-11 HTTP contract</td><td>Schemas + router + permission</td><td><code>User</code>, <code>UserAdminView</code>, endpoints</td><td>schemas.py, router.py</td></tr>
+<tr><td>What other modules may use</td><td>Public API</td><td><code>UserUseCases</code>, <code>UserAccount</code>, <code>Role</code></td><td>public.py</td></tr>
+</tbody></table></div>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">3</div>
             <div>
-              <h3>Define request and response schemas</h3>
-              <p>
-                Keep the transport schema separate from both domain and
-                persistence types. Pydantic validates the HTTP shape; the
-                <code>ProjectName</code> value object still enforces the
-                business invariant when the use case is called from another
-                entry point.
-              </p>
-              <pre><code>from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
-from uuid import UUID
+              <h3>Value objects: values that validate themselves</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Value object · <strong>File:</strong> <code>services/identity/app/modules/users/domain/value_objects.py</code></p>
+              
+              <p>One class per validated value (BR-01 to BR-04). Invalid values can never be created; the
+              <code>str</code> subclass keeps them usable wherever a string is expected.</p>
+              <pre><code>class EmailAddress(str):
+    &quot;&quot;&quot;A syntactically valid email address, trimmed.&quot;&quot;&quot;
+
+    __slots__ = ()
+
+    def __new__(cls, value: str) -&gt; &quot;EmailAddress&quot;:
+        cleaned = value.strip()
+        if len(cleaned) &gt; EMAIL_MAX_LENGTH or not _EMAIL_SHAPE.fullmatch(cleaned):
+            raise InvalidEmailAddress(&quot;Enter a valid email address&quot;)
+        return super().__new__(cls, cleaned)
 
 
-class ProjectCreate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    name: str = Field(min_length=1, max_length=200)
-    description: str | None = Field(default=None, max_length=4000)
+class PasswordHash(str):
+    &quot;&quot;&quot;A bcrypt hash. Rejecting anything else stops a plain password from ever being stored.&quot;&quot;&quot;
+
+    def __new__(cls, value: str) -&gt; &quot;PasswordHash&quot;:
+        if not _BCRYPT_HASH.fullmatch(value):
+            raise InvalidPasswordHash(&quot;Expected a bcrypt password hash, never a plain password&quot;)
+        return super().__new__(cls, value)
 
 
-class ProjectUpdate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
-    description: str | None = Field(default=None, max_length=4000)
+class Role(StrEnum):
+    USER = &quot;user&quot;
+    ADMIN = &quot;admin&quot;
 
-
-class Project(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
-    id: UUID
-    name: str
-    description: str | None
-    created_at: datetime
-    updated_at: datetime</code></pre>
+    @classmethod
+    def parse(cls, value: str) -&gt; &quot;Role&quot;:
+        try:
+            return cls(value)
+        except ValueError as e:
+            raise InvalidRole(f&quot;Unknown role: {value!r}&quot;) from e</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">4</div>
             <div>
-              <h3>Put domain decisions in policies</h3>
-              <p>
-                A policy is a pure decision with explicit facts. For example,
-                the create-project use case asks its repository port whether
-                this owner already has the normalized name, then applies the
-                domain policy. Keep fetching facts out of the policy and keep
-                HTTP status mapping out of the domain.
-              </p>
-              <pre><code>def ensure_project_name_available(name: str, *, already_exists: bool) -&gt; None:
-    if already_exists:
-        raise ProjectNameAlreadyExists(name)
+              <h3>Domain exceptions: one named error per rule</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Domain exception · <strong>File:</strong> <code>services/identity/app/modules/users/domain/exceptions.py</code></p>
+              
+              <p>Every "cannot / must" gets a class with a stable <code>code</code>. The domain stays plain
+              Python; the use case translates these into HTTP errors (step 9).</p>
+              <pre><code>class UserRuleViolation(Exception):
+    code = &quot;user_rule_violation&quot;
 
-# In CreateProject.execute:
-name = ProjectName(requested_name)
-exists = await repository.exists_by_name(user_id, name.value)
-ensure_project_name_available(name.value, already_exists=exists)
-return await repository.add(Project.create(user_id=user_id, name=name))</code></pre>
-              <p class="small-text muted">
-                A database uniqueness constraint is still required to close the
-                race between the check and insert. Translate the resulting
-                conflict to a stable application error.
-              </p>
+    def __init__(self, message: str) -&gt; None:
+        self.message = message
+        super().__init__(message)
+
+
+class InvalidEmailAddress(UserRuleViolation):
+    code = &quot;invalid_email&quot;
+
+
+class MfaAlreadyEnabled(UserRuleViolation):
+    code = &quot;mfa_already_enabled&quot;
+
+
+class MfaNotStarted(UserRuleViolation):
+    code = &quot;mfa_not_started&quot;</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">5</div>
             <div>
-              <h3>Use ports to orchestrate external checks</h3>
-              <p>
-                Define an abstract port in
-                <code>application/ports/eligibility.py</code> for any remote
-                decision, inject it into <code>CreateProject</code>, and provide
-                its adapter in the module container. The use case decides what
-                to do with the result; the adapter owns HTTP, timeouts, and
-                provider-specific response parsing.
-              </p>
-              <pre><code>class ProjectEligibility(ABC):
-    @abstractmethod
-    async def may_create(self, owner_id: UUID) -&gt; bool: ...
+              <h3>Entity: identity, properties and invariants</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Entity · aggregate root · invariant · <strong>File:</strong> <code>services/identity/app/modules/users/domain/entities.py</code></p>
+              
+              <p>The entity has an <code>id</code> that never changes while its state does. Properties with a
+              rule use value objects; <code>__post_init__</code> guarantees no account can ever hold an
+              invalid value, whoever builds it.</p>
+              <pre><code>@dataclass(slots=True)
+class UserAccount:
+    id: UUID
+    email: EmailAddress          # BR-01
+    username: Username           # BR-02
+    password_hash: PasswordHash  # BR-03
+    role: Role                   # BR-04
+    token_version: int
+    email_verified_at: datetime | None
+    failed_login_attempts: int
+    locked_until: datetime | None
+    mfa_secret_encrypted: str | None
+    mfa_enabled_at: datetime | None
+    created_at: datetime
+    is_active: bool
+    is_deleted: bool
 
-# In the use case, before persistence:
-if not await eligibility.may_create(user_id):
-    raise ProjectCreationNotAllowed()</code></pre>
-              <p>
-                Set explicit timeouts and define retry/failure behavior. Do not
-                keep a database transaction open while waiting on a slow
-                provider; use the outbox for post-commit side effects.
-              </p>
+    def __post_init__(self) -&gt; None:
+        # Invariant: an account can never hold an invalid value.
+        self.email = EmailAddress(self.email)
+        self.username = Username(self.username)
+        self.password_hash = PasswordHash(self.password_hash)
+        self.role = Role.parse(self.role)</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">6</div>
             <div>
-              <h3>Implement and wire the persistence adapter</h3>
-              <p>
-                Keep the SQLAlchemy <code>Projects</code> model in
-                <code>infrastructure/persistence/models.py</code>. Implement the
-                application repository port in
-                <code>infrastructure/persistence/sqlalchemy_project_repository.py</code> as <code>SqlAlchemyProjectRepository(ProjectRepository)</code>, map ORM
-                rows to domain entities on reads, and map entities to rows on
-                writes. Never return ORM models from the application boundary.
-              </p>
-              <pre><code>repository = providers.Factory(
-    SqlAlchemyProjectRepository,
-    session=db.provided.scoped_session,
-)
-create_project = providers.Factory(
-    CreateProject,
-    repository=repository,
-    eligibility=eligibility_checker,
-)</code></pre>
+              <h3>Entity behaviours, guard and lifecycle</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Behaviour · guard · state machine · <strong>File:</strong> <code>services/identity/app/modules/users/domain/entities.py</code></p>
+              
+              <p>One method per business verb. Each checks its rule first, then changes the state; methods
+              returning <code>bool</code> report whether anything changed so the use case saves only real
+              changes. Time is passed in, never read inside the entity.</p>
+              <pre><code>    def is_locked(self, now: datetime) -&gt; bool:                  # BR-09 guard
+        return self.locked_until is not None and self.locked_until &gt; now
+
+    def verify_email(self, *, at: datetime) -&gt; bool:             # BR-06
+        if self.email_verified_at is not None:
+            return False                                         # keep the first date
+        self.email_verified_at = at
+        return True
+
+    def change_password(self, password_hash: str) -&gt; None:       # BR-03
+        self.password_hash = PasswordHash(password_hash)
+
+    def start_mfa_setup(self, encrypted_secret: str) -&gt; None:    # BR-07
+        if self.mfa_enabled_at is not None:
+            raise MfaAlreadyEnabled(&quot;MFA is already enabled&quot;)
+        self.mfa_secret_encrypted = encrypted_secret
+        self.mfa_enabled_at = None
+
+    def enable_mfa(self, *, at: datetime) -&gt; None:               # BR-07
+        if self.mfa_secret_encrypted is None:
+            raise MfaNotStarted(&quot;Start MFA setup first&quot;)
+        self.mfa_enabled_at = at</code></pre>
+              <pre><code>MFA lifecycle (BR-07)
+
+    no MFA --start_mfa_setup--&gt; secret pending --enable_mfa--&gt; MFA enabled
+       ^                                                           |
+       +------------------------- disable_mfa ---------------------+</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">7</div>
             <div>
-              <h3>Expose a versioned, ownership-protected API</h3>
-              <p>
-                The scaffold provides the create route. Add
-                list/get/patch/delete routes only when required, following the
-                same rule: validate at the HTTP boundary, call an application
-                use case, and use the centralized ownership dependency for
-                resource access. Apply rate limits and scope list queries to the
-                current user.
-              </p>
-              <pre><code>POST   /v2/projects/       scaffolded: create a project (201)
-GET    /v2/projects/       list the current user's projects
-GET    /v2/projects/{id}   get an owned project
-PATCH  /v2/projects/{id}   update an owned project
-DELETE /v2/projects/{id}   soft-delete an owned project (204)</code></pre>
-              <p>Example request:</p>
-              <pre><code>{
-  "name": "Website refresh",
-  "description": "Plan the public site redesign."
-}</code></pre>
-              <p>
-                The API accepts the same field names in snake_case; output
-                aliases are camelCase. For a new domain, verify the generated
-                endpoint paths and response shapes in OpenAPI rather than
-                assuming the example is the final contract.
-              </p>
+              <h3>Policy: decisions that need outside facts</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Domain policy · <strong>File:</strong> <code>services/identity/app/modules/users/domain/policies.py</code></p>
+              
+              <p>BR-08's lock duration depends on configuration and the clock, which the entity does not
+              have. The use case passes those facts in; the policy only decides.</p>
+              <pre><code>def lockout_expiry(*, now: datetime, lockout_minutes: int) -&gt; datetime:
+    &quot;&quot;&quot;When an account locked at `now` may try to sign in again.&quot;&quot;&quot;
+    if now.tzinfo is None:
+        raise ValueError(&quot;Lockout times require a timezone-aware datetime&quot;)
+    return now + timedelta(minutes=lockout_minutes)</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">8</div>
             <div>
-              <h3>Create and review the migration</h3>
-              <pre><code>cd services/identity
-uv run alembic revision --autogenerate -m "create projects"
-# Review the generated upgrade() and downgrade() before applying.
-uv run task upgrade</code></pre>
-              <p>
-                Verify foreign keys, indexes, uniqueness, nullability, server
-                defaults, and lock/rewriting impact. For a non-null field on a
-                large existing table, use expand/backfill/contract rather than a
-                single disruptive migration. Update
-                <code>docs/DATABASE_DESIGN.md</code>.
-              </p>
+              <h3>Port: what the use cases need from storage</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Repository port (ABC) · <strong>File:</strong> <code>services/identity/app/modules/users/application/ports/user_repository.py</code></p>
+              
+              <p>An abstract base class lists every data need. It says <em>what</em>, never <em>how</em>.
+              Implementations inherit it explicitly, so Python refuses one that forgets a method.</p>
+              <pre><code>class UserRepository(ABC):
+    @abstractmethod
+    async def get_account_by_id(self, user_id: UUID) -&gt; UserAccount: ...
+
+    @abstractmethod
+    async def find_by_email(self, email: str) -&gt; UserAccount | None: ...
+
+    @abstractmethod
+    async def create_account(self, values: dict[str, Any]) -&gt; UserAccount: ...
+
+    @abstractmethod
+    async def update_account(self, user_id: UUID, values: dict[str, Any]) -&gt; UserAccount: ...
+
+    @abstractmethod
+    async def register_failed_login(self, user_id: UUID, max_attempts: int, lock_until: datetime) -&gt; None:
+        &quot;&quot;&quot;Atomically counts a failed sign-in and locks the account when it reaches max_attempts.&quot;&quot;&quot;</code></pre>
             </div>
           </div>
-
           <div class="step">
             <div class="step-number">9</div>
             <div>
-              <h3>Test behavior and regenerate contracts</h3>
-              <ul>
-                <li>
-                  Unit-test value objects and policies; test use cases with fake
-                  ports and adapter mappings separately.
-                </li>
-                <li>
-                  Integration-test create/list/get/update/delete and invalid
-                  input.
-                </li>
-                <li>
-                  Prove another user's project returns not-found/forbidden per
-                  policy.
-                </li>
-                <li>
-                  Test pagination caps, idempotent replay, and stale ETag
-                  conflict behavior.
-                </li>
-                <li>
-                  Update <code>docs/API_FLOW.md</code> and database
-                  documentation.
-                </li>
-              </ul>
-              <pre><code>cd services/identity
-uv run task test
-uv run task openapi
+              <h3>Use cases: coordinate the workflow</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Application service · <strong>File:</strong> <code>services/identity/app/modules/users/application/use_cases/user_use_cases.py</code></p>
+              
+              <p>Each method is one operation: load → entity behaviour or policy → save only changed fields
+              → side effects. It receives the <em>port</em>, never commits, and never assigns entity fields
+              directly.</p>
+              <pre><code>@contextmanager
+def business_rules() -&gt; Iterator[None]:
+    &quot;&quot;&quot;Translates a domain rule violation into an error the HTTP layer renders as 400.&quot;&quot;&quot;
+    try:
+        yield
+    except UserRuleViolation as e:
+        raise BadRequestError(e.message, code=e.code) from e
 
-cd ../../web
-pnpm gen:api
-pnpm build
-pnpm test</code></pre>
-              <p>
-                Run backend tests with Docker available: pytest uses a throwaway
-                Postgres Testcontainers instance and refuses an externally
-                configured
-                <code>TEST_DB_HOST</code>.
-              </p>
+
+class UserUseCases:
+    def __init__(self, user_repository: UserRepository, uow: UnitOfWork,
+                 storage: FileStorage, audit: AuditService) -&gt; None:
+        self._users = user_repository
+        self.uow, self.storage, self.audit = uow, storage, audit
+
+    async def create_user(self, *, email: str, password_hash: str, username: str) -&gt; UserAccount:
+        with business_rules():
+            address, handle = EmailAddress(email), Username(username)   # BR-01, BR-02
+        return await self._users.create_account({&quot;email&quot;: address, &quot;password&quot;: password_hash,
+                                                 &quot;username&quot;: handle, &quot;created_by&quot;: handle,
+                                                 &quot;updated_by&quot;: handle})
+
+    async def record_failed_login(self, user: UserAccount) -&gt; None:     # BR-08
+        lock_until = lockout_expiry(now=_now(), lockout_minutes=config.LOGIN_LOCKOUT_MINUTES)
+        await self._users.register_failed_login(user.id, config.LOGIN_MAX_FAILED_ATTEMPTS, lock_until)
+        self.uow.persist_on_failure()          # keep the count although sign-in returns 401
+
+    async def mark_email_verified(self, user: UserAccount) -&gt; None:     # BR-06
+        if user.verify_email(at=_now()):
+            await self._save(user, email_verified_at=user.email_verified_at)
+
+    async def delete_account(self, user: UserAccount) -&gt; None:          # BR-10
+        await self._users.delete_account(user.id)
+        await self.audit.record(&quot;user.deleted&quot;, actor_id=user.id, resource_type=&quot;user&quot;, resource_id=user.id)
+        self.uow.after_commit(self.storage.delete_owner, user.id)       # files only after commit
+
+    async def _save(self, user: UserAccount, **changed: Any) -&gt; None:
+        user.apply(await self._users.update_account(user.id, changed))</code></pre>
+              <p class="small-text muted">BR-05 (unique email) is checked by auth's sign-up with
+              <code>get_by_email</code> before <code>create_user</code>, and the <code>UNIQUE</code> index on
+              <code>users.email</code> (step 10) closes the race between two sign-ups.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">10</div>
+            <div>
+              <h3>ORM model and migration: how a user is stored</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Persistence (infrastructure) · <strong>File:</strong> <code>services/identity/app/modules/users/infrastructure/persistence/models.py</code></p>
+              
+              <p>The table, not the business object: columns, nullability, unique indexes. Only the
+              repository uses it.</p>
+              <pre><code>class Users(BaseModel):            # BaseModel adds id, timestamps, created_by/updated_by, version
+    email: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False, index=True)       # BR-05
+    username: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False, index=True)
+    _password: Mapped[str] = mapped_column(&quot;password&quot;, TEXT, nullable=False)
+    role: Mapped[str] = mapped_column(VARCHAR(32), nullable=False, server_default=text(&quot;&#x27;user&#x27;&quot;))
+    token_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text(&quot;0&quot;))
+    email_verified_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text(&quot;0&quot;))
+    locked_until: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    mfa_secret_encrypted: Mapped[str | None] = mapped_column(TEXT)
+    mfa_enabled_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))</code></pre>
+              <p>Register the model in <code>app/models.py</code>, then create and review the migration:</p>
+              <pre><code>cd services/identity
+uv run alembic revision --autogenerate -m &quot;create users&quot;
+# review upgrade()/downgrade(): unique indexes, nullability, defaults
+uv run task upgrade</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">11</div>
+            <div>
+              <h3>Repository adapter: implement the port</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Adapter (infrastructure) · <strong>File:</strong> <code>services/identity/app/modules/users/infrastructure/persistence/sqlalchemy_user_repository.py</code></p>
+              
+              <p>Inherits the port, maps rows to entities (rebuilding value objects) and does atomic updates
+              where concurrency matters. It never commits.</p>
+              <pre><code>class SqlAlchemyUserRepository(BaseRepository[Users, BaseModel], UserRepository):
+    @staticmethod
+    def _to_entity(user: Users) -&gt; UserAccount:
+        return UserAccount(
+            id=user.id,
+            email=EmailAddress(user.email),
+            username=Username(user.username),
+            password_hash=PasswordHash(user._password),
+            role=Role.parse(user.role),
+            ...
+        )
+
+    async def find_by_email(self, email: str) -&gt; UserAccount | None:
+        result = await self.read_by_options({&quot;email__eq&quot;: email, &quot;page_size&quot;: 1})
+        return self._to_entity(result[&quot;founds&quot;][0]) if result[&quot;founds&quot;] else None
+
+    async def register_failed_login(self, user_id, max_attempts, lock_until) -&gt; None:   # BR-08, atomic
+        attempts = Users.failed_login_attempts + 1
+        await self.session.execute(
+            update(Users).where(Users.id == user_id).values(
+                failed_login_attempts=case((attempts &gt;= max_attempts, 0), else_=attempts),
+                locked_until=case((attempts &gt;= max_attempts, lock_until), else_=Users.locked_until),
+                version=Users.version + 1,
+            )
+        )</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">12</div>
+            <div>
+              <h3>Container and public API: wire the module</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Composition root · published API · <strong>File:</strong> <code>services/identity/app/modules/users/container.py, services/identity/app/modules/users/public.py</code></p>
+              
+              <p>The module container binds the port to its adapter and builds the use cases; the root
+              container registers the module; <code>public.py</code> lists what other modules may import.</p>
+              <pre><code># users/container.py
+class UsersContainer(containers.DeclarativeContainer):
+    db = providers.Dependency(instance_of=Database)
+    uow = providers.Dependency(instance_of=UnitOfWork)
+    storage: providers.Dependency[FileStorage] = providers.Dependency()
+    audit_service = providers.Dependency(instance_of=AuditService)
+
+    repository = providers.Factory(SqlAlchemyUserRepository, session=db.provided.scoped_session)
+    use_cases = providers.Factory(UserUseCases, user_repository=repository, uow=uow,
+                                  storage=storage, audit=audit_service)
+
+# app/container.py  (root)
+users = providers.Container(UsersContainer, db=db, uow=uow, storage=file_storage,
+                            audit_service=audit.service)
+
+# users/public.py  (re-exports only)
+from app.modules.users.application.use_cases.user_use_cases import UserUseCases
+from app.modules.users.domain.entities import UserAccount
+from app.modules.users.domain.value_objects import Role
+__all__ = [&quot;Role&quot;, &quot;UserAccount&quot;, &quot;UserUseCases&quot;]</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">13</div>
+            <div>
+              <h3>Schemas: the HTTP contract</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Published language (API) · <strong>File:</strong> <code>services/identity/app/modules/users/schemas.py</code></p>
+              
+              <p>Decide exactly what each audience sees. Secrets (password hash, MFA seed) never leave the
+              service; timestamps become booleans for normal users.</p>
+              <pre><code>class User(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    id: UUID
+    email: EmailStr
+    username: str
+    role: str = &quot;user&quot;
+    email_verified: bool = False
+    mfa_enabled: bool = False
+
+
+class UserAdminView(User):           # admins also see these
+    created_at: datetime | None = None
+    locked_until: datetime | None = None</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">14</div>
+            <div>
+              <h3>Router and permission policy: expose the use cases</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Application boundary (HTTP) · <strong>File:</strong> <code>services/identity/app/modules/users/router.py</code></p>
+              
+              <p>Each endpoint: rate limit → who is calling (<code>CurrentUserDep</code>) → permission
+              (<code>require_permission</code>) → one use case call → response schema. No business logic.</p>
+              <pre><code>router = APIRouter(prefix=&quot;/user&quot;, tags=[&quot;users&quot;])          # the signed-in user&#x27;s own account
+admin_router = APIRouter(prefix=&quot;/users&quot;, tags=[&quot;users&quot;])   # admin operations
+
+UserUseCasesDep = Annotated[UserUseCases, Depends(Provide[&quot;users.use_cases&quot;])]
+
+
+@router.get(&quot;/me&quot;, response_model=User, summary=&quot;Get Current User&quot;,
+            dependencies=[rate_limit(&quot;200/minute&quot;)])
+async def get_me(current_user: CurrentUserDep) -&gt; UserAccount:                 # BR-11
+    return current_user
+
+
+@router.delete(&quot;/me&quot;, status_code=204, summary=&quot;Delete Current User&quot;,
+               dependencies=[rate_limit(&quot;5/minute&quot;)])
+@inject
+async def delete_me(response: Response, current_user: CurrentUserDep, users: UserUseCasesDep) -&gt; None:
+    await users.delete_account(current_user)                                    # BR-10
+    clear_auth_cookies(response)
+
+
+@admin_router.get(&quot;/&quot;, response_model=BaseListResponse[UserAdminView], summary=&quot;List Users (admin)&quot;,
+                  dependencies=[rate_limit(&quot;60/minute&quot;), require_permission(Permission.USERS_READ_ALL)])
+@inject
+async def list_users(query: Annotated[PaginationMixin, Query()], users: UserUseCasesDep) -&gt; Any:
+    return await users.get_list(query.model_dump(exclude_none=True))           # BR-11 (admin only)</code></pre>
+              <p class="small-text muted">Roles live in the users domain (<code>Role</code>); which role may
+              do what is decided in <code>auth/permissions.py</code> (<code>ROLE_PERMISSIONS</code>).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">15</div>
+            <div>
+              <h3>Mount the router: give it a URL</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Composition root · <strong>File:</strong> <code>services/identity/app/api.py</code></p>
+              
+              <pre><code>from app.modules.users.router import admin_router as users_admin_router
+from app.modules.users.router import router as users_router
+
+api_v2 = APIRouter(prefix=&quot;/v2&quot;)
+api_v2.include_router(users_router)         # → /v2/user/me
+api_v2.include_router(users_admin_router)   # → /v2/users/</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">16</div>
+            <div>
+              <h3>Test every rule</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Behaviour-focused tests · <strong>File:</strong> <code>services/identity/tests/</code></p>
+              
+              <p>Domain rules need no database; use cases use the in-memory
+              <code>FakeUserRepository(UserRepository)</code>; integration tests hit the real API.</p>
+              <pre><code>def test_verify_email_keeps_first_timestamp() -&gt; None:                 # BR-06
+    account = _account()
+    assert account.verify_email(at=NOW)
+    assert not account.verify_email(at=NOW + timedelta(days=1))
+    assert account.email_verified_at == NOW
+
+
+def test_mfa_lifecycle() -&gt; None:                                      # BR-07
+    account = _account()
+    with pytest.raises(MfaNotStarted):
+        account.enable_mfa(at=NOW)
+    account.start_mfa_setup(&quot;encrypted-secret&quot;)
+    account.enable_mfa(at=NOW)
+    with pytest.raises(MfaAlreadyEnabled):
+        account.start_mfa_setup(&quot;another-secret&quot;)
+
+
+@pytest.mark.parametrize(&quot;value&quot;, [&quot;&quot;, &quot;MySecret123!&quot;, &quot;hash&quot;])
+def test_plain_passwords_are_never_accepted_as_hashes(value: str) -&gt; None:   # BR-03
+    with pytest.raises(InvalidPasswordHash):
+        PasswordHash(value)</code></pre>
+              <pre><code>cd services/identity
+uv run task check &amp;&amp; uv run task type-check
+uv run task test        # unit + architecture + integration (Docker required)</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">17</div>
+            <div>
+              <h3>Run it and publish to Swagger</h3>
+              <p class="small-text muted"><strong>DDD concept:</strong> Open host service (published API) · <strong>File:</strong> <code>services/identity/openapi.json</code></p>
+              
+              <p>Start the database and the API, then open the interactive documentation. FastAPI builds the
+              Swagger page from the routers, schemas and summaries you wrote in steps 13–15.</p>
+              <pre><code>docker run -d --name dev-db -e POSTGRES_USER=root -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=postgres -p 5432:5432 postgres:16-alpine     # first time; later: docker start dev-db
+cd services/identity
+uv run task upgrade &amp;&amp; uv run task seed      # tables + demo@example.com / admin@example.com (Password123!)
+uv run task dev                              # Windows: set PYTHONUTF8=1 first</code></pre>
+              <div class="table-wrap"><table><thead><tr><th>Open</th><th>What you see</th></tr></thead><tbody>
+<tr><td><code>http://localhost:8000/docs</code></td><td>Swagger UI with the <strong>users</strong> tag: <code>GET /v2/user/me</code>, <code>DELETE /v2/user/me</code>, <code>GET /v2/users/</code> — summaries, schemas, status codes</td></tr>
+<tr><td><code>http://localhost:8000/api/openapi.json</code></td><td>The raw OpenAPI document (development only; hidden in production)</td></tr>
+</tbody></table></div>
+              <p>Try it in Swagger: call <code>POST /v1/auth/signin</code> with
+              <code>{"email": "admin@example.com", "password": "Password123!"}</code> (the session cookie is set
+              in the browser), then <strong>Try it out</strong> on <code>GET /v2/users/</code>. A normal user gets
+              403 on that endpoint (BR-11).</p>
+              <p>Finally, publish the contract so other teams and the web app use the same definition:</p>
+              <pre><code>uv run task openapi          # writes services/identity/openapi.json — commit it
+cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from it</code></pre>
+              <p>Update <code>docs/API_FLOW.md</code> (endpoints and errors) and
+              <code>docs/DATABASE_DESIGN.md</code> (the <code>users</code> table) in the same pull request.</p>
             </div>
           </div>
 
+          <h3>Checklist before opening a pull request</h3>
+          <div class="table-wrap"><table><thead><tr><th>Layer</th><th>Done when</th></tr></thead><tbody>
+<tr><td>Domain</td><td>Every BR maps to a value object, behaviour, guard, policy or exception; no framework imports</td></tr>
+<tr><td>Application</td><td>Use cases receive the port, never commit, call behaviours instead of assigning fields</td></tr>
+<tr><td>Infrastructure</td><td>Adapter inherits the port, rebuilds value objects, uses atomic updates where required</td></tr>
+<tr><td>HTTP</td><td>Every endpoint has a rate limit, an auth/permission dependency and a response schema</td></tr>
+<tr><td>Wiring</td><td>Module container, root container, <code>app/api.py</code>, <code>app/models.py</code>, <code>public.py</code></td></tr>
+<tr><td>Contract</td><td>Migration reviewed, <code>openapi.json</code> exported, docs updated, all tests and architecture checks green</td></tr>
+</tbody></table></div>
           <div class="callout">
-            <strong>Frontend follow-through:</strong> add a Project Zod model,
-            query/mutation hooks, feature components and authenticated routes
-            only if this product needs a UI. Keep API request/response types
-            generated from OpenAPI; keep page-specific behavior in
-            <code>web/src/features/</code>.
+            <strong>New domain, not identity?</strong> Build it as its own service with the same layers,
+            following <a href="#service-extend">Extend a service or add one</a> and
+            <code>services/data-acquisition</code> (which also shows domain events and one class per use case).
           </div>
         </section>
 
