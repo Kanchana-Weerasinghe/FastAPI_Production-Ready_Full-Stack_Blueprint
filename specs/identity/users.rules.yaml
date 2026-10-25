@@ -290,9 +290,9 @@ rules:
     then: 204, session cookies expired, then 401 on the next call
   - id: TC-10-3
     layer: integration
-    given: a user with a todo and a stored file
+    given: a user with a stored file
     when: DELETE /v2/user/me
-    then: user.deleted is audited, the todo is gone (cascade) and the file is removed
+    then: user.deleted is audited, the account row is gone and the file is removed
 - id: BR-11
   rule: A signed-in user can view their own profile; only admins can list all users.
   visibility: api

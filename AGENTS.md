@@ -1,6 +1,6 @@
 # Agent & Project Guidelines
 
-Welcome! This document provides commands, rules, and guidelines for developing and managing the Tempto project.
+Welcome! This document provides commands, rules, and guidelines for developing and managing the Boost project.
 
 ---
 
@@ -35,7 +35,7 @@ Welcome! This document provides commands, rules, and guidelines for developing a
 
 | Path | What it is |
 | :--- | :--- |
-| `services/identity/` | Identity (auth, users), audit and the `todos` example; issues the access tokens |
+| `services/identity/` | Identity (auth, users) and audit; issues the access tokens |
 | `services/data-acquisition/` | Data acquisition domain service (`AcquisitionJob`), deployed independently |
 | `packages/platform-kit/` | Shared technical building blocks for domain services (no business rules) |
 | `specs/<service>/` | Business-rule specs (`<entity>.rules.yaml`): rules and test cases shared by the developer and QA suites |
@@ -133,16 +133,16 @@ The source code resides in the `web/src/` directory:
 
 * `constants/`: Shared UI and navigation configuration constants.
 
-* `features/`: Modular components implementing feature-specific pages (e.g., `todo/TodoList.tsx`, `todo/TodoEdit.tsx`, `Archives.tsx`).
+* `features/`: Modular components implementing feature-specific pages (e.g., `Home.tsx`, `account/AccountSecurity.tsx`).
 
 * `hooks/`: React state and fetching hooks:
-  * `queries/`: React Query hooks for fetching data (e.g., `todos.ts`).
-  * `mutations/`: React Query mutations for sending data (e.g., `auth.ts`, `todos.ts`).
+  * `queries/`: React Query hooks for fetching data (e.g., `user.ts`).
+  * `mutations/`: React Query mutations for sending data (e.g., `auth.ts`).
   * `shared/`: Generic frontend helpers (e.g., `useDebounce.ts`).
 
 * `lib/`: Client utilities such as the API axios `client.ts` and query configuration `query.ts`.
 
-* `models/`: Client-side Zod validation schemas and types (e.g., `todo.ts`).
+* `models/`: Client-side Zod validation schemas and types (e.g., `auth.ts`, `user.ts`).
 
 * `routes/`: File-based TanStack Router configuration directories (e.g., `_authenticated/`, `_guest/`).
 

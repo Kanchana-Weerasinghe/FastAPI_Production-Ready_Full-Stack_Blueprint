@@ -22,6 +22,14 @@ vi.mock("@/hooks/mutations/auth", () => ({
 }));
 
 describe("Landing", () => {
+  it("shows the Boost brand and links to the Boost Guide", () => {
+    render(<Landing />);
+    expect(screen.getByRole("heading", { name: "Boost" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Read the Boost Guide/ }),
+    ).toHaveAttribute("href", "/guide/index.html");
+  });
+
   it("renders email and password fields", () => {
     render(<Landing />);
     expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();

@@ -3,7 +3,7 @@
 - Status: Accepted (amended 2026-10-20)
 - Date: 2026-10-16
 
-> **Amendment (2026-10-20):** the `attachments` module and its `/v2/attachments` endpoints were removed to keep `todos` as the single example entity. The storage abstraction (`app/shared/storage.py`, `storage_s3.py`) and its configuration remain as platform infrastructure; a future module that stores files must follow the rules below.
+> **Amendment (2026-10-20):** the `attachments` module and its `/v2/attachments` endpoints were removed to keep `todos` as the single example entity; the `todos` module was removed in turn on 2026-10-25. The storage abstraction (`app/shared/storage.py`, `storage_s3.py`) and its configuration remain as platform infrastructure; a future module that stores files must follow the rules below.
 
 ## Context
 

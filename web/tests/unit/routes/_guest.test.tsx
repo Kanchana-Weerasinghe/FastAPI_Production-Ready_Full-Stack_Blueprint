@@ -27,7 +27,7 @@ vi.mock("@/store/auth.store", () => {
 });
 
 describe("Guest Route", () => {
-  it("redirects to /todos when user is authenticated", async () => {
+  it("redirects to /home when user is authenticated", async () => {
     authStore.state.user = { id: "1" } as never;
 
     try {
@@ -46,7 +46,7 @@ describe("Guest Route", () => {
     expect(authStore.state.user).toBeNull();
   });
 
-  it("redirects to /todos when user is not authenticated but fetch succeeds", async () => {
+  it("redirects to /home when user is not authenticated but fetch succeeds", async () => {
     authStore.state.user = null;
     vi.mocked(fetchUser).mockResolvedValueOnce({ id: "2" } as never);
 

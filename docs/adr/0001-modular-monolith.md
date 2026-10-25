@@ -32,5 +32,5 @@ The template must scale to large projects and teams. Grouping code by technical 
 
 - A module can be extracted into a service by replacing its in-process service calls with an API/queue client behind the same interface.
 - There is more boilerplate per module (domain/application/ports/adapters and mapping), offset by the scaffold and clearer rule ownership.
-- Cross-module database relationships (e.g. `todos.user_id → users.id`) remain; extracting a module later requires replacing those foreign keys with IDs owned by the other service.
+- Cross-module database relationships (e.g. a `projects.user_id → users.id` foreign key) remain; extracting a module later requires replacing those foreign keys with IDs owned by the other service.
 - Compatibility re-exports reduce migration risk but are transitional and should be removed once callers and tests use the layered API.

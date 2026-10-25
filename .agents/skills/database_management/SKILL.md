@@ -11,7 +11,7 @@ All database models (except system/internal models where not applicable) must in
 
 ### Automatically Handled by `BaseModel`
 
-- **Table Names**: Automatically converted from `PascalCase` class names to `snake_case` (e.g., `Todos` -> `todos`, `AuditLogs` -> `audit_logs`).
+- **Table Names**: Automatically converted from `PascalCase` class names to `snake_case` (e.g., `Users` -> `users`, `AuditLogs` -> `audit_logs`).
 - **Primary Keys**: Defined as a native PostgreSQL UUID using `PG_UUID(as_uuid=True)` with database-side generator `server_default=text("gen_random_uuid()")`.
 - **Audit Fields**: All models inherit these auditing and metadata fields:
   - `id`: Mapped[UUID] primary key.

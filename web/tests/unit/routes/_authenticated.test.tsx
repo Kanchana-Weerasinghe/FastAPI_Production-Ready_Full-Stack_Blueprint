@@ -41,7 +41,7 @@ describe("Authenticated Route", () => {
     }
   });
 
-  it("redirects to /todos when user is authenticated but visits /", async () => {
+  it("redirects to /home when user is authenticated but visits /", async () => {
     authStore.state.user = { id: "1" } as never;
 
     try {

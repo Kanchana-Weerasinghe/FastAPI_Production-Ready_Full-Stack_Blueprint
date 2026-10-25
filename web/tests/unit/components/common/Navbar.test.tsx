@@ -15,7 +15,7 @@ const render = (ui: ReactElement) =>
   rtlRender(ui, { wrapper: createWrapper() });
 
 vi.mock("@tanstack/react-router", () => {
-  let currentPath = "/todos";
+  let currentPath = "/home";
   return {
     useLocation: () => ({ pathname: currentPath }),
     useNavigate: () => navigateMock,
@@ -44,7 +44,7 @@ vi.mock("@tanstack/react-router", () => {
 describe("Navbar", () => {
   it("renders the brand logo link", () => {
     render(<Navbar />);
-    expect(screen.getByText("Tempto")).toBeInTheDocument();
+    expect(screen.getByText("Boost")).toBeInTheDocument();
   });
 
   it("renders all navigation items from NAV_ITEMS", () => {

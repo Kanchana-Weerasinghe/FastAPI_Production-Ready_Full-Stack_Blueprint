@@ -73,7 +73,7 @@ def check_ownership(
     Dependency factory to verify resource existence and ownership.
 
     Args:
-        service_id: Container path of the resource's service, e.g. "todos.service".
+        service_id: Container path of the resource's service, e.g. "projects.use_cases".
         param_name: The name of the path parameter containing the resource ID.
         is_active: Filter by active status (True, False, or None for any).
 

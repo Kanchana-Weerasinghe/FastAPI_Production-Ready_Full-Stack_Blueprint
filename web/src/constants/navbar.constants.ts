@@ -3,12 +3,8 @@
  */
 export const NAV_ITEMS = [
   {
-    label: "Todo",
-    to: "/todos",
-  },
-  {
-    label: "Archive",
-    to: "/archives",
+    label: "Home",
+    to: "/home",
   },
   {
     label: "Account",

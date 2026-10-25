@@ -8,7 +8,7 @@ Architecture rules for the modular monolith, enforced on every test run.
 3. A module may use another module only through its public API (`public`, `schemas`,
    `dependencies`, `permissions`), never its persistence adapter, router or container.
 4. Modules never import the composition root (`app.container`, `app.api`, `app.main`); routes
-   resolve services by container path, e.g. `Provide["todos.service"]`.
+   resolve services by container path, e.g. `Provide["users.use_cases"]`.
 5. Domain modules share `domain/`, `application/ports/`, `application/use_cases/`, and
    `infrastructure/persistence/`. Modules listed in `APPLICATION_ORCHESTRATION_MODULES` coordinate
    other modules' public services and must stay application-only (no `domain/` or `infrastructure/`).
@@ -21,7 +21,7 @@ import pytest
 
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 APPLICATION_ORCHESTRATION_MODULES: set[str] = set()
-REQUIRED_DOMAIN_MODULES = {"audit", "auth", "todos", "users"}
+REQUIRED_DOMAIN_MODULES = {"audit", "auth", "users"}
 PUBLIC_MODULE_FILES = {"public", "schemas", "dependencies", "permissions"}
 FRAMEWORK_FREE_FILES = {"public", "repository", "models"}
 COMPOSITION_ROOT = ("app.container", "app.api", "app.main")

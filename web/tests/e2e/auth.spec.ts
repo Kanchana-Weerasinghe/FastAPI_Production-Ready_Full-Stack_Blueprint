@@ -41,7 +41,7 @@ test.describe("Sign Up Flow", () => {
 });
 
 test.describe("Sign In Flow", () => {
-  test("User can sign in with valid credentials and is redirected to /todos", async ({
+  test("User can sign in with valid credentials and is redirected to /home", async ({
     page,
     seededAccount,
   }) => {
@@ -49,7 +49,7 @@ test.describe("Sign In Flow", () => {
     await page.getByPlaceholder("you@example.com").fill(seededAccount.email);
     await page.getByPlaceholder("••••••••").fill(seededAccount.password);
     await page.locator('button[type="submit"]').click();
-    await expect(page).toHaveURL(/.*\/todos/);
+    await expect(page).toHaveURL(/.*\/home/);
     await expect(page.getByText("Welcome back!")).toBeVisible();
   });
 

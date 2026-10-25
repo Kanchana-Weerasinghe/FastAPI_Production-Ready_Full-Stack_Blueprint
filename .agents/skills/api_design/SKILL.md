@@ -158,12 +158,12 @@ Commonly needed fields **must** use these standard names and types:
 
 ```json
 {
-  "type": "https://errors.example.com/todo_not_found",
+  "type": "https://errors.example.com/project_not_found",
   "title": "Not Found",
   "status": 404,
-  "detail": "Todo with ID 'shelf1' not found.",
-  "instance": "/v2/todos/shelf1",
-  "code": "todo_not_found",
+  "detail": "Project with ID 'shelf1' not found.",
+  "instance": "/v2/projects/shelf1",
+  "code": "project_not_found",
   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
 }
 ```
@@ -176,7 +176,7 @@ Commonly needed fields **must** use these standard names and types:
   "title": "Validation Failed",
   "status": 422,
   "detail": "Input validation failed.",
-  "instance": "/v2/todos/",
+  "instance": "/v2/projects/",
   "code": "validation_failed",
   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a",
   "errors": [
@@ -299,7 +299,7 @@ Before finalizing an API design, verify:
 - **Pagination**: offset (`page`, `pageSize` ≤ `MAX_PAGE_SIZE`) for small user-scoped lists; cursor (`cursor`, `limit` → `{items, nextCursor}`, `BaseRepository.read_by_cursor`) for large or append-heavy tables. Never return unbounded lists.
 - **Filtering**: query parameters map to `<field>__<op>` filters in the module's `Find*` schema (`eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `contains`, `in`, `isnull`); only expose filters on indexed, non-sensitive columns.
 - **Sorting**: `ordering=<field>` / `-<field>`, restricted to the schema's `ORDERING_FIELDS` allow-list (422 otherwise).
-- **Field selection**: prefer purpose-built list/detail schemas (e.g. `TodoListItem` vs `Todo`) over a generic `fields=` parameter; it keeps responses typed and cacheable.
+- **Field selection**: prefer purpose-built list/detail schemas (e.g. `UserAdminView` vs `User`) over a generic `fields=` parameter; it keeps responses typed and cacheable.
 - **Idempotency**: clients may send `Idempotency-Key` on any POST/PATCH (handled globally); endpoints with external side effects (payments, orders) should document it as required.
 - **Concurrency**: single-resource GETs return `ETag`; updates accept `If-Match` (`app/core/conditional.py`).
 - **Deprecation**: `dependencies=[deprecated(sunset=date(...), link=...)]` from `app/core/versioning.py`; breaking changes need a new version (ADR 0003). CI fails on breaking OpenAPI diffs.

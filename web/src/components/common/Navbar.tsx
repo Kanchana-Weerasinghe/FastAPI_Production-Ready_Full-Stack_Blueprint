@@ -51,7 +51,7 @@ export function Navbar() {
           to="/"
           className="pt-3 text-4xl font-borel font-bold text-brand-400 select-none hover:opacity-90 transition-opacity"
         >
-          Tempto
+          Boost
         </Link>
 
         <div className="relative" ref={containerRef}>

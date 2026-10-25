@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "../components/common/Button";
 import { Input } from "../components/common/Input";
+import { GUIDE_URL } from "../constants/guide.constants";
 import { useMfaVerify, useSignIn, useSignUp } from "../hooks/mutations/auth";
 import { problemMessage } from "../lib/problem";
 import { authSchema, totpCodeSchema } from "../models/auth";
@@ -42,7 +43,7 @@ export function Landing() {
           toast.success("Welcome back!", {
             description: `Logged in as ${value.email}`,
           });
-          navigate({ to: "/todos" });
+          navigate({ to: "/home" });
         } else {
           await signUp.mutateAsync(value);
           toast.success("Account created!", {
@@ -71,7 +72,7 @@ export function Landing() {
     }
     try {
       await mfaVerify.mutateAsync({ mfaToken: mfaToken!, code: mfaCode });
-      navigate({ to: "/todos" });
+      navigate({ to: "/home" });
     } catch (error) {
       setMfaError(problemMessage(error, "Invalid authentication code"));
     }
@@ -131,10 +132,10 @@ export function Landing() {
       <div className="w-full max-w-sm p-8 rounded-2xl bg-white shadow-xl">
         <div className="text-center mb-8 pt-6">
           <h1 className="text-4xl font-borel font-bold text-brand-400 mb-1 py-1">
-            Tempto
+            Boost
           </h1>
           <p className="text-base font-borel text-brand-600/80">
-            Your everyday todo app.
+            The full-stack DDD starter template.
           </p>
         </div>
 
@@ -244,6 +245,12 @@ export function Landing() {
           )}
         </form>
       </div>
+      <a
+        href={GUIDE_URL}
+        className="mt-6 text-base font-bold text-brand-600 hover:text-brand-400 hover:underline"
+      >
+        Read the Boost Guide →
+      </a>
     </main>
   );
 }

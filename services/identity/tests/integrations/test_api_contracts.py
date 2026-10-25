@@ -4,41 +4,26 @@ from typing import Any
 FIRST_USER = {"email": "first_user@email.com", "password": "SecurePass123!"}
 
 
-async def _first_todo_id(api_client: Any) -> str:
-    return str((await api_client.get("/v2/todos/")).json()["founds"][0]["id"])
-
-
-async def test_etag_and_if_match_prevent_lost_updates(client: Any) -> None:
-    """Integration test verifying GET returns an ETag and PATCH with a stale If-Match fails with 412."""
-    api_client = await client(**FIRST_USER)
-    todo_id = await _first_todo_id(api_client)
-    detail = await api_client.get(f"/v2/todos/{todo_id}")
-    etag = detail.headers["etag"]
-    assert etag == f'W/"{detail.json()["version"]}"'
-
-    first = await api_client.patch(f"/v2/todos/{todo_id}", json={"title": "A"}, headers={"If-Match": etag})
-    assert first.status_code == 200
-    assert first.headers["etag"] != etag
-
-    stale = await api_client.patch(f"/v2/todos/{todo_id}", json={"title": "B"}, headers={"If-Match": etag})
-    assert stale.status_code == 412
-    assert stale.json()["code"] == "precondition_failed"
-    assert stale.json()["current_etag"] == first.headers["etag"]
-
-
 async def test_idempotency_key_replays_response(client: Any) -> None:
     """Integration test verifying a retried POST with the same Idempotency-Key is replayed, not executed twice."""
-    api_client = await client(**FIRST_USER)
-    key = {"Idempotency-Key": str(uuid.uuid4())}
-    before = (await api_client.get("/v2/todos/")).json()["searchOptions"]["totalCount"]
+    from sqlalchemy import func, select
 
-    first = await api_client.post("/v2/todos/", json={"title": "Once"}, headers=key)
-    retry = await api_client.post("/v2/todos/", json={"title": "Once"}, headers=key)
+    from app.main import db
+    from app.modules.users.infrastructure.persistence.models import Users
+
+    api_client = await client()
+    key = {"Idempotency-Key": str(uuid.uuid4())}
+    body = {"email": f"idem_{uuid.uuid4().hex[:8]}@example.com", "password": "SecurePass123!"}
+
+    first = await api_client.post("/v1/auth/signup", json=body, headers=key)
+    retry = await api_client.post("/v1/auth/signup", json=body, headers=key)
     assert first.status_code == retry.status_code == 201
     assert retry.headers["idempotent-replayed"] == "true"
-    assert (await api_client.get("/v2/todos/")).json()["searchOptions"]["totalCount"] == before + 1
+    async with db.session_scope() as session:
+        count = (await session.execute(select(func.count()).where(Users.email == body["email"]))).scalar_one()
+    assert count == 1
 
-    reused = await api_client.post("/v2/todos/", json={"title": "Different"}, headers=key)
+    reused = await api_client.post("/v1/auth/signup", json={**body, "password": "OtherPass123!"}, headers=key)
     assert reused.status_code == 422
     assert reused.json()["code"] == "idempotency_key_reused"
 

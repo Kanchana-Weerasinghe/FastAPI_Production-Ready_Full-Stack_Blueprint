@@ -15,12 +15,8 @@ import { Route as AuthenticatedRouteRouteImport } from "./routes/_authenticated/
 import { Route as GuestIndexRouteImport } from "./routes/_guest/index"
 import { Route as GuestResetPasswordRouteImport } from "./routes/_guest/reset-password"
 import { Route as GuestForgotPasswordRouteImport } from "./routes/_guest/forgot-password"
-import { Route as AuthenticatedArchivesRouteImport } from "./routes/_authenticated/archives"
+import { Route as AuthenticatedHomeRouteImport } from "./routes/_authenticated/home"
 import { Route as AuthenticatedAccountRouteImport } from "./routes/_authenticated/account"
-import { Route as AuthenticatedTodosIndexRouteImport } from "./routes/_authenticated/todos/index"
-import { Route as AuthenticatedTodoNewRouteImport } from "./routes/_authenticated/todo/new"
-import { Route as AuthenticatedTodoTodoIdIndexRouteImport } from "./routes/_authenticated/todo/$todoId/index"
-import { Route as AuthenticatedTodoTodoIdEditRouteImport } from "./routes/_authenticated/todo/$todoId/edit"
 
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: "/verify-email",
@@ -50,9 +46,9 @@ const GuestForgotPasswordRoute = GuestForgotPasswordRouteImport.update({
   path: "/forgot-password",
   getParentRoute: () => GuestRouteRoute,
 } as any)
-const AuthenticatedArchivesRoute = AuthenticatedArchivesRouteImport.update({
-  id: "/archives",
-  path: "/archives",
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: "/home",
+  path: "/home",
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
@@ -60,52 +56,22 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: "/account",
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedTodosIndexRoute = AuthenticatedTodosIndexRouteImport.update({
-  id: "/todos/",
-  path: "/todos/",
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTodoNewRoute = AuthenticatedTodoNewRouteImport.update({
-  id: "/todo/new",
-  path: "/todo/new",
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTodoTodoIdIndexRoute =
-  AuthenticatedTodoTodoIdIndexRouteImport.update({
-    id: "/todo/$todoId/",
-    path: "/todo/$todoId/",
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedTodoTodoIdEditRoute =
-  AuthenticatedTodoTodoIdEditRouteImport.update({
-    id: "/todo/$todoId/edit",
-    path: "/todo/$todoId/edit",
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof GuestIndexRoute
   "/verify-email": typeof VerifyEmailRoute
   "/account": typeof AuthenticatedAccountRoute
-  "/archives": typeof AuthenticatedArchivesRoute
+  "/home": typeof AuthenticatedHomeRoute
   "/forgot-password": typeof GuestForgotPasswordRoute
   "/reset-password": typeof GuestResetPasswordRoute
-  "/todo/new": typeof AuthenticatedTodoNewRoute
-  "/todos/": typeof AuthenticatedTodosIndexRoute
-  "/todo/$todoId/edit": typeof AuthenticatedTodoTodoIdEditRoute
-  "/todo/$todoId/": typeof AuthenticatedTodoTodoIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof GuestIndexRoute
   "/verify-email": typeof VerifyEmailRoute
   "/account": typeof AuthenticatedAccountRoute
-  "/archives": typeof AuthenticatedArchivesRoute
+  "/home": typeof AuthenticatedHomeRoute
   "/forgot-password": typeof GuestForgotPasswordRoute
   "/reset-password": typeof GuestResetPasswordRoute
-  "/todo/new": typeof AuthenticatedTodoNewRoute
-  "/todos": typeof AuthenticatedTodosIndexRoute
-  "/todo/$todoId/edit": typeof AuthenticatedTodoTodoIdEditRoute
-  "/todo/$todoId": typeof AuthenticatedTodoTodoIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,14 +79,10 @@ export interface FileRoutesById {
   "/_guest": typeof GuestRouteRouteWithChildren
   "/verify-email": typeof VerifyEmailRoute
   "/_authenticated/account": typeof AuthenticatedAccountRoute
-  "/_authenticated/archives": typeof AuthenticatedArchivesRoute
+  "/_authenticated/home": typeof AuthenticatedHomeRoute
   "/_guest/forgot-password": typeof GuestForgotPasswordRoute
   "/_guest/reset-password": typeof GuestResetPasswordRoute
   "/_guest/": typeof GuestIndexRoute
-  "/_authenticated/todo/new": typeof AuthenticatedTodoNewRoute
-  "/_authenticated/todos/": typeof AuthenticatedTodosIndexRoute
-  "/_authenticated/todo/$todoId/edit": typeof AuthenticatedTodoTodoIdEditRoute
-  "/_authenticated/todo/$todoId/": typeof AuthenticatedTodoTodoIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,39 +90,27 @@ export interface FileRouteTypes {
     | "/"
     | "/verify-email"
     | "/account"
-    | "/archives"
+    | "/home"
     | "/forgot-password"
     | "/reset-password"
-    | "/todo/new"
-    | "/todos/"
-    | "/todo/$todoId/edit"
-    | "/todo/$todoId/"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
     | "/verify-email"
     | "/account"
-    | "/archives"
+    | "/home"
     | "/forgot-password"
     | "/reset-password"
-    | "/todo/new"
-    | "/todos"
-    | "/todo/$todoId/edit"
-    | "/todo/$todoId"
   id:
     | "__root__"
     | "/_authenticated"
     | "/_guest"
     | "/verify-email"
     | "/_authenticated/account"
-    | "/_authenticated/archives"
+    | "/_authenticated/home"
     | "/_guest/forgot-password"
     | "/_guest/reset-password"
     | "/_guest/"
-    | "/_authenticated/todo/new"
-    | "/_authenticated/todos/"
-    | "/_authenticated/todo/$todoId/edit"
-    | "/_authenticated/todo/$todoId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,11 +163,11 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof GuestForgotPasswordRouteImport
       parentRoute: typeof GuestRouteRoute
     }
-    "/_authenticated/archives": {
-      id: "/_authenticated/archives"
-      path: "/archives"
-      fullPath: "/archives"
-      preLoaderRoute: typeof AuthenticatedArchivesRouteImport
+    "/_authenticated/home": {
+      id: "/_authenticated/home"
+      path: "/home"
+      fullPath: "/home"
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     "/_authenticated/account": {
@@ -227,53 +177,17 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    "/_authenticated/todos/": {
-      id: "/_authenticated/todos/"
-      path: "/todos"
-      fullPath: "/todos/"
-      preLoaderRoute: typeof AuthenticatedTodosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    "/_authenticated/todo/new": {
-      id: "/_authenticated/todo/new"
-      path: "/todo/new"
-      fullPath: "/todo/new"
-      preLoaderRoute: typeof AuthenticatedTodoNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    "/_authenticated/todo/$todoId/": {
-      id: "/_authenticated/todo/$todoId/"
-      path: "/todo/$todoId"
-      fullPath: "/todo/$todoId/"
-      preLoaderRoute: typeof AuthenticatedTodoTodoIdIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    "/_authenticated/todo/$todoId/edit": {
-      id: "/_authenticated/todo/$todoId/edit"
-      path: "/todo/$todoId/edit"
-      fullPath: "/todo/$todoId/edit"
-      preLoaderRoute: typeof AuthenticatedTodoTodoIdEditRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
-  AuthenticatedArchivesRoute: typeof AuthenticatedArchivesRoute
-  AuthenticatedTodoNewRoute: typeof AuthenticatedTodoNewRoute
-  AuthenticatedTodosIndexRoute: typeof AuthenticatedTodosIndexRoute
-  AuthenticatedTodoTodoIdEditRoute: typeof AuthenticatedTodoTodoIdEditRoute
-  AuthenticatedTodoTodoIdIndexRoute: typeof AuthenticatedTodoTodoIdIndexRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
-  AuthenticatedArchivesRoute: AuthenticatedArchivesRoute,
-  AuthenticatedTodoNewRoute: AuthenticatedTodoNewRoute,
-  AuthenticatedTodosIndexRoute: AuthenticatedTodosIndexRoute,
-  AuthenticatedTodoTodoIdEditRoute: AuthenticatedTodoTodoIdEditRoute,
-  AuthenticatedTodoTodoIdIndexRoute: AuthenticatedTodoTodoIdIndexRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

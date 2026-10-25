@@ -26,6 +26,6 @@
 
 ## Conventions
 
-- Log **events**, not sentences: `logger.info("todo_created", todo_id=...)`. Never log secrets, tokens, passwords or raw request bodies; the redaction processor is a safety net, not a licence.
+- Log **events**, not sentences: `logger.info("project_created", project_id=...)`. Never log secrets, tokens, passwords or raw request bodies; the redaction processor is a safety net, not a licence.
 - Label metrics with bounded values only (route templates, status codes), never user IDs or raw paths.
 - Every new alert needs a runbook under `docs/operations/runbooks/` and must map to user impact.

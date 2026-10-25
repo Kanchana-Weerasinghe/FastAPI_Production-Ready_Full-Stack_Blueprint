@@ -26,7 +26,7 @@ Everything at once, production-like: `cp .env.example .env` (fill secrets) and `
 
 1. [README.md](../README.md) and [AGENTS.md](../AGENTS.md): structure and commands.
 2. [ADR index](adr/README.md): 0001 (modular monolith), 0002 (errors), 0004 (unit of work), 0008 (sessions).
-3. Read the [request lifecycle diagram](../AGENTS.md#backend-request-lifecycle) and [module creation guide](../AGENTS.md#creating-a-backend-module), then trace `services/identity/app/modules/todos/` (router → application use case → domain/ports → infrastructure adapter) and its tests.
+3. Read the [request lifecycle diagram](../AGENTS.md#backend-request-lifecycle) and [module creation guide](../AGENTS.md#creating-a-backend-module), then trace `services/identity/app/modules/users/` (router → application use case → domain/ports → infrastructure adapter) and its tests.
 4. [docs/API_FLOW.md](API_FLOW.md) and [docs/DATABASE_DESIGN.md](DATABASE_DESIGN.md).
 5. Operations: [deployment](operations/deployment.md), [SLOs](operations/slo.md), [runbooks](operations/runbooks/).
 

@@ -1,23 +1,9 @@
 import { request, test as base } from "@playwright/test";
 
-import type { Todo } from "../../src/models/todo";
-
 export interface AuthFixtures {
   authenticatedPage: import("@playwright/test").Page;
   freshAccount: { email: string; password: string };
   seededAccount: { email: string; password: string };
-  seededTodo: {
-    page: import("@playwright/test").Page;
-    todo: Todo;
-    title: string;
-    description: string;
-  };
-  archivedTodo: {
-    page: import("@playwright/test").Page;
-    todo: Todo;
-    title: string;
-    description: string;
-  };
 }
 
 const API_URL = process.env.API_URL || "http://localhost:8000";
@@ -75,37 +61,6 @@ export const test = base.extend<AuthFixtures>({
       await apiContext.delete("/v2/user/me");
     }
     await apiContext.dispose();
-  },
-
-  seededTodo: async ({ authenticatedPage: page }, use) => {
-    const title = `E2E Seeded Todo ${Date.now()}`;
-    const description = "Original description";
-    await page.request.post(`${API_URL}/v2/todos/`, {
-      data: { title, description, isCompleted: false },
-    });
-    const listRes = await page.request.get(
-      `${API_URL}/v2/todos/?title=${encodeURIComponent(title)}`,
-    );
-    const listData = await listRes.json();
-    const todo = listData.founds[0];
-
-    await use({ page, todo, title, description });
-  },
-
-  archivedTodo: async ({ authenticatedPage: page }, use) => {
-    const title = `E2E Archived Todo ${Date.now()}`;
-    const description = "Archived description";
-    await page.request.post(`${API_URL}/v2/todos/`, {
-      data: { title, description, isCompleted: false },
-    });
-
-    const listRes = await page.request.get(
-      `${API_URL}/v2/todos/?title=${encodeURIComponent(title)}`,
-    );
-    const listData = await listRes.json();
-    const todo = listData.founds[0];
-    await page.request.post(`${API_URL}/v2/todos/${todo.id}:archive`);
-    await use({ page, todo, title, description });
   },
 });
 

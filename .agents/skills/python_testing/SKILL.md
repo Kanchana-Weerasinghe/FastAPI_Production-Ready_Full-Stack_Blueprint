@@ -17,8 +17,8 @@ All test files are located under `services/identity/tests/` and are organized as
 * `tests/unit/`: Unit tests mirroring the app: `core/`, `shared/` and `modules/<name>/` (`test_service.py`, `test_repository.py`, ...).
 * `tests/architecture/`: Module boundary and layering rules (see `docs/adr/0001-modular-monolith.md`).
 * `tests/integrations/`: Contains end-to-end integration tests that call API endpoints using a test client.
-* `tests/mocks/`: Contains mock classes for repositories and external integrations (e.g. `MockTodoRepository`) and `FakeUnitOfWork` (call `await fake_uow.commit()` to run after-commit side effects).
-* `tests/factories.py`: Contains factory methods (like `create_user`, `create_todo`) to generate mock data.
+* `tests/mocks/`: Contains mock classes for repositories and external integrations (e.g. `FakeUserRepository`) and `FakeUnitOfWork` (call `await fake_uow.commit()` to run after-commit side effects).
+* `tests/factories.py`: Contains factory methods (like `create_user`) to generate mock data.
 * `tests/conftest.py`: Contains common fixtures and configuration for all tests.
 
 ## Conventions & Best Practices
@@ -35,30 +35,25 @@ All test files are located under `services/identity/tests/` and are organized as
 ## Example: Unit Test
 
 ```python
-async def test_add_todo_persists_record(
-    todo_service: TodoService,
-    mock_todo_repository: MockTodoRepository,
+async def test_get_by_id_returns_the_account(
+    user_use_cases: UserUseCases,
+    mock_user_repository: FakeUserRepository,
 ) -> None:
-    """Test that creating a Todo task persists the Todo correctly."""
-    todo_data = TodoCreate(
-        title="Buy groceries",
-        description="Milk and bread",
-        is_completed=False,
-    )
-    todo = await todo_service.add(todo_data.model_dump())
-    assert len(mock_todo_repository.todos_db) == 1
-    assert mock_todo_repository.todos_db[0].title == "Buy groceries"
-    assert mock_todo_repository.todos_db[0].id == todo.id
+    """Test that get_by_id returns the stored user as a UserAccount entity."""
+    row = create_user(email="ada@example.com")
+    mock_user_repository.users_db.append(row)
+    account = await user_use_cases.get_by_id(row.id)
+    assert account.id == row.id
+    assert account.email == "ada@example.com"
 ```
 
 ## Example: Integration Test
 
 ```python
-async def test_get_todos_list_success(client: Any) -> None:
-    """Integration test verifying that an authenticated user can list their seeded Todo items successfully."""
-    api_client = await client("user@email.com", "SecurePass123!")
-    response = await api_client.get("/v2/todos/")
+async def test_get_me_returns_the_signed_in_user(client: Any) -> None:
+    """Integration test verifying that a signed-in user can read their own profile."""
+    api_client = await client("first_user@email.com", "SecurePass123!")
+    response = await api_client.get("/v2/user/me")
     assert response.status_code == 200
-    data = response.json()
-    assert "founds" in data
+    assert response.json()["email"] == "first_user@email.com"
 ```

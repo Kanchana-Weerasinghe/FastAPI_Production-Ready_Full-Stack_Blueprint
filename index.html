@@ -7,7 +7,7 @@
       name="description"
       content="Architecture, design principles, production-readiness map, and a practical domain-module walkthrough for the FastAPI and React starter."
     />
-    <title>Development Team Guide | FastAPI Full-Stack Template</title>
+    <title>Boost Guide</title>
     <style>
       :root {
         color-scheme: light;
@@ -770,10 +770,10 @@
   <body>
     <header class="hero">
       <div class="hero-inner">
-        <div class="eyebrow">Engineering handbook · Template guide</div>
-        <h1>FastAPI &amp; React: A Production-Ready Full-Stack Blueprint</h1>
+        <div class="eyebrow">Boost Guide · Engineering handbook</div>
+        <h1>Boost: A Production-Ready FastAPI &amp; React Blueprint</h1>
         <p>
-          This guide explains the problems this FastAPI + React template is
+          This guide explains the problems the Boost FastAPI + React template is
           designed to solve, the architectural choices it makes, how each
           business domain runs as its own deployable service, what every folder
           and file inside a service is responsible for, and how to add business
@@ -1494,7 +1494,7 @@ uv run pytest tests/test_traceability.py              # spec coverage only, no s
 <tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-09-4</span></td><td>integration</td><td>Developers</td><td>an account whose lock has expired</td><td>sign-in with the correct password</td><td>200 and the lock is cleared in the database</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td>both</td><td><span style="white-space:nowrap">TC-10-1</span></td><td>use case</td><td>Developers</td><td>an account</td><td>delete_account runs</td><td>account deleted and audited; file cleanup scheduled, not run before commit, run after commit</td></tr>
 <tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-10-2</span></td><td>acceptance</td><td>QA</td><td>a signed-in user</td><td>DELETE /v2/user/me</td><td>204, session cookies expired, then 401 on the next call</td></tr>
-<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-10-3</span></td><td>integration</td><td>Developers</td><td>a user with a todo and a stored file</td><td>DELETE /v2/user/me</td><td>user.deleted is audited, the todo is gone (cascade) and the file is removed</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-10-3</span></td><td>integration</td><td>Developers</td><td>a user with a stored file</td><td>DELETE /v2/user/me</td><td>user.deleted is audited, the account row is gone and the file is removed</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td>api</td><td><span style="white-space:nowrap">TC-11-1</span></td><td>acceptance</td><td>QA</td><td>a signed-in user</td><td>GET /v2/user/me</td><td>200 with own profile and no secrets</td></tr>
 <tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-2</span></td><td>acceptance</td><td>QA</td><td>no session</td><td>GET /v2/user/me</td><td>401</td></tr>
 <tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-3</span></td><td>acceptance</td><td>QA</td><td>a signed-in normal user</td><td>GET /v2/users/</td><td>403</td></tr>
@@ -2489,8 +2489,8 @@ class UserAccount:
                     Domain-owned modules group related business capabilities.
                     Domain records and value objects live separately from
                     transport schemas and ORM models; for example,
-                    <code>TodoRecord</code> is mapped from the ORM row by the
-                    repository adapter, and <code>scripts/new_module.py</code>
+                    the <code>UserAccount</code> entity is mapped from the ORM
+                    row by <code>SqlAlchemyUserRepository</code>, and <code>scripts/new_module.py</code>
                     scaffolds a name value object and a uniqueness policy.
                   </td>
                   <td>
@@ -2515,7 +2515,7 @@ class UserAccount:
                   <td>SOLID: Open/Closed Principle</td>
                   <td>
                     Use cases depend on ports, such as
-                    <code>TodoRepositoryPort</code>, so an adapter can be
+                    <code>UserRepository</code>, so an adapter can be
                     replaced or extended without rewriting the application
                     workflow.
                   </td>
@@ -2880,7 +2880,7 @@ class UserAccount:
               <text class="zone-label" x="470" y="64">KUBERNETES CLUSTER</text>
               <rect class="node" x="475" y="80" width="320" height="150" rx="10"></rect>
               <text x="635" y="106">services/identity</text>
-              <text class="small" x="635" y="128">auth · users · audit · todos (example)</text>
+              <text class="small" x="635" y="128">auth · users · audit</text>
               <text class="small" x="635" y="147">sign-in · sessions · MFA · issues access tokens</text>
               <text class="small" x="635" y="166">/v1/auth · /v2/user · /v2/users · /v2/audit-logs</text>
               <rect class="node kit" x="495" y="182" width="280" height="36" rx="8"></rect>
@@ -3226,8 +3226,7 @@ class UserAccount:
                   <td>
                     Platform service: sign-up/sign-in, sessions, MFA, users and
                     roles, security audit log. Issues the access tokens every
-                    other service trusts. Also contains the <code>todos</code>
-                    learning example.
+                    other service trusts.
                   </td>
                   <td>Image + <code>deploy/helm/app</code> (with its worker and the web app)</td>
                 </tr>
@@ -3593,7 +3592,7 @@ Cookies: x-path-token=&lt;access JWT&gt;, csrf_token=abc   Header: X-CSRF-Token:
 5. delete_me() calls  users.delete_account(current_user)
       a. repository.delete_account(user.id)
             SELECT the row → DELETE FROM users WHERE id = …
-            (the user's todos are deleted too: ON DELETE CASCADE)
+            (rows that reference the user are deleted too: ON DELETE CASCADE)
       b. audit.record("user.deleted", actor_id=user.id, ...)       → INSERT INTO audit_logs
       c. uow.after_commit(storage.delete_owner, user.id)           → scheduled, NOT run yet
 6. clear_auth_cookies(response)
@@ -4516,7 +4515,7 @@ uv run task openapi     # export the contract and commit it</code></pre>
       </article>
     </main>
     <footer>
-      FastAPI Full-Stack Clean Architecture · Development team reference · Keep
+      Boost Guide · Development team reference · Keep
       this guide aligned with code, ADRs, and deployment workflows.
     </footer>
   </body>

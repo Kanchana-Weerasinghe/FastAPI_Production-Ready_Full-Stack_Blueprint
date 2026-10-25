@@ -31,32 +31,32 @@ All test files are located under `web/tests/` and are organized as follows:
 ## Example: Unit Test (Vitest + Testing Library)
 
 ```tsx
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ArchiveCard } from "@/components/ArchiveCard";
+import { Home } from "@/features/Home";
 
-const todo = {
-  id: "todo-1",
-  title: "Old Project Notes",
-  isCompleted: false,
-  createdAt: "2024-01-01T00:00:00Z",
-  updatedAt: "2024-03-01T00:00:00Z",
-};
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}));
+vi.mock("@/hooks/queries/user", () => ({
+  useUser: () => ({ data: { email: "ada@example.com" } }),
+}));
 
-describe("ArchiveCard", () => {
-  it("renders the todo title", () => {
-    render(<ArchiveCard todo={todo} onRestore={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText("Old Project Notes")).toBeInTheDocument();
+describe("Home", () => {
+  it("greets the signed-in user", () => {
+    render(<Home />);
+    expect(
+      screen.getByText("Signed in as ada@example.com"),
+    ).toBeInTheDocument();
   });
 
-  it("calls onRestore with the todo id when Restore is clicked", () => {
-    const onRestore = vi.fn();
-    render(
-      <ArchiveCard todo={todo} onRestore={onRestore} onDelete={vi.fn()} />,
-    );
-    fireEvent.click(screen.getByRole("button"));
-    fireEvent.click(screen.getByText("Restore"));
-    expect(onRestore).toHaveBeenCalledWith("todo-1");
+  it("links to the account page", () => {
+    render(<Home />);
+    expect(
+      screen.getByRole("link", { name: "Account security" }),
+    ).toHaveAttribute("href", "/account");
   });
 });
 ```

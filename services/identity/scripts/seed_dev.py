@@ -1,7 +1,7 @@
 """
 Development seed data (never used in deployed environments).
 
-Creates a demo user and an admin with known passwords plus a few todos, so a fresh local database is
+Creates a demo user and an admin with known passwords, so a fresh local database is
 usable immediately. Refuses to run unless ENVIRONMENT=development. Production bootstrap (the first
 admin) is done with `scripts/create_admin.py` instead.
 
@@ -20,7 +20,6 @@ from app import models as _models  # noqa: E402,F401
 from app.container import Container  # noqa: E402
 from app.core.config import config  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
-from app.modules.todos.infrastructure.persistence.models import Todos  # noqa: E402
 from app.modules.users.infrastructure.persistence.models import Users  # noqa: E402
 
 DEMO_PASSWORD = "Password123!"
@@ -46,8 +45,6 @@ async def main() -> None:
             )
             session.add(user)
             await session.flush()
-            for title in ("Try the API docs at /docs", "Mark a todo as completed", "Archive a finished todo"):
-                session.add(Todos(user_id=user.id, title=title, created_by=username, updated_by=username))
             print(f"created: {email} / {DEMO_PASSWORD} ({role})")
     await db.close()
 

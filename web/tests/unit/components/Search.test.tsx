@@ -10,8 +10,8 @@ describe("Search", () => {
   });
 
   it("renders with a custom placeholder", () => {
-    render(<Search placeholder="Find a todo..." />);
-    expect(screen.getByPlaceholderText("Find a todo...")).toBeInTheDocument();
+    render(<Search placeholder="Find a record..." />);
+    expect(screen.getByPlaceholderText("Find a record...")).toBeInTheDocument();
   });
 
   it("calls onChange when the user types", () => {

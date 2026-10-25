@@ -7,8 +7,8 @@ Response shape:
       "type": "https://errors.example.com/not_found",   # PROBLEM_TYPE_BASE_URI + code
       "title": "Not Found",
       "status": 404,
-      "detail": "Todo not found",
-      "instance": "/v2/todos/1f0e...",                  # the request path
+      "detail": "Project not found",
+      "instance": "/v2/projects/1f0e...",                  # the request path
       "code": "not_found",                              # stable machine-readable code
       "request_id": "8c1b...",                          # correlates with server logs
       "errors": [{"field": "...", "message": "...", "type": "..."}]   # validation errors only

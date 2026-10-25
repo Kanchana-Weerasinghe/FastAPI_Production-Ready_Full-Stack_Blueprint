@@ -68,7 +68,7 @@ async def test_get_current_user_not_found() -> None:
 
 async def test_check_ownership_success() -> None:
     """Test check_ownership successfully validates resource ownership."""
-    validation_fn = check_ownership("todos.service", param_name="id", is_active=True)
+    validation_fn = check_ownership("projects.use_cases", param_name="id", is_active=True)
 
     resource_id = uuid.uuid4()
     mock_request = MagicMock(spec=Request)
@@ -94,7 +94,7 @@ async def test_check_ownership_success() -> None:
 
 async def test_check_ownership_param_not_found() -> None:
     """Test check_ownership raises NotFoundError if parameter name is not in request path."""
-    validation_fn = check_ownership("todos.service", param_name="id")
+    validation_fn = check_ownership("projects.use_cases", param_name="id")
 
     mock_request = MagicMock(spec=Request)
     mock_request.path_params = {}
@@ -112,7 +112,7 @@ async def test_check_ownership_param_not_found() -> None:
 
 async def test_check_ownership_invalid_uuid() -> None:
     """Test check_ownership raises BadRequestError if ID string is not a valid UUID."""
-    validation_fn = check_ownership("todos.service", param_name="id")
+    validation_fn = check_ownership("projects.use_cases", param_name="id")
 
     mock_request = MagicMock(spec=Request)
     mock_request.path_params = {"id": "not-a-valid-uuid"}
@@ -130,7 +130,7 @@ async def test_check_ownership_invalid_uuid() -> None:
 
 async def test_check_ownership_resource_not_found() -> None:
     """Test check_ownership raises NotFoundError if resource does not exist in DB."""
-    validation_fn = check_ownership("todos.service", param_name="id")
+    validation_fn = check_ownership("projects.use_cases", param_name="id")
 
     resource_id = uuid.uuid4()
     mock_request = MagicMock(spec=Request)
@@ -150,7 +150,7 @@ async def test_check_ownership_resource_not_found() -> None:
 
 async def test_check_ownership_not_authorized() -> None:
     """Test check_ownership raises PermissionDeniedError if current user is not the owner of the resource."""
-    validation_fn = check_ownership("todos.service", param_name="id")
+    validation_fn = check_ownership("projects.use_cases", param_name="id")
 
     resource_id = uuid.uuid4()
     mock_request = MagicMock(spec=Request)

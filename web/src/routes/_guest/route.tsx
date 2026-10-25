@@ -7,7 +7,7 @@ import { authStore, setAuth } from "../../store/auth.store";
 /**
  * Guest Layout Route.
  * - Prevents authenticated users from accessing public/landing pages.
- * - Automatically redirects logged-in users to the '/todos' dashboard.
+ * - Automatically redirects logged-in users to the '/home' page.
  */
 export const Route = createFileRoute("/_guest")({
   beforeLoad: async () => {
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_guest")({
     }
     if (authStore.state.user) {
       throw redirect({
-        to: "/todos",
+        to: "/home",
       });
     }
   },

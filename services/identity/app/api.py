@@ -10,7 +10,6 @@ from fastapi import APIRouter
 
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
-from app.modules.todos.router import router as todos_router
 from app.modules.users.router import admin_router as users_admin_router
 from app.modules.users.router import router as users_router
 
@@ -22,7 +21,6 @@ api_v1.include_router(auth_router)
 api_v2 = APIRouter(prefix="/v2")
 api_v2.include_router(users_router)
 api_v2.include_router(users_admin_router)
-api_v2.include_router(todos_router)
 api_v2.include_router(audit_router)
 # [scaffold:router-includes]
 

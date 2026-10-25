@@ -105,7 +105,7 @@ class Configs(BaseSettings):
 
     AUTOSEND_API_KEY: SecretStr = SecretStr("test_key")
     AUTOSEND_FROM_EMAIL: str = "welcome@yourcompany.com"
-    AUTOSEND_FROM_NAME: str = "Tempto"
+    AUTOSEND_FROM_NAME: str = "Boost"
     AUTOSEND_URL: str = "https://api.autosend.com/v1/mails/send"
 
     # --- Redis / background jobs ---

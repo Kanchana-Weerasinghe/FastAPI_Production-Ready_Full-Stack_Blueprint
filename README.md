@@ -1,4 +1,4 @@
-# FastAPI & React: A Production-Ready Full-Stack Blueprint
+# Boost: A Production-Ready FastAPI & React Blueprint
 
 An async FastAPI and React starter built as a modular monolith, with domain-oriented modules, explicit application boundaries, PostgreSQL persistence, and production-minded tooling. Use it as a practical foundation to build on—not as a claim that one architecture or deployment fits every product.
 
@@ -44,7 +44,7 @@ The architecture applies the following principles in the codebase:
 
 | Principle or pattern | How it is used |
 | --- | --- |
-| **DDD-inspired domain modeling** | Business capabilities are grouped into domain-owned modules. Domain records, value objects, and domain validation are separated from HTTP schemas and ORM models. For example, `TodoRecord` is mapped from the ORM row by the repository adapter, and `scripts/new_module.py` scaffolds a value object and a domain policy. |
+| **DDD-inspired domain modeling** | Business capabilities are grouped into domain-owned modules. Domain records, value objects, and domain validation are separated from HTTP schemas and ORM models. For example, the `UserAccount` entity is mapped from the ORM row by `SqlAlchemyUserRepository`, and `scripts/new_module.py` scaffolds a value object and a domain policy. |
 | **Selective DDD scope** | The project uses practical DDD building blocks; it does not claim that every module is a fully modeled bounded context with aggregates and a formally documented ubiquitous language. |
 | **Modular monolith** | Domains have internal boundaries but are deployed together as one application. Cross-module workflows use public service/application APIs rather than importing another module's private repository or container. |
 | **Separation of concerns** | Routers translate HTTP, application services coordinate workflows, domain types represent business concepts, and infrastructure adapters handle persistence and external integrations. |
@@ -82,7 +82,7 @@ The backend is a set of **independently deployable domain services** (see [ADR 0
 
 | Path | Role |
 | :--- | :--- |
-| [`services/identity/`](services/identity) | Identity (auth, users), audit and the `todos` example; issues the access tokens other services verify |
+| [`services/identity/`](services/identity) | Identity (auth, users) and audit; issues the access tokens other services verify |
 | [`services/data-acquisition/`](services/data-acquisition) | Data acquisition domain: `AcquisitionJob` aggregate, own schema, own image and Helm release |
 | [`packages/platform-kit/`](packages/platform-kit) | Shared technical building blocks (settings, unit of work, errors, middleware, auth, HTTP client); no business rules |
 
@@ -90,7 +90,7 @@ Each service keeps its business rules in its own domain and application layers a
 
 `services/identity/` is built with **FastAPI (Async)** and **Python** as a **modular monolith**: code is grouped by business domain, with HTTP routes, application use cases, domain rules, ports, and infrastructure adapters separated inside each module.
 
-- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `audit`, and the example `todos` module) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd services/identity && uv run python scripts/new_module.py <name>`.
+- **Modules (`app/modules/<name>/`)**: One folder per domain (`auth`, `users`, `audit`) with `domain/`, `application/ports/`, `application/use_cases/`, `infrastructure/persistence/`, HTTP routes/schemas, and its own DI `container.py`. Application workflows use ports; infrastructure adapters implement them. Generate a layered module with `cd services/identity && uv run python scripts/new_module.py <name>`.
 - **Shared (`app/shared/`)**: Reusable building blocks: base repository/service/model, pagination schemas, file storage, integrations.
 - **Core (`app/core/`)**: Config, database and unit of work, domain errors and RFC 9457 error handlers, security, logging, and middleware for cross-cutting request concerns.
 - **Composition root (`app/container.py`, `app/api.py`, `app/models.py`)**: Wires modules together, mounts routers per API version, registers models for Alembic.

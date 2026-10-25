@@ -28,7 +28,7 @@ Use this skill when modifying, extending, or refactoring the frontend codebase i
 * **React Compiler**: React Compiler is enabled. Avoid manual optimizations using `useMemo` or `useCallback` for simple variables or handlers unless explicitly required for stability of dependency arrays in deep custom hooks. Let the compiler optimize renders automatically.
 * **File Structure**:
   * `src/components/`: Shared UI components (like `common/Button.tsx`, `common/Input.tsx`).
-  * `src/features/`: Complex feature-specific components (e.g., `todo/TodoList.tsx`).
+  * `src/features/`: Complex feature-specific components (e.g., `account/AccountSecurity.tsx`).
   * `src/hooks/`: Reusable hooks.
   * `src/routes/`: Route definitions matching TanStack Router conventions.
 
@@ -43,7 +43,7 @@ Use this skill when modifying, extending, or refactoring the frontend codebase i
 
     ```typescript
     const navigate = useNavigate();
-    navigate({ to: "/todos" });
+    navigate({ to: "/home" });
     ```
 
 * **Route Trees**: The route tree is automatically generated under `src/routeTree.gen.ts`. Never edit this file manually.
@@ -61,10 +61,10 @@ Use this skill when modifying, extending, or refactoring the frontend codebase i
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: async (data) => {
-        await client.post("/v2/todos/", data);
+        await client.post("/v1/auth/mfa/enable", data);
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["todos"] });
+        queryClient.invalidateQueries({ queryKey: ["auth-user"] });
       },
     });
     ```
@@ -78,9 +78,9 @@ Use this skill when modifying, extending, or refactoring the frontend codebase i
 
     ```typescript
     const form = useForm({
-      defaultValues: { title: "", description: "" },
+      defaultValues: { email: "", password: "" },
       onSubmit: async ({ value }) => {
-        await createTodo(value);
+        await signIn.mutateAsync(value);
       },
     });
     ```
@@ -89,9 +89,9 @@ Use this skill when modifying, extending, or refactoring the frontend codebase i
 
     ```tsx
     <form.Field
-      name="title"
+      name="email"
       validators={{
-        onChange: todoSchema.shape.title,
+        onChange: authSchema.shape.email,
       }}
       children={(field) => (
         <Input

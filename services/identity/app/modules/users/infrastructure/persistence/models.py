@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import TIMESTAMP, Integer, text
 from sqlalchemy.dialects.postgresql import TEXT, VARCHAR
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.models import BaseModel
 
@@ -31,7 +31,3 @@ class Users(BaseModel):
     @password.setter
     def password(self, password: str) -> None:
         self._password = password
-
-    todos: Mapped[list["Todos"]] = relationship("Todos", back_populates="user", cascade="all, delete-orphan")
-
-    eagers = ["todos"]

@@ -16,7 +16,6 @@ from sqlalchemy import func, select, update
 from app.core.config import config
 from app.main import db
 from app.modules.audit.infrastructure.persistence.models import AuditLogs
-from app.modules.todos.infrastructure.persistence.models import Todos
 from app.modules.users.infrastructure.persistence.models import Users
 from tests.integrations.conftest import isolated_app_transaction  # noqa: F401  (autouse: per-test rollback)
 
@@ -88,7 +87,6 @@ async def test_br_10_deletion_audits_and_removes_owned_data(client: Any) -> None
     await (await client()).post("/v1/auth/signup", json=credentials)
     api_client = await client(**credentials)
     user_id = uuid.UUID((await api_client.get("/v2/user/me")).json()["id"])
-    assert (await api_client.post("/v2/todos/", json={"title": "Owned by the deleted user"})).status_code == 201
     owned_file = Path(config.UPLOAD_DIR) / str(user_id) / "notes.txt"
     owned_file.parent.mkdir(parents=True, exist_ok=True)
     owned_file.write_text("private", encoding="utf-8")
@@ -100,9 +98,9 @@ async def test_br_10_deletion_audits_and_removes_owned_data(client: Any) -> None
         .select_from(AuditLogs)
         .where(AuditLogs.action == "user.deleted", AuditLogs.resource_id == str(user_id))
     )
-    todos = await _scalar(select(func.count()).select_from(Todos).where(Todos.user_id == user_id))
+    accounts = await _scalar(select(func.count()).select_from(Users).where(Users.id == user_id))
     assert audits == 1
-    assert todos == 0
+    assert accounts == 0
     assert not owned_file.exists()  # removed by the after-commit cleanup
 
 

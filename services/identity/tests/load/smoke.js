@@ -37,9 +37,6 @@ export default function (data) {
   const jar = http.cookieJar();
   for (const [name, values] of Object.entries(data.cookies)) jar.set(BASE_URL, name, values[0]);
 
-  const list = http.get(`${BASE_URL}/v2/todos/?pageSize=20`, { tags: { name: "list_todos" } });
-  check(list, { "list 200": (r) => r.status === 200 });
-
   const me = http.get(`${BASE_URL}/v2/user/me`, { tags: { name: "me" } });
   check(me, { "me 200": (r) => r.status === 200 });
 

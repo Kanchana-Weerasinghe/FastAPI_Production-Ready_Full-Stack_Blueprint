@@ -7,3 +7,6 @@ src/routeTree.gen.ts
 src/lib/api-types.gen.ts
 .test-results/
 .playwright-report/
+
+# Copy of docs/index.html (scripts/sync-guide.mjs); formatted at the source
+public/guide/

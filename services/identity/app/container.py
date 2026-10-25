@@ -5,7 +5,6 @@ from app.core.config import config
 from app.core.database import Database, UnitOfWork
 from app.modules.audit.container import AuditContainer
 from app.modules.auth.container import AuthContainer
-from app.modules.todos.container import TodosContainer
 from app.modules.users.container import UsersContainer
 
 # [scaffold:container-imports]
@@ -27,7 +26,7 @@ class Container(containers.DeclarativeContainer):
 
     Each module declares its own providers (`app/modules/<name>/container.py`) and receives
     infrastructure and other modules' public services here, so dependencies between modules
-    are explicit in one place. Routes resolve services by path, e.g. `Provide["todos.service"]`.
+    are explicit in one place. Routes resolve services by path, e.g. `Provide["users.use_cases"]`.
     """
 
     wiring_config = containers.WiringConfiguration(packages=["app.modules"])
@@ -65,7 +64,6 @@ class Container(containers.DeclarativeContainer):
     # --- Modules --------------------------------------------------------------------------------
     audit = providers.Container(AuditContainer, db=db)
     users = providers.Container(UsersContainer, db=db, uow=uow, storage=file_storage, audit_service=audit.service)
-    todos = providers.Container(TodosContainer, db=db)
     auth = providers.Container(
         AuthContainer, db=db, uow=uow, user_use_cases=users.use_cases, email_client=mailer, audit_service=audit.service
     )

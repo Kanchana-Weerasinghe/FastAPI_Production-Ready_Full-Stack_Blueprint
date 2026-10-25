@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated")({
       }
     }
     if (location.pathname === "/") {
-      throw redirect({ to: "/todos" });
+      throw redirect({ to: "/home" });
     }
   },
   component: () => (

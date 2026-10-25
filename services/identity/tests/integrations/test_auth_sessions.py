@@ -43,11 +43,11 @@ async def test_unsafe_request_without_csrf_header_is_rejected(client: Any) -> No
     """Integration test verifying cookie-authenticated unsafe requests need the X-CSRF-Token header."""
     api_client = await client(**FIRST_USER)
     csrf = api_client.headers.pop(config.CSRF_HEADER_NAME)
-    response = await api_client.post("/v2/todos/", json={"title": "csrf"})
+    response = await api_client.post("/v1/auth/mfa/setup")
     assert response.status_code == 403
     assert response.json()["code"] == "csrf_failed"
     api_client.headers[config.CSRF_HEADER_NAME] = csrf
-    assert (await api_client.post("/v2/todos/", json={"title": "csrf"})).status_code == 201
+    assert (await api_client.post("/v1/auth/mfa/setup")).status_code == 200
 
 
 async def test_refresh_rotates_and_detects_reuse(client: Any) -> None:

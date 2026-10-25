@@ -65,8 +65,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import config
 from app.main import app as app_instance
 from app.main import container
-from app.modules.todos.infrastructure.persistence.repository import TodoRepository
-from app.modules.todos.public import TodoService
 from app.modules.users.infrastructure.persistence.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from app.modules.users.public import UserUseCases
 from app.shared.models import BaseModel
@@ -74,7 +72,6 @@ from app.shared.storage import LocalFileStorage
 from tests.factories import load_test_data
 from tests.mocks.audit import FakeAuditService
 from tests.mocks.autosend import MockAutosendClient
-from tests.mocks.todo_repository import MockTodoRepository
 from tests.mocks.uow import FakeUnitOfWork
 from tests.mocks.user_repository import FakeUserRepository
 
@@ -166,16 +163,6 @@ def user_use_cases(mock_user_repository: FakeUserRepository, fake_uow: FakeUnitO
     )
 
 
-@pytest.fixture
-def mock_todo_repository() -> MockTodoRepository:
-    return MockTodoRepository()
-
-
-@pytest.fixture
-def todo_service(mock_todo_repository: MockTodoRepository) -> TodoService:
-    return TodoService(todo_repository=mock_todo_repository)
-
-
 @pytest.fixture(autouse=True)
 def temp_upload_dir(tmp_path: Path) -> Generator[None, None, None]:
     """Temporary override of the uploads folder during tests to prevent cluttering."""
@@ -200,8 +187,3 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 def user_repository(db_session: AsyncSession) -> SqlAlchemyUserRepository:
     return SqlAlchemyUserRepository(db_session)
-
-
-@pytest.fixture
-def todo_repository(db_session: AsyncSession) -> TodoRepository:
-    return TodoRepository(db_session)

@@ -29,21 +29,6 @@ erDiagram
         timestamptz mfa_enabled_at "MFA activation time (nullable)"
     }
 
-    todos {
-        uuid id PK "Primary Key (gen_random_uuid())"
-        boolean is_active "Active status flag"
-        boolean is_deleted "Soft-delete flag"
-        timestamptz created_at "Creation timestamp"
-        timestamptz updated_at "Last update timestamp"
-        varchar created_by "Username of creator"
-        varchar updated_by "Username of modifier"
-        int version "Optimistic-locking version"
-        uuid user_id FK "Foreign Key to users.id"
-        text title "Todo task title"
-        text description "Detailed description"
-        boolean is_completed "Completion status flag"
-    }
-
     refresh_tokens {
         uuid id PK "Primary Key (gen_random_uuid())"
         boolean is_active "Active status flag"
@@ -129,7 +114,6 @@ erDiagram
         timestamptz expires_at "Expiry (IDEMPOTENCY_TTL_HOURS)"
     }
 
-    users ||--o{ todos : "has/owns"
     users ||--o{ refresh_tokens : "sessions"
     users ||--o{ one_time_tokens : "verification/reset links"
 ```
@@ -173,27 +157,11 @@ Stores user account profiles and credentials.
 | `mfa_enabled_at` | `TIMESTAMPTZ` | Nullable | When TOTP MFA was activated; non-null means sign-in requires a code. |
 
 - **Relationships:**
-  - Has many `todos` (1:N, cascading deletes - if a user is deleted, all their todos are removed).
+  - Has many `refresh_tokens` and `one_time_tokens` (1:N, cascading deletes).
 
 ---
 
-### 3. `todos` Table
-
-Stores individual task items created by users.
-
-| Column | Type | Constraints | Description & Comment |
-| :--- | :--- | :--- | :--- |
-| `user_id` | `UUID` | FK (`users.id`), Not Null, Indexed | Link to the user who owns this todo item. Deletes cascade (`ondelete="CASCADE"`). |
-| `title` | `TEXT` | Not Null | The short title/summary of the task to be performed. |
-| `description` | `TEXT` | Nullable | Detailed instructions or notes associated with this todo item. |
-| `is_completed` | `BOOLEAN` | Default: `false`, Not Null | Status flag indicating whether the user has finished the task. |
-
-- **Relationships:**
-  - Belongs to one `user`.
-
----
-
-### 4. `refresh_tokens` Table
+### 3. `refresh_tokens` Table
 
 One row per issued refresh token (one per device session, rotated on every refresh). See `docs/adr/0008-session-tokens.md`.
 
@@ -213,7 +181,7 @@ One row per issued refresh token (one per device session, rotated on every refre
 
 ---
 
-### 5. `one_time_tokens` Table
+### 4. `one_time_tokens` Table
 
 Single-use, expiring tokens sent by email for email verification and password reset.
 
@@ -230,7 +198,7 @@ Single-use, expiring tokens sent by email for email verification and password re
 
 ---
 
-### 6. `outbox_events` Table
+### 5. `outbox_events` Table
 
 Transactional outbox: side effects and integration events written in the same transaction as the business change and delivered by the worker (see `docs/adr/0010-background-jobs-and-outbox.md`).
 
@@ -246,7 +214,7 @@ Transactional outbox: side effects and integration events written in the same tr
 
 ---
 
-### 7. `audit_logs` Table
+### 6. `audit_logs` Table
 
 Append-only trail of security-relevant and administrative actions (see `docs/adr/0011-observability.md`). The application never updates or deletes rows.
 
@@ -264,7 +232,7 @@ Append-only trail of security-relevant and administrative actions (see `docs/adr
 
 ---
 
-### 8. `idempotency_keys` Table
+### 7. `idempotency_keys` Table
 
 Responses of `POST`/`PATCH` requests sent with an `Idempotency-Key` header, so retries replay the original result instead of repeating the side effect (see `app/shared/idempotency.py`).
 

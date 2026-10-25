@@ -5,7 +5,7 @@
 | Class | Definition | Handling |
 | :--- | :--- | :--- |
 | **Secret** | Credentials and keys: password hashes, refresh/one-time token hashes, MFA seeds, API keys | Never logged or exported; hashed or encrypted at rest; access only by the service itself |
-| **Confidential (personal)** | Data about an identifiable person: email, IP address, user agent, user content (todos, files) | Encrypted in transit and at rest; only the owner and authorised staff (audited); exported on request; deleted per retention |
+| **Confidential (personal)** | Data about an identifiable person: email, IP address, user agent, user content (uploaded files) | Encrypted in transit and at rest; only the owner and authorised staff (audited); exported on request; deleted per retention |
 | **Internal** | Operational data without personal content: outbox events (after delivery), metrics | Access limited to the team |
 | **Public** | Marketing pages, API documentation | No restrictions |
 
@@ -23,7 +23,6 @@ Update this table with every new field that holds personal data (PR checklist).
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `users` | `email`, `username` | Confidential | Account, sign-in, notifications | Contract | Until account deletion | Yes |
 | `users` | `password`, `mfa_secret_encrypted` | Secret | Authentication | Contract | Until account deletion / change | No (secret) |
-| `todos` | `title`, `description` | Confidential | Core feature | Contract | Until deleted by user or account deletion | Yes |
 | `refresh_tokens` | `ip_address`, `user_agent` | Confidential | Session security | Legitimate interest | 7 days after expiry/revocation | No (purged quickly) |
 | `audit_logs` | `actor_id`, `ip_address`, `user_agent` | Confidential | Security monitoring, fraud prevention, compliance | Legitimate interest / legal obligation | `AUDIT_LOG_RETENTION_DAYS` (400) | Yes (security events) |
 | Logs (stdout → log platform) | `client_ip`, `request_id` (emails masked) | Confidential | Operations, debugging | Legitimate interest | Log platform retention (30 days recommended) | No |

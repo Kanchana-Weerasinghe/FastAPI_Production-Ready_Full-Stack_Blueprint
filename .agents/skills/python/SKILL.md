@@ -16,15 +16,15 @@ We use `dependency-injector` for wiring application components together.
 * **Wiring**: The composition root is `services/identity/app/container.py`; each module declares its own sub-container in `app/modules/<name>/container.py`, and the root wires all of `app.modules`.
 * **Dependency injection in Routes**:
   * Decorate endpoints with `@inject` (from `dependency_injector.wiring`).
-  * Create clean dependency type aliases using `Annotated` and `Depends(Provide["<module>.service"])` (string paths, so modules never import the composition root).
+  * Create clean dependency type aliases using `Annotated` and `Depends(Provide["<module>.use_cases"])` (string paths, so modules never import the composition root).
   * **Example**:
 
     ```python
-    TodoServiceDep = Annotated[TodoService, Depends(Provide["todos.service"])]
+    UserUseCasesDep = Annotated[UserUseCases, Depends(Provide["users.use_cases"])]
 
-    @router.get("/todos/")
+    @admin_router.get("/")
     @inject
-    async def list_todos(service: TodoServiceDep):
+    async def list_users(users: UserUseCasesDep):
         ...
     ```
 
@@ -56,8 +56,8 @@ async def read_item(
 * If the returned object differs from the API response contract (e.g. returning a database model that needs filtering/serialization to a public schema), use `response_model` on the router decorator instead:
 
 ```python
-@router.get("/todos/{todo_id}", response_model=Todo)
-async def get_todo(todo_id: UUID) -> Any:
+@router.get("/me", response_model=User)
+async def get_me(current_user: CurrentUserDep) -> UserAccount:
     ...
 ```
 
@@ -78,7 +78,7 @@ async def create_item(item: Item, project_id: Annotated[int, Query(...)]): ...
 Prefer defining path prefixes and tags on the router itself, rather than in `include_router()`:
 
 ```python
-router = APIRouter(prefix="/todos", tags=["todos"])
+router = APIRouter(prefix="/user", tags=["users"])
 ```
 
 ### Async vs Sync Handlers

@@ -18,7 +18,7 @@ from app.core.error_handlers import (
 from app.core.errors import ConflictError, NotFoundError
 
 
-def _request(path: str = "/v2/todos/1") -> MagicMock:
+def _request(path: str = "/v2/projects/1") -> MagicMock:
     request = MagicMock(spec=Request)
     request.method = "GET"
     request.url.path = path
@@ -34,16 +34,16 @@ def _body(response: Any) -> dict[str, Any]:
 
 async def test_app_error_handler_problem_details() -> None:
     """Test that a domain error is rendered as RFC 9457 Problem Details with its stable code and request id."""
-    response = await app_error_handler(_request(), NotFoundError("Todo not found", code="todo_not_found"))
+    response = await app_error_handler(_request(), NotFoundError("Project not found", code="project_not_found"))
     body = _body(response)
     assert response.status_code == 404
     assert body == {
-        "type": "https://errors.example.com/todo_not_found",
+        "type": "https://errors.example.com/project_not_found",
         "title": "Not Found",
         "status": 404,
-        "detail": "Todo not found",
-        "instance": "/v2/todos/1",
-        "code": "todo_not_found",
+        "detail": "Project not found",
+        "instance": "/v2/projects/1",
+        "code": "project_not_found",
         "request_id": "req-123",
     }
 
@@ -84,7 +84,7 @@ async def test_rate_limit_exception_handler() -> None:
 async def test_generic_exception_handler() -> None:
     """Test that unexpected errors return a generic 500 without internal details and are logged."""
     with patch("app.core.error_handlers.logger") as mock_logger:
-        response = await generic_exception_handler(_request("/api/v2/todos"), Exception("db password is hunter2"))
+        response = await generic_exception_handler(_request("/api/v2/projects"), Exception("db password is hunter2"))
     body = _body(response)
     assert response.status_code == 500
     assert body["code"] == "internal_error"

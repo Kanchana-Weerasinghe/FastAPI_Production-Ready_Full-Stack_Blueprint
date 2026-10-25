@@ -17,7 +17,7 @@ service would create several diverging copies of the same infrastructure code.
 
 - **One service per bounded context** under `services/<name>/`. Each has its own image, Helm release
   (`deploy/helm/domain-service`), migrations, tests, OpenAPI contract and version. The existing application
-  is `services/identity/` (auth, users, audit and the todos example).
+  is `services/identity/` (auth, users and audit).
 - **Business rules live only in the owning service**, in its `domain/` and `application/` layers (entities,
   value objects, policies, use cases, ports). Other applications call its HTTP API or, later, consume its
   domain events. No service imports another service's code.
