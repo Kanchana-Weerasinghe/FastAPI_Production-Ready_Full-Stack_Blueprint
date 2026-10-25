@@ -62,6 +62,7 @@ Run each service's commands from its own folder. See `docs/adr/0016-independent-
 ### Business-rule specs and QA suites (`specs/`, `qa/`)
 
 * Each case in `specs/<service>/<entity>.rules.yaml` has a `layer`: `domain`, `use_case`, `repository`, `integration` (developers, `services/<service>/tests/business_rules/`) or `acceptance` (QA, `qa/<service>-acceptance/`). Add or change a case in the spec before writing its test; both suites' traceability tests fail otherwise.
+* **Generate with Claude:** `/generate-test-suite <service> <entities> <BR file> <test-case file>` (catalogue + both suites, RED), then `/generate-source-code <service> <entities>` (code until GREEN). Skills in `.agents/skills/generate_test_suite/` and `generate_source_code/`; review steps in `docs/index.html#quick-start`.
 * **Developer suite:** `uv run task test-br` from `services/identity/`.
 * **QA suite:** from `qa/identity-acceptance/`: `uv sync`, `uv run task test` (identity running with `RATE_LIMIT_ENABLED=false` and seeded; `QA_BASE_URL` selects the environment), `uv run task check`, `uv run task type-check`.
 

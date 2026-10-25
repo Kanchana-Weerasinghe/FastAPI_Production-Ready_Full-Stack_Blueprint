@@ -11,8 +11,9 @@ OpenAPI contract (`services/identity/openapi.json`). They never import service c
 | Sees | Code, fakes, database | HTTP API + OpenAPI only |
 | Runs against | Testcontainers (in-process) | Any running environment (local, QA, staging) |
 
-Both suites read the same spec: `specs/identity/users.rules.yaml`. Every `acceptance` case in that spec
-must have exactly one test here, tagged `@pytest.mark.br("BR-xx", "TC-xx-y")` (checked by `tests/test_traceability.py`).
+Both suites read the same specs: `specs/identity/<entity>.rules.yaml`. Every `acceptance` case in a spec must have
+exactly one test in `tests/test_<entity>_acceptance.py` (e.g. `users.rules.yaml` → `test_users_acceptance.py`),
+tagged `@pytest.mark.br("BR-xx", "TC-xx-y")`. `tests/test_traceability.py` checks this.
 
 ## Run
 
@@ -32,7 +33,7 @@ times) and have a seeded admin account.
 | `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD` | `admin@example.com` / `Password123!` (from `uv run task seed`) |
 | `QA_LOGIN_MAX_FAILED_ATTEMPTS` | `5` (must match the service's `LOGIN_MAX_FAILED_ATTEMPTS`) |
 | `QA_OPENAPI` | `services/identity/openapi.json` |
-| `QA_SPEC` | `specs/identity/users.rules.yaml` |
+| `QA_SPEC_DIR` | `specs/identity` (every `<entity>.rules.yaml` in it) |
 
 ## Contract check
 

@@ -13,7 +13,7 @@ class Settings:
     admin_email: str
     admin_password: str
     openapi_path: Path
-    spec_path: Path
+    spec_dir: Path
     login_max_failed_attempts: int
     csrf_cookie: str
     csrf_header: str
@@ -26,7 +26,7 @@ def load_settings() -> Settings:
         admin_email=os.environ.get("QA_ADMIN_EMAIL", "admin@example.com"),
         admin_password=os.environ.get("QA_ADMIN_PASSWORD", "Password123!"),
         openapi_path=Path(os.environ.get("QA_OPENAPI", REPO_ROOT / "services" / "identity" / "openapi.json")),
-        spec_path=Path(os.environ.get("QA_SPEC", REPO_ROOT / "specs" / "identity" / "users.rules.yaml")),
+        spec_dir=Path(os.environ.get("QA_SPEC_DIR", REPO_ROOT / "specs" / "identity")),
         login_max_failed_attempts=int(os.environ.get("QA_LOGIN_MAX_FAILED_ATTEMPTS", "5")),
         csrf_cookie=os.environ.get("QA_CSRF_COOKIE", "csrf_token"),
         csrf_header=os.environ.get("QA_CSRF_HEADER", "X-CSRF-Token"),
