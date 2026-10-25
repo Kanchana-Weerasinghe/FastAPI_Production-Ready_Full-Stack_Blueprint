@@ -3683,12 +3683,55 @@ cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from
             tested only by developers.
           </div>
 
-          <h3>A change request or defect</h3>
-          <pre><code>1. Add or change the rule and its cases in the spec          (BR-12 · TC-12-1 inactive account cannot sign in)
-2. Traceability fails in the owning suite                    &quot;Developer cases without a test: [(&#x27;BR-12&#x27;, &#x27;TC-12-1&#x27;)]&quot;
-3. Write the test                                             RED: the bug is reproduced
-4. Fix the code                                               GREEN
-5. QA re-runs the acceptance suite against the QA environment</code></pre>
+          <h3>Where the rule spec comes from, and when it is used</h3>
+          <p>The business rules and test cases are managed outside the repository (the BR application and the
+          test-case document). The rule spec is a <strong>generated copy</strong> of them that the tests can read.
+          It is never used by the running application.</p>
+          <pre><code>BR application + test-case document          (source of truth, outside the repository)
+        │
+        ▼  Claude · first step of test-suite generation
+specs/identity/users.rules.yaml              (every BR and case, each case labelled with its layer → owner)
+        │
+        ▼  Claude · second step
+developer suite  services/identity/tests/business_rules/      QA suite  qa/identity-acceptance/
+        │
+        ▼  later
+Claude generates the code until both suites pass</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>When</th><th>Who</th><th>What reads the spec</th></tr></thead><tbody>
+<tr><td><code>uv run task test-br</code> on a developer machine</td><td>Developer</td><td>Developer <code>test_traceability.py</code>: every developer case has exactly one test</td></tr>
+<tr><td>Every pull request</td><td>CI</td><td>The same check: a pull request with a missing or extra test fails</td></tr>
+<tr><td><code>uv run task test</code> in <code>qa/identity-acceptance</code></td><td>QA</td><td>QA <code>test_traceability.py</code>: every acceptance case has exactly one test</td></tr>
+<tr><td>Code generation (optional)</td><td>Claude</td><td>Extra input; the tests already carry the same information</td></tr>
+<tr><td>Building this guide</td><td>Script</td><td>The test-case matrix in the <a href="#tdd">testing section</a></td></tr>
+</tbody></table></div>
+
+          <h3>Adding a new business rule</h3>
+          <p class="small-text muted">Example: BR-13 “A user must verify the e-mail address before enabling MFA”.</p>
+          <div class="table-wrap"><table><thead><tr><th>Step</th><th>Who</th><th>What happens</th><th>Result</th></tr></thead><tbody>
+<tr><td>1</td><td>BA / QA</td><td>Add BR-13 to the BR application and its cases to the test-case document</td><td>—</td></tr>
+<tr><td>2</td><td>Claude</td><td>Add BR-13 and its cases, each with a <code>layer</code>, to <code>users.rules.yaml</code></td><td>—</td></tr>
+<tr><td>3</td><td>Tests</td><td>Run both suites</td><td><strong>Traceability fails</strong>: “TC-13-1, TC-13-2 have no test”</td></tr>
+<tr><td>4</td><td>Claude</td><td>Write the missing developer and QA tests, tagged <code>@pytest.mark.br("BR-13", "TC-13-1")</code></td><td><strong>RED</strong>: the behaviour does not exist yet</td></tr>
+<tr><td>5</td><td>Claude / developer</td><td>Write the code: value object, behaviour, policy, use case, router as needed</td><td><strong>GREEN</strong>: developer suite passes</td></tr>
+<tr><td>6</td><td>QA</td><td>Run the acceptance suite against the QA environment</td><td><strong>GREEN</strong>: the rule holds for a real client</td></tr>
+</tbody></table></div>
+
+          <h3>Changing an existing business rule</h3>
+          <p class="small-text muted">Example: BR-08 changes from “locked after 5 failed sign-ins” to “locked after 3”.</p>
+          <div class="table-wrap"><table><thead><tr><th>Step</th><th>Who</th><th>What happens</th><th>Result</th></tr></thead><tbody>
+<tr><td>1</td><td>BA / QA</td><td>Update BR-08 and its cases in the BR application and the test-case document</td><td>—</td></tr>
+<tr><td>2</td><td>Claude</td><td>Update BR-08 in <code>users.rules.yaml</code>: new text, cases added, changed or removed</td><td>—</td></tr>
+<tr><td>3</td><td>Tests</td><td>Run both suites</td><td><strong>Traceability fails</strong> for a new case without a test, or a test whose case was removed</td></tr>
+<tr><td>4</td><td>Claude</td><td>Update, add or delete the affected tests</td><td><strong>RED</strong>: the tests expect 3, the code still allows 5</td></tr>
+<tr><td>5</td><td>Claude / developer</td><td>Change the code or configuration (<code>LOGIN_MAX_FAILED_ATTEMPTS</code>)</td><td><strong>GREEN</strong>: developer suite passes</td></tr>
+<tr><td>6</td><td>QA</td><td>Run the acceptance suite against the QA environment</td><td><strong>GREEN</strong></td></tr>
+</tbody></table></div>
+          <div class="callout">
+            <strong>Why step 3 matters:</strong> the spec makes the suite fail until the tests catch up with the new or
+            changed rule, so a rule cannot be forgotten. Without the spec, steps 2 and 3 disappear and the only safeguard
+            is Claude or a reviewer remembering every affected test. A defect follows the same steps: add a case that
+            reproduces it, watch it fail, then fix the code.
+          </div>
         </section>
 
         <section id="tdd">
