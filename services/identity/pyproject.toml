@@ -69,6 +69,7 @@ type-check = "mypy ."
 cov-html = "pytest --cov=app --cov-report=html"
 cov = "pytest --cov=app --cov-report=term-missing --cov-report=xml"
 test = "pytest -v"
+test-br = "pytest tests/business_rules -v"
 
 
 [tool.ruff]
