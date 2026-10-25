@@ -1,0 +1,338 @@
+# Business rules and test cases for the UserAccount entity (identity service).
+#
+# Single source of truth for BOTH test suites:
+#   - developers: services/identity/tests/business_rules  (layers domain, use_case, repository, integration)
+#   - QA:         qa/identity-acceptance                  (layer acceptance: black-box over HTTP)
+# Each case has exactly one test in the suite that owns its layer; both suites' traceability tests
+# fail when a case has no test, has two, or a test names an unknown case.
+#
+# visibility: api = observable through the HTTP API only; internal = only inside the service;
+#             both = has acceptance and internal cases.
+
+entity: UserAccount
+service: identity
+layers:
+  domain:
+    owner: developers
+    suite: services/identity/tests/business_rules
+    proves: value objects, invariants, behaviours, guards, policies
+  use_case:
+    owner: developers
+    suite: services/identity/tests/business_rules
+    proves: workflow, what is saved, error translation, after-commit side effects
+  repository:
+    owner: developers
+    suite: services/identity/tests/business_rules
+    proves: row/entity mapping, constraints, atomic SQL
+  integration:
+    owner: developers
+    suite: services/identity/tests/business_rules
+    proves: API + database state that a black-box client cannot see or set up
+  acceptance:
+    owner: qa
+    suite: qa/identity-acceptance
+    proves: business rules through the published HTTP API only (black-box, OpenAPI contract)
+rules:
+- id: BR-01
+  rule: Every user has an email address that must be a valid address.
+  visibility: both
+  cases:
+  - id: TC-01-1
+    layer: domain
+    given: a valid email with spaces around it
+    when: EmailAddress is created
+    then: it is accepted and trimmed
+  - id: TC-01-2
+    layer: domain
+    given: malformed or over-long emails
+    when: EmailAddress is created
+    then: InvalidEmailAddress (invalid_email)
+  - id: TC-01-3
+    layer: domain
+    given: an account built with an invalid email
+    when: UserAccount is created
+    then: 'InvalidEmailAddress: the entity can never hold it'
+  - id: TC-01-4
+    layer: use_case
+    given: an invalid email
+    when: create_user runs
+    then: BadRequestError invalid_email and nothing is stored
+  - id: TC-01-5
+    layer: acceptance
+    given: a sign-up request with an invalid email
+    when: POST /v1/auth/signup
+    then: 422 validation_failed
+  - id: TC-01-6
+    layer: repository
+    given: an account stored in the database
+    when: it is loaded through the repository
+    then: every field round-trips and email/username/password/role come back as value objects
+- id: BR-02
+  rule: A username is 3-50 letters, digits, dots, underscores or hyphens.
+  visibility: internal
+  cases:
+  - id: TC-02-1
+    layer: domain
+    given: a handle with allowed characters
+    when: Username is created
+    then: it is accepted and trimmed
+  - id: TC-02-2
+    layer: domain
+    given: too short, too long or with spaces/@
+    when: Username is created
+    then: InvalidUsername (invalid_username)
+  - id: TC-02-3
+    layer: use_case
+    given: an invalid username
+    when: create_user runs
+    then: BadRequestError invalid_username and nothing is stored
+- id: BR-03
+  rule: Only a password hash is ever stored, never the plain password.
+  visibility: internal
+  cases:
+  - id: TC-03-1
+    layer: domain
+    given: a bcrypt hash
+    when: PasswordHash is created
+    then: it is accepted
+  - id: TC-03-2
+    layer: domain
+    given: a plain password or malformed hash
+    when: PasswordHash is created
+    then: InvalidPasswordHash
+  - id: TC-03-3
+    layer: domain
+    given: an account
+    when: change_password gets a plain password
+    then: rejected; the old hash is kept
+  - id: TC-03-4
+    layer: use_case
+    given: a plain password
+    when: set_password runs
+    then: BadRequestError invalid_password_hash; nothing saved; sessions not revoked
+  - id: TC-03-5
+    layer: use_case
+    given: a new bcrypt hash
+    when: set_password runs
+    then: hash saved and every access token revoked (token_version + 1)
+  - id: TC-03-6
+    layer: repository
+    given: a stored row whose password is not a bcrypt hash
+    when: it is loaded through the repository
+    then: 'InvalidPasswordHash: invalid data never reaches the use cases'
+  - id: TC-03-7
+    layer: repository
+    given: an account loaded once
+    when: increment_token_version runs twice
+    then: the database returns 1 then 2 (counted in SQL, not from the loaded copy)
+- id: BR-04
+  rule: A user's role is either user or admin.
+  visibility: internal
+  cases:
+  - id: TC-04-1
+    layer: domain
+    given: the texts 'user' and 'admin'
+    when: Role.parse runs
+    then: Role.USER / Role.ADMIN
+  - id: TC-04-2
+    layer: domain
+    given: an unknown role
+    when: Role.parse runs / an account is built
+    then: InvalidRole (invalid_role)
+  - id: TC-04-3
+    layer: repository
+    given: a stored row with an unknown role
+    when: it is loaded through the repository
+    then: 'InvalidRole: invalid data never reaches the use cases'
+- id: BR-05
+  rule: An email must be unique across all users.
+  visibility: both
+  cases:
+  - id: TC-05-1
+    layer: acceptance
+    given: an already registered email
+    when: POST /v1/auth/signup with a new password
+    then: 201 like a new sign-up; the old password still works and the new one does not
+  - id: TC-05-2
+    layer: repository
+    given: a sign-up that passed the existence check at the same moment as another
+    when: create_account inserts the same email
+    then: ConflictError (409) from the unique constraint; still one account
+- id: BR-06
+  rule: Verifying an email twice keeps the first verification date.
+  visibility: internal
+  cases:
+  - id: TC-06-1
+    layer: domain
+    given: an unverified account
+    when: verify_email runs twice
+    then: first returns True and sets the date; second returns False and keeps it
+  - id: TC-06-2
+    layer: use_case
+    given: an unverified account
+    when: mark_email_verified runs twice
+    then: the date is saved once
+  - id: TC-06-3
+    layer: integration
+    given: a new account and its verification link
+    when: POST /v1/auth/verify-email twice
+    then: 204 and emailVerified true; the second use is rejected (invalid_or_expired_token)
+- id: BR-07
+  rule: MFA must be set up before it can be enabled, and cannot be set up again while enabled.
+  visibility: both
+  cases:
+  - id: TC-07-1
+    layer: domain
+    given: an account without MFA
+    when: enable_mfa runs
+    then: MfaNotStarted
+  - id: TC-07-2
+    layer: domain
+    given: an account without MFA
+    when: start_mfa_setup then enable_mfa
+    then: MFA enabled at the given time
+  - id: TC-07-3
+    layer: domain
+    given: an account with MFA enabled
+    when: start_mfa_setup runs
+    then: MfaAlreadyEnabled
+  - id: TC-07-4
+    layer: domain
+    given: an account with MFA enabled
+    when: disable_mfa runs
+    then: secret and activation are cleared
+  - id: TC-07-5
+    layer: use_case
+    given: an account without MFA
+    when: set_mfa_secret(enabled=True)
+    then: BadRequestError mfa_not_started; nothing saved
+  - id: TC-07-6
+    layer: acceptance
+    given: a signed-in user without MFA setup
+    when: POST /v1/auth/mfa/enable
+    then: 400 mfa_not_started
+- id: BR-08
+  rule: After 5 failed sign-ins the account is locked for a configurable 15 minutes.
+  visibility: internal
+  cases:
+  - id: TC-08-1
+    layer: domain
+    given: a lock time and a lockout duration
+    when: lockout_expiry runs
+    then: expiry = lock time + duration
+  - id: TC-08-2
+    layer: domain
+    given: a clock without a timezone
+    when: lockout_expiry runs
+    then: ValueError
+  - id: TC-08-3
+    layer: use_case
+    given: an account with 3 failures
+    when: record_failed_login runs
+    then: 4 failures, not locked; failure kept although the response fails
+  - id: TC-08-4
+    layer: use_case
+    given: an account with 4 failures
+    when: record_failed_login runs
+    then: locked for LOGIN_LOCKOUT_MINUTES and the counter restarts
+  - id: TC-08-5
+    layer: use_case
+    given: a locked account / an account without failures
+    when: reset_failed_logins runs
+    then: counter and lock cleared and saved / nothing saved
+  - id: TC-08-6
+    layer: integration
+    given: a registered user
+    when: 5 sign-ins with a wrong password
+    then: the account is locked in the database
+  - id: TC-08-7
+    layer: repository
+    given: an account loaded once (stale copy)
+    when: register_failed_login runs 3 times
+    then: 'the database counts 3: concurrent failures are never lost'
+- id: BR-09
+  rule: A locked user cannot sign in until the lock expires.
+  visibility: both
+  cases:
+  - id: TC-09-1
+    layer: domain
+    given: lock expiry in the future / past / none
+    when: is_locked(now) runs
+    then: True / False / False
+  - id: TC-09-2
+    layer: domain
+    given: a clock without a timezone
+    when: is_locked runs
+    then: ValueError
+  - id: TC-09-3
+    layer: acceptance
+    given: an account locked by 5 wrong passwords
+    when: sign-in with the correct password
+    then: 401 account_locked
+  - id: TC-09-4
+    layer: integration
+    given: an account whose lock has expired
+    when: sign-in with the correct password
+    then: 200 and the lock is cleared in the database
+- id: BR-10
+  rule: A user can delete their own account; their files are removed only after the deletion is saved.
+  visibility: both
+  cases:
+  - id: TC-10-1
+    layer: use_case
+    given: an account
+    when: delete_account runs
+    then: account deleted and audited; file cleanup scheduled, not run before commit, run after commit
+  - id: TC-10-2
+    layer: acceptance
+    given: a signed-in user
+    when: DELETE /v2/user/me
+    then: 204, session cookies expired, then 401 on the next call
+  - id: TC-10-3
+    layer: integration
+    given: a user with a todo and a stored file
+    when: DELETE /v2/user/me
+    then: user.deleted is audited, the todo is gone (cascade) and the file is removed
+- id: BR-11
+  rule: A signed-in user can view their own profile; only admins can list all users.
+  visibility: api
+  cases:
+  - id: TC-11-1
+    layer: acceptance
+    given: a signed-in user
+    when: GET /v2/user/me
+    then: 200 with own profile and no secrets
+  - id: TC-11-2
+    layer: acceptance
+    given: no session
+    when: GET /v2/user/me
+    then: '401'
+  - id: TC-11-3
+    layer: acceptance
+    given: a signed-in normal user
+    when: GET /v2/users/
+    then: '403'
+  - id: TC-11-4
+    layer: acceptance
+    given: a signed-in admin
+    when: GET /v2/users/
+    then: 200 with a page of users
+  - id: TC-11-5
+    layer: acceptance
+    given: a signed-in admin
+    when: GET /v2/users/?pageSize=1
+    then: one user per page, with createdAt and lockedUntil, and the total count
+- id: BR-12
+  rule: An inactive (deactivated) account cannot sign in or use an existing session.
+  visibility: internal
+  cases:
+  - id: TC-12-1
+    layer: integration
+    given: a deactivated account
+    when: sign-in with the correct password
+    then: 401 account_inactive; a wrong password still answers invalid_credentials
+  - id: TC-12-2
+    layer: integration
+    given: a session created before the account was deactivated
+    when: GET /v2/user/me
+    then: '401'

@@ -1,0 +1,41 @@
+[project]
+name = "identity-acceptance"
+version = "0.1.0"
+description = "QA-owned black-box acceptance tests for the identity service: business rules through the published HTTP API and OpenAPI contract."
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "jsonschema>=4.23",
+    "pytest>=9.0.3",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.20.1",
+    "ruff>=0.15.10",
+    "taskipy>=1.14.0",
+]
+
+[tool.taskipy.tasks]
+test = "pytest -v"
+check = "ruff check . && ruff format --check ."
+format = "ruff format . && ruff check --fix ."
+type-check = "mypy ."
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "PT"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true

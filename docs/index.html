@@ -781,7 +781,8 @@
           <a href="#area-13">13 · Developer experience</a>
           <a href="#area-14">14 · Governance</a>
           <a href="#example">Worked example · User entity</a>
-          <a href="#tdd">TDD · User test suite</a>
+          <a href="#delivery">Delivery process · BR to release</a>
+          <a href="#tdd">Testing · two suites, one spec</a>
           <a href="#production">Production adoption checklist</a>
           <a href="#references">Repository references</a>
         </div>
@@ -3638,66 +3639,106 @@ cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from
           </div>
         </section>
 
-        <section id="tdd">
-          <h2>Test-driven development · the <code>User</code> test suite</h2>
+        <section id="delivery">
+          <h2>Delivery process · from business rules to production</h2>
           <p class="lede">
-            Tests come first: business rules become test cases, test cases become an automated pytest
-            suite, and that failing suite plus this guide is what the code is written (or generated) from.
-            The work is done when every test passes. The complete suite for <code>UserAccount</code> lives in
-            <code>services/identity/tests/business_rules/</code>: 12 rules, 51 test cases
-            (19 domain, 10 use case, 6 repository,
-            16 API).
+            Every feature goes through the same eleven steps. One file connects them: the <strong>rule
+            spec</strong> (<code>specs/identity/users.rules.yaml</code>). Business analysts, QA and developers all write to it, and
+            both test suites check themselves against it. The OpenAPI document is the second shared artefact:
+            it fixes the HTTP contract that QA tests and the web app use.
+          </p>
+          <pre><code> BRD ─► 1 BR Extraction ─► 2 Domain Discovery ─► 3 Rule Catalogue ─► 4 Test Design ─► 5 Automated Tests (RED)
+                                                  (rule spec)          (cases + OpenAPI)   QA suite + developer suite
+                                                                                                │
+ 11 Production Release ◄─ 10 UAT ◄─ 9 QA Round ◄─ 8 UI Integration ◄─ 7 Review &amp; QA ◄─ 6 Code Generation (GREEN)</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>Step</th><th>Who</th><th>Input</th><th>Output (artefact)</th><th>Gate</th></tr></thead><tbody>
+<tr><td><strong>1 · BR Extraction</strong></td><td>BA</td><td>BRD, user stories</td><td>Numbered rules: <code>BR-08 After 5 failed sign-ins the account is locked for 15 minutes</code></td><td>Each rule is one testable sentence</td></tr>
+<tr><td><strong>2 · Domain Discovery</strong></td><td>BA + architect + developers</td><td>The rules</td><td>Domain model: service (bounded context), aggregate, value objects, behaviours, policies, events (<a href="#entity-vs-service">identification guide</a>)</td><td>Every rule has a home</td></tr>
+<tr><td><strong>3 · Rule Catalogue</strong></td><td>BA + QA + developers</td><td>Rules + domain model</td><td><code>specs/identity/users.rules.yaml</code>: rules with <code>visibility</code> (api / internal / both)</td><td>Reviewed by all three roles</td></tr>
+<tr><td><strong>4 · Test Design</strong></td><td>QA (acceptance) · developers (other layers)</td><td>Spec + draft OpenAPI</td><td>Given / When / Then cases in the spec, each with a <code>layer</code>; agreed paths and schemas in <code>openapi.json</code></td><td>Every rule has at least one case</td></tr>
+<tr><td><strong>5 · Automated Tests</strong></td><td>QA · developers, in parallel</td><td>Spec + OpenAPI</td><td>QA suite <code>qa/identity-acceptance/</code> and developer suite <code>services/identity/tests/business_rules/</code>, both RED</td><td>Both traceability tests green</td></tr>
+<tr><td><strong>6 · Code Generation</strong></td><td>Developers (+ code generator)</td><td>Spec, developer suite, this guide, <code>AGENTS.md</code></td><td>Domain → application → infrastructure → router</td><td>Developer suite, architecture tests, lint and types green; exported <code>openapi.json</code> matches the agreed contract</td></tr>
+<tr><td><strong>7 · Review &amp; QA</strong></td><td>Reviewers, CI</td><td>Pull request</td><td>Merged code, deployed to the QA environment</td><td>QA suite green against the QA environment</td></tr>
+<tr><td><strong>8 · UI Integration</strong></td><td>Front-end developers</td><td><code>openapi.json</code></td><td><code>pnpm gen:api</code> client, feature screens</td><td>Front-end tests green</td></tr>
+<tr><td><strong>9 · QA Round</strong></td><td>QA</td><td>QA environment with the UI</td><td>Exploratory and UI testing; each defect becomes a new case in the spec first</td><td>No open defects; QA suite green</td></tr>
+<tr><td><strong>10 · UAT</strong></td><td>Business users</td><td>Staging, results per BR ID</td><td>Sign-off per rule</td><td>Every BR signed off</td></tr>
+<tr><td><strong>11 · Production Release</strong></td><td>Release manager</td><td>Release candidate</td><td>Reviewed migrations, deployed release</td><td>Both suites green on the candidate; acceptance smoke run on staging</td></tr>
+</tbody></table></div>
+
+          <h3>Why two suites, and who owns what</h3>
+          <div class="table-wrap"><table><thead><tr><th></th><th>Developer suite</th><th>QA suite</th></tr></thead><tbody>
+<tr><td>Location</td><td><code>services/identity/tests/business_rules/</code></td><td><code>qa/identity-acceptance/</code> (its own project, outside the service)</td></tr>
+<tr><td>Owner</td><td>Developers</td><td>QA team</td></tr>
+<tr><td>Spec layers</td><td><code>domain</code>, <code>use_case</code>, <code>repository</code>, <code>integration</code></td><td><code>acceptance</code></td></tr>
+<tr><td>Knows about</td><td>Code, value objects, fakes, the database</td><td>Only the HTTP API and <code>openapi.json</code> (black box)</td></tr>
+<tr><td>Proves</td><td>The rule is implemented in the right place and edge cases hold</td><td>The rule holds for a real client of the deployed system</td></tr>
+<tr><td>Runs</td><td>Every commit and pull request (Testcontainers)</td><td>After each deploy to QA, nightly, and before release; against any URL</td></tr>
+<tr><td>Written from</td><td>Spec + domain model (white box)</td><td>Spec + OpenAPI (black box)</td></tr>
+</tbody></table></div>
+          <div class="callout">
+            <strong>OpenAPI is the contract, not the specification.</strong> It says which endpoints and fields exist;
+            it cannot say “after 5 wrong passwords the account is locked”. Rules come from the spec; OpenAPI tells QA
+            how to call the API and lets the suite check every response against the contract. A rule that a client
+            cannot observe (<code>visibility: internal</code>, such as a database constraint or a timezone check) is
+            tested only by developers.
+          </div>
+
+          <h3>A change request or defect</h3>
+          <pre><code>1. Add or change the rule and its cases in the spec          (BR-12 · TC-12-1 inactive account cannot sign in)
+2. Traceability fails in the owning suite                    &quot;Developer cases without a test: [(&#x27;BR-12&#x27;, &#x27;TC-12-1&#x27;)]&quot;
+3. Write the test                                             RED: the bug is reproduced
+4. Fix the code                                               GREEN
+5. QA re-runs the acceptance suite against the QA environment</code></pre>
+        </section>
+
+        <section id="tdd">
+          <h2>Testing · two suites, one spec (the <code>User</code> example)</h2>
+          <p class="lede">
+            Tests come first (steps 3–5 of the <a href="#delivery">delivery process</a>). The rule spec for
+            <code>UserAccount</code> has 12 rules and 51 test cases: 41 owned by
+            developers (19 domain, 10 use case, 6
+            repository, 6 integration) and 10 acceptance cases owned
+            by QA. Each case has exactly one test, in the suite that owns its layer.
           </p>
 
-          <h3>The workflow</h3>
-          <pre><code>1. Business rules (BRD)              BR-08: after 5 failed sign-ins the account is locked for 15 minutes
-        │
-2. Test-case catalogue               users_catalogue.py → TC-08-1 … TC-08-6  (Given / When / Then, layer)
-        │
-3. Automated pytest suite  (RED)     one test per case, tagged @pytest.mark.br(&quot;BR-08&quot;, &quot;TC-08-4&quot;)
-        │                            test_traceability.py fails if a case has no test
-        │
-4. Generate / write the code         domain → application → infrastructure → HTTP, following this guide
-        │
-5. Suite passes  (GREEN)             uv run task test-br  →  every case green, traceability green
-        │
-6. Refactor safely                   the suite protects every rule; architecture tests protect the layers</code></pre>
+          <h3>The spec: one file, both suites</h3>
+          <p><code>specs/identity/users.rules.yaml</code> is plain YAML so business analysts and QA can edit it without Python.
+          Each case names its <code>layer</code>; the layer decides the owner.</p>
+          <pre><code>- id: BR-09
+  rule: A locked user cannot sign in until the lock expires.
+  visibility: both             # api | internal | both
+  cases:
+  - id: TC-09-1
+    layer: domain              # developers
+    given: lock expiry in the future / past / none
+    when: is_locked(now) runs
+    then: True / False / False
+  - id: TC-09-3
+    layer: acceptance          # QA: black-box over HTTP
+    given: an account locked by 5 wrong passwords
+    when: sign-in with the correct password
+    then: 401 account_locked</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>Layer</th><th>Owner</th><th>Proves</th><th>Uses</th><th>Speed</th></tr></thead><tbody>
+<tr><td>Domain</td><td>Developers</td><td>Value objects, invariants, behaviours, guards, policies</td><td>Plain objects: <code>an_account(...)</code></td><td>Milliseconds</td></tr>
+<tr><td>Use case</td><td>Developers</td><td>Workflow order, what is saved, error translation, after-commit side effects</td><td><code>UseCaseWorld</code>: real <code>UserUseCases</code> + in-memory fakes</td><td>Milliseconds</td></tr>
+<tr><td>Repository</td><td>Developers</td><td>Row ↔ entity mapping, invalid stored data, unique constraints, atomic SQL</td><td><code>db_session</code> + <code>SqlAlchemyUserRepository</code></td><td>Fast (rolled-back transaction)</td></tr>
+<tr><td>Integration</td><td>Developers</td><td>API behaviour that needs database access or captured e-mail to set up or check (deactivated user, lock stored in the database, reset tokens)</td><td>In-process <code>client()</code> + Testcontainers PostgreSQL</td><td>Seconds</td></tr>
+<tr><td>Acceptance</td><td>QA</td><td>Business rules through the published API, plus the OpenAPI contract</td><td><code>httpx</code> against a running environment; users created through sign-up</td><td>Seconds</td></tr>
+</tbody></table></div>
+          <p class="small-text muted">Choosing the layer: use the cheapest layer that can prove the case. If a client
+          can observe it through the API, it is an acceptance case; if proving it needs the database or the code, it
+          belongs to a developer layer.</p>
 
-          <h3>What is in the suite</h3>
+          <h3>Developer suite · <code>services/identity/tests/business_rules/</code></h3>
           <div class="table-wrap"><table><thead><tr><th>File</th><th>Purpose</th><th>Database</th></tr></thead><tbody>
-<tr><td><code>users_catalogue.py</code></td><td><strong>The specification</strong>: every business rule and its test cases (ID, layer, Given, When, Then). Written first.</td><td>—</td></tr>
+<tr><td><code>users_catalogue.py</code></td><td>Loads <code>specs/identity/users.rules.yaml</code> into <code>BusinessRule</code> / <code>TestCase</code> objects</td><td>—</td></tr>
 <tr><td><code>users_builders.py</code></td><td>Test data builders (<code>an_account()</code>, a valid bcrypt <code>HASH</code>) and recording fakes (<code>RecordingUserRepository</code>, <code>RecordingStorage</code>, <code>UseCaseWorld</code>)</td><td>—</td></tr>
 <tr><td><code>test_users_domain.py</code></td><td>Value objects, invariants, behaviours, guards</td><td>No</td></tr>
 <tr><td><code>test_users_policies.py</code></td><td>Policies (lockout duration)</td><td>No</td></tr>
-<tr><td><code>test_users_use_cases.py</code></td><td>Use cases wired to in-memory fakes: what is saved, what is not, side effects after commit</td><td>No</td></tr>
-<tr><td><code>test_users_repository.py</code></td><td>The SQLAlchemy adapter against the real database: mapping to value objects, invalid stored data, the unique constraint, atomic counters</td><td>Yes (Testcontainers)</td></tr>
-<tr><td><code>test_users_api.py</code></td><td>The real HTTP API and database; each test runs in a rolled-back transaction</td><td>Yes (Testcontainers)</td></tr>
-<tr><td><code>test_traceability.py</code></td><td>Every catalogue case has exactly one test; every tag points to a real rule and case</td><td>No</td></tr>
-</tbody></table></div>
-
-          <h3>Step 1 · Write the test cases in the catalogue</h3>
-          <p>One entry per rule, one <code>TestCase</code> per scenario, each placed in the cheapest layer that can prove it.</p>
-          <pre><code>BusinessRule(
-    &quot;BR-08&quot;,
-    &quot;After 5 failed sign-ins the account is locked for a configurable 15 minutes.&quot;,
-    (
-        TestCase(&quot;TC-08-1&quot;, &quot;domain&quot;,   &quot;a lock time and a lockout duration&quot;, &quot;lockout_expiry runs&quot;,
-                 &quot;expiry = lock time + duration&quot;),
-        TestCase(&quot;TC-08-3&quot;, &quot;use_case&quot;, &quot;an account with 3 failures&quot;, &quot;record_failed_login runs&quot;,
-                 &quot;4 failures, not locked; failure kept although the response fails&quot;),
-        TestCase(&quot;TC-08-4&quot;, &quot;use_case&quot;, &quot;an account with 4 failures&quot;, &quot;record_failed_login runs&quot;,
-                 &quot;locked for LOGIN_LOCKOUT_MINUTES and the counter restarts&quot;),
-        TestCase(&quot;TC-08-6&quot;, &quot;api&quot;,      &quot;a registered user&quot;, &quot;5 sign-ins with a wrong password&quot;,
-                 &quot;the account is locked in the database&quot;),
-    ),
-),</code></pre>
-
-          <h3>Step 2 · Turn each case into a test, in the right layer</h3>
-          <div class="table-wrap"><table><thead><tr><th>Layer</th><th>Proves</th><th>Uses</th><th>Speed</th></tr></thead><tbody>
-<tr><td>Domain</td><td>Value objects, invariants, behaviours, guards, policies</td><td>Plain objects: <code>an_account(...)</code></td><td>Milliseconds</td></tr>
-<tr><td>Use case</td><td>Workflow order, what is saved, translation to HTTP errors, after-commit side effects</td><td><code>UseCaseWorld</code>: real <code>UserUseCases</code> + in-memory fakes</td><td>Milliseconds</td></tr>
-<tr><td>Repository</td><td>Row ↔ entity mapping, invalid stored data, unique constraints, atomic SQL updates</td><td><code>db_session</code> fixture + <code>SqlAlchemyUserRepository</code></td><td>Fast (rolled-back transaction)</td></tr>
-<tr><td>API</td><td>Status codes, permissions, cookies, database constraints, end-to-end behaviour</td><td><code>client()</code> fixture + Testcontainers PostgreSQL</td><td>Seconds</td></tr>
+<tr><td><code>test_users_use_cases.py</code></td><td>Use cases wired to in-memory fakes</td><td>No</td></tr>
+<tr><td><code>test_users_repository.py</code></td><td>The SQLAlchemy adapter against the real database</td><td>Yes (Testcontainers)</td></tr>
+<tr><td><code>test_users_integration.py</code></td><td>API cases that need database access or captured e-mail</td><td>Yes (Testcontainers)</td></tr>
+<tr><td><code>test_traceability.py</code></td><td>Every developer case has exactly one test; every tag points to a developer case</td><td>No</td></tr>
 </tbody></table></div>
           <h4>Domain test</h4>
           <pre><code>@pytest.mark.br(&quot;BR-07&quot;, &quot;TC-07-1&quot;)
@@ -3717,100 +3758,149 @@ async def test_br_10_files_are_removed_only_after_the_deletion_commits(world: Us
     assert world.storage.deleted_owners == []        # not before the commit
     await world.uow.commit()
     assert world.storage.deleted_owners == [row.id]  # only after it</code></pre>
-          <h4>API test (real HTTP and database)</h4>
-          <pre><code>@pytest.mark.br(&quot;BR-09&quot;, &quot;TC-09-3&quot;)
-async def test_br_09_locked_account_cannot_sign_in_even_with_correct_password(client: Any) -&gt; None:
+          <h4>Integration test (needs the database to set up the case)</h4>
+          <pre><code>@pytest.mark.br(&quot;BR-12&quot;, &quot;TC-12-1&quot;)
+async def test_br_12_inactive_account_cannot_sign_in(client: Any) -&gt; None:
+    await _set_user(SECOND_USER[&quot;email&quot;], is_active=False)     # no API can deactivate an account
     api_client = await client()
-    await _wrong_password_sign_ins(api_client, SECOND_USER[&quot;email&quot;], config.LOGIN_MAX_FAILED_ATTEMPTS)
-    response = await api_client.post(&quot;/v1/auth/signin&quot;, json=SECOND_USER)
-    assert response.status_code == 401
-    assert response.json()[&quot;code&quot;] == &quot;account_locked&quot;</code></pre>
+    inactive = await api_client.post(&quot;/v1/auth/signin&quot;, json=SECOND_USER)
+    assert inactive.status_code == 401
+    assert inactive.json()[&quot;code&quot;] == &quot;account_inactive&quot;</code></pre>
 
-          <h3>Step 3 · Traceability keeps tests and rules in sync</h3>
-          <p><code>test_traceability.py</code> reads the test files and the catalogue. Add a case without a test,
-          tag a test with a case that does not exist, or test one case twice, and the suite fails:</p>
-          <pre><code>FAILED test_traceability.py::test_every_test_case_in_the_catalogue_has_exactly_one_test
-AssertionError: Test cases without a test: [(&#x27;BR-01&#x27;, &#x27;TC-01-9&#x27;)]</code></pre>
+          <h3>QA suite · <code>qa/identity-acceptance/</code></h3>
+          <p>A separate project with its own <code>pyproject.toml</code>. It imports nothing from the service and can
+          run against local, QA or staging by setting <code>QA_BASE_URL</code>. Every test creates its own users
+          through sign-up, so runs never depend on or corrupt shared data.</p>
+          <div class="table-wrap"><table><thead><tr><th>File</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>tests/support/settings.py</code></td><td>Environment: <code>QA_BASE_URL</code>, admin credentials, spec and OpenAPI paths, lockout threshold</td></tr>
+<tr><td><code>tests/support/api.py</code></td><td><code>ApiSession</code>: cookie session and CSRF header, like the web app</td></tr>
+<tr><td><code>tests/support/contract.py</code></td><td><code>Contract.check(...)</code>: response status and body against <code>openapi.json</code>; errors must be RFC 9457 problem details</td></tr>
+<tr><td><code>tests/support/spec.py</code></td><td>Reads the acceptance cases from the spec</td></tr>
+<tr><td><code>tests/test_users_acceptance.py</code></td><td>One test per acceptance case</td></tr>
+<tr><td><code>tests/test_traceability.py</code></td><td>Every acceptance case has exactly one test (needs no running service)</td></tr>
+</tbody></table></div>
+          <h4>Acceptance test (black-box, checked against the contract)</h4>
+          <pre><code>@pytest.mark.br(&quot;BR-09&quot;, &quot;TC-09-3&quot;)
+def test_br_09_locked_account_cannot_sign_in_even_with_correct_password(
+    session: Callable[[], ApiSession], new_user: Credentials, settings: Settings
+) -&gt; None:
+    api = session()
+    for _ in range(settings.login_max_failed_attempts):
+        wrong = api.sign_in(Credentials(new_user.email, &quot;wrong-password&quot;))
+        assert wrong.json()[&quot;code&quot;] == &quot;invalid_credentials&quot;
+    locked = api.sign_in(new_user)
+    assert locked.status_code == 401
+    assert locked.json()[&quot;code&quot;] == &quot;account_locked&quot;
 
-          <h3>Step 4 · Generate the code from the suite</h3>
-          <p>Give the code generator (or the developer) three inputs and one definition of done:</p>
+
+@pytest.mark.br(&quot;BR-11&quot;, &quot;TC-11-1&quot;)
+def test_br_11_user_sees_own_profile_without_secrets(session, new_user, contract) -&gt; None:
+    api = session()
+    api.sign_in(new_user)
+    response = api.http.get(&quot;/v2/user/me&quot;)
+    contract.check(response, &quot;GET&quot;, &quot;/v2/user/me&quot;)          # status documented, body matches the schema
+    assert set(response.json()) == {&quot;id&quot;, &quot;email&quot;, &quot;username&quot;, &quot;role&quot;, &quot;emailVerified&quot;, &quot;mfaEnabled&quot;}</code></pre>
+          <div class="callout">
+            <strong>Known contract gap:</strong> <code>openapi.json</code> documents only success and 422 responses.
+            Error responses (401, 403, 409 …) are not listed, so the contract check verifies their problem-details
+            shape and <code>code</code>, not a schema. Declaring <code>responses=</code> on the routes would let QA
+            design error cases from OpenAPI alone.
+          </div>
+
+          <h3>Traceability keeps both suites in sync with the spec</h3>
+          <p>Each suite has a <code>test_traceability.py</code> that reads its test files and the spec. Add a case
+          without a test, tag a test with an unknown case or another suite's case, or test a case twice, and it
+          fails:</p>
+          <pre><code>FAILED tests/test_traceability.py::test_every_acceptance_case_in_the_spec_has_exactly_one_test
+AssertionError: Acceptance cases without a test: [(&#x27;BR-11&#x27;, &#x27;TC-11-6&#x27;)]</code></pre>
+
+          <h3>Generating the code from the tests (step 6)</h3>
           <div class="table-wrap"><table><thead><tr><th>Input</th><th>Why</th></tr></thead><tbody>
-<tr><td>The catalogue and the failing pytest suite</td><td>The executable specification: names, errors, codes and behaviour are fixed by the tests</td></tr>
+<tr><td>The spec and the failing developer suite</td><td>The executable specification: names, errors, codes and behaviour are fixed by the tests</td></tr>
+<tr><td>The agreed <code>openapi.json</code></td><td>Paths, request and response fields the QA suite and the web app rely on</td></tr>
 <tr><td>This guide (<a href="#example">User walkthrough</a>, <a href="#entity-vs-service">identification guide</a>)</td><td>Where each rule lives: value object, behaviour, policy, use case, port, adapter, router</td></tr>
 <tr><td><code>AGENTS.md</code> naming conventions and the architecture tests</td><td>Files, classes and layer boundaries</td></tr>
-<tr><td><strong>Done when</strong></td><td><code>uv run task test-br</code>, the architecture tests, <code>uv run task check</code> and <code>uv run task type-check</code> all pass</td></tr>
+<tr><td><strong>Done when</strong></td><td><code>uv run task test-br</code>, the architecture tests, <code>check</code> and <code>type-check</code> pass, and <code>uv run task openapi</code> produces the agreed contract; then the QA suite passes against the deployed build</td></tr>
 </tbody></table></div>
 
           <h3>Commands</h3>
-          <pre><code>cd services/identity
-uv run task test-br                                   # whole business-rule suite (Docker required for the API layer)
+          <pre><code># Developer suite (Docker required for the repository and integration layers)
+cd services/identity
+uv run task test-br                                   # all developer cases
 uv run pytest tests/business_rules -k br_08 -v        # one rule
-uv run pytest tests/business_rules/test_users_domain.py tests/business_rules/test_users_use_cases.py   # fast layers only
-uv run pytest tests/business_rules/test_traceability.py                                              # rules ↔ tests check</code></pre>
+uv run pytest tests/business_rules/test_traceability.py
+
+# QA suite (identity running with RATE_LIMIT_ENABLED=false and a seeded admin)
+cd qa/identity-acceptance
+uv sync
+uv run task test                                      # against http://localhost:8000
+$env:QA_BASE_URL = &quot;https://identity.qa.example.com&quot;; uv run task test
+uv run pytest tests/test_traceability.py              # spec coverage only, no service needed</code></pre>
 
           <h3>The complete test-case matrix for <code>UserAccount</code></h3>
-          <p class="small-text muted">Generated from <code>services/identity/tests/business_rules/users_catalogue.py</code>. Each row is one test, named
+          <p class="small-text muted">Generated from <code>specs/identity/users.rules.yaml</code>. Each row is one test, named
           <code>test_br_XX_…</code> and tagged with its rule and case. Files: domain → test_users_domain.py / test_users_policies.py,
-          use case → test_users_use_cases.py, repository → test_users_repository.py, API → test_users_api.py.</p>
-          <div class="table-wrap"><table><thead><tr><th>Rule</th><th>Business rule</th><th>Case</th><th>Layer</th><th>Given</th><th>When</th><th>Then</th></tr></thead><tbody>
-<tr><td><strong style="white-space:nowrap">BR-01</strong></td><td>Every user has an email address that must be a valid address.</td><td><span style="white-space:nowrap">TC-01-1</span></td><td>domain</td><td>a valid email with spaces around it</td><td>EmailAddress is created</td><td>it is accepted and trimmed</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-2</span></td><td>domain</td><td>malformed or over-long emails</td><td>EmailAddress is created</td><td>InvalidEmailAddress (invalid_email)</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-3</span></td><td>domain</td><td>an account built with an invalid email</td><td>UserAccount is created</td><td>InvalidEmailAddress: the entity can never hold it</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-4</span></td><td>use case</td><td>an invalid email</td><td>create_user runs</td><td>BadRequestError invalid_email and nothing is stored</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-5</span></td><td>api</td><td>a sign-up request with an invalid email</td><td>POST /v1/auth/signup</td><td>422 validation_failed</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-6</span></td><td>repository</td><td>an account stored in the database</td><td>it is loaded through the repository</td><td>every field round-trips and email/username/password/role come back as value objects</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-02</strong></td><td>A username is 3-50 letters, digits, dots, underscores or hyphens.</td><td><span style="white-space:nowrap">TC-02-1</span></td><td>domain</td><td>a handle with allowed characters</td><td>Username is created</td><td>it is accepted and trimmed</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-02-2</span></td><td>domain</td><td>too short, too long or with spaces/@</td><td>Username is created</td><td>InvalidUsername (invalid_username)</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-02-3</span></td><td>use case</td><td>an invalid username</td><td>create_user runs</td><td>BadRequestError invalid_username and nothing is stored</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-03</strong></td><td>Only a password hash is ever stored, never the plain password.</td><td><span style="white-space:nowrap">TC-03-1</span></td><td>domain</td><td>a bcrypt hash</td><td>PasswordHash is created</td><td>it is accepted</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-2</span></td><td>domain</td><td>a plain password or malformed hash</td><td>PasswordHash is created</td><td>InvalidPasswordHash</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-3</span></td><td>domain</td><td>an account</td><td>change_password gets a plain password</td><td>rejected; the old hash is kept</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-4</span></td><td>use case</td><td>a plain password</td><td>set_password runs</td><td>BadRequestError invalid_password_hash; nothing saved; sessions not revoked</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-5</span></td><td>use case</td><td>a new bcrypt hash</td><td>set_password runs</td><td>hash saved and every access token revoked (token_version + 1)</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-6</span></td><td>repository</td><td>a stored row whose password is not a bcrypt hash</td><td>it is loaded through the repository</td><td>InvalidPasswordHash: invalid data never reaches the use cases</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-7</span></td><td>repository</td><td>an account loaded once</td><td>increment_token_version runs twice</td><td>the database returns 1 then 2 (counted in SQL, not from the loaded copy)</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-04</strong></td><td>A user&#x27;s role is either user or admin.</td><td><span style="white-space:nowrap">TC-04-1</span></td><td>domain</td><td>the texts &#x27;user&#x27; and &#x27;admin&#x27;</td><td>Role.parse runs</td><td>Role.USER / Role.ADMIN</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-04-2</span></td><td>domain</td><td>an unknown role</td><td>Role.parse runs / an account is built</td><td>InvalidRole (invalid_role)</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-04-3</span></td><td>repository</td><td>a stored row with an unknown role</td><td>it is loaded through the repository</td><td>InvalidRole: invalid data never reaches the use cases</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-05</strong></td><td>An email must be unique across all users.</td><td><span style="white-space:nowrap">TC-05-1</span></td><td>api</td><td>an already registered email</td><td>POST /v1/auth/signup with a new password</td><td>201 like a new sign-up, no email sent, the old password still works and the new one does not</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-05-2</span></td><td>repository</td><td>a sign-up that passed the existence check at the same moment as another</td><td>create_account inserts the same email</td><td>ConflictError (409) from the unique constraint; still one account</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-06</strong></td><td>Verifying an email twice keeps the first verification date.</td><td><span style="white-space:nowrap">TC-06-1</span></td><td>domain</td><td>an unverified account</td><td>verify_email runs twice</td><td>first returns True and sets the date; second returns False and keeps it</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-06-2</span></td><td>use case</td><td>an unverified account</td><td>mark_email_verified runs twice</td><td>the date is saved once</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-06-3</span></td><td>api</td><td>a new account and its verification link</td><td>POST /v1/auth/verify-email twice</td><td>204 and emailVerified true; the second use is rejected (invalid_or_expired_token)</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-07</strong></td><td>MFA must be set up before it can be enabled, and cannot be set up again while enabled.</td><td><span style="white-space:nowrap">TC-07-1</span></td><td>domain</td><td>an account without MFA</td><td>enable_mfa runs</td><td>MfaNotStarted</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-2</span></td><td>domain</td><td>an account without MFA</td><td>start_mfa_setup then enable_mfa</td><td>MFA enabled at the given time</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-3</span></td><td>domain</td><td>an account with MFA enabled</td><td>start_mfa_setup runs</td><td>MfaAlreadyEnabled</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-4</span></td><td>domain</td><td>an account with MFA enabled</td><td>disable_mfa runs</td><td>secret and activation are cleared</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-5</span></td><td>use case</td><td>an account without MFA</td><td>set_mfa_secret(enabled=True)</td><td>BadRequestError mfa_not_started; nothing saved</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-6</span></td><td>api</td><td>a signed-in user without MFA setup</td><td>POST /v1/auth/mfa/enable</td><td>400 mfa_not_started</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-08</strong></td><td>After 5 failed sign-ins the account is locked for a configurable 15 minutes.</td><td><span style="white-space:nowrap">TC-08-1</span></td><td>domain</td><td>a lock time and a lockout duration</td><td>lockout_expiry runs</td><td>expiry = lock time + duration</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-2</span></td><td>domain</td><td>a clock without a timezone</td><td>lockout_expiry runs</td><td>ValueError</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-3</span></td><td>use case</td><td>an account with 3 failures</td><td>record_failed_login runs</td><td>4 failures, not locked; failure kept although the response fails</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-4</span></td><td>use case</td><td>an account with 4 failures</td><td>record_failed_login runs</td><td>locked for LOGIN_LOCKOUT_MINUTES and the counter restarts</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-5</span></td><td>use case</td><td>a locked account / an account without failures</td><td>reset_failed_logins runs</td><td>counter and lock cleared and saved / nothing saved</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-6</span></td><td>api</td><td>a registered user</td><td>5 sign-ins with a wrong password</td><td>the account is locked in the database</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-7</span></td><td>repository</td><td>an account loaded once (stale copy)</td><td>register_failed_login runs 3 times</td><td>the database counts 3: concurrent failures are never lost</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>A locked user cannot sign in until the lock expires.</td><td><span style="white-space:nowrap">TC-09-1</span></td><td>domain</td><td>lock expiry in the future / past / none</td><td>is_locked(now) runs</td><td>True / False / False</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-2</span></td><td>domain</td><td>a clock without a timezone</td><td>is_locked runs</td><td>ValueError</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-3</span></td><td>api</td><td>a locked account</td><td>sign-in with the correct password</td><td>401 account_locked</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-4</span></td><td>api</td><td>an account whose lock has expired</td><td>sign-in with the correct password</td><td>200 and the lock is cleared in the database</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td><span style="white-space:nowrap">TC-10-1</span></td><td>use case</td><td>an account</td><td>delete_account runs</td><td>account deleted and audited; file cleanup scheduled, not run before commit, run after commit</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-10-2</span></td><td>api</td><td>a signed-in user</td><td>DELETE /v2/user/me</td><td>204, session cookies expired, then 401 on the next call</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-10-3</span></td><td>api</td><td>a user with a todo and a stored file</td><td>DELETE /v2/user/me</td><td>user.deleted is audited, the todo is gone (cascade) and the file is removed</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td><span style="white-space:nowrap">TC-11-1</span></td><td>api</td><td>a signed-in user</td><td>GET /v2/user/me</td><td>200 with own profile and no secrets</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-2</span></td><td>api</td><td>no session</td><td>GET /v2/user/me</td><td>401</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-3</span></td><td>api</td><td>a signed-in normal user</td><td>GET /v2/users/</td><td>403</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-4</span></td><td>api</td><td>a signed-in admin</td><td>GET /v2/users/</td><td>200 with a page of users</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-5</span></td><td>api</td><td>a signed-in admin</td><td>GET /v2/users/?pageSize=1</td><td>one user per page, with createdAt and lockedUntil, and the total count</td></tr>
-<tr><td><strong style="white-space:nowrap">BR-12</strong></td><td>An inactive (deactivated) account cannot sign in or use an existing session.</td><td><span style="white-space:nowrap">TC-12-1</span></td><td>api</td><td>a deactivated account</td><td>sign-in with the correct password</td><td>401 account_inactive; a wrong password still answers invalid_credentials</td></tr>
-<tr><td></td><td></td><td><span style="white-space:nowrap">TC-12-2</span></td><td>api</td><td>a session created before the account was deactivated</td><td>GET /v2/user/me</td><td>401</td></tr>
+          use case → test_users_use_cases.py, repository → test_users_repository.py, integration →
+          test_users_integration.py, acceptance → qa/identity-acceptance/tests/test_users_acceptance.py.</p>
+          <div class="table-wrap"><table><thead><tr><th>Rule</th><th>Business rule</th><th>Visibility</th><th>Case</th><th>Layer</th><th>Owner</th><th>Given</th><th>When</th><th>Then</th></tr></thead><tbody>
+<tr><td><strong style="white-space:nowrap">BR-01</strong></td><td>Every user has an email address that must be a valid address.</td><td>both</td><td><span style="white-space:nowrap">TC-01-1</span></td><td>domain</td><td>Developers</td><td>a valid email with spaces around it</td><td>EmailAddress is created</td><td>it is accepted and trimmed</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-01-2</span></td><td>domain</td><td>Developers</td><td>malformed or over-long emails</td><td>EmailAddress is created</td><td>InvalidEmailAddress (invalid_email)</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-01-3</span></td><td>domain</td><td>Developers</td><td>an account built with an invalid email</td><td>UserAccount is created</td><td>InvalidEmailAddress: the entity can never hold it</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-01-4</span></td><td>use case</td><td>Developers</td><td>an invalid email</td><td>create_user runs</td><td>BadRequestError invalid_email and nothing is stored</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-01-5</span></td><td>acceptance</td><td>QA</td><td>a sign-up request with an invalid email</td><td>POST /v1/auth/signup</td><td>422 validation_failed</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-01-6</span></td><td>repository</td><td>Developers</td><td>an account stored in the database</td><td>it is loaded through the repository</td><td>every field round-trips and email/username/password/role come back as value objects</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-02</strong></td><td>A username is 3-50 letters, digits, dots, underscores or hyphens.</td><td>internal</td><td><span style="white-space:nowrap">TC-02-1</span></td><td>domain</td><td>Developers</td><td>a handle with allowed characters</td><td>Username is created</td><td>it is accepted and trimmed</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-02-2</span></td><td>domain</td><td>Developers</td><td>too short, too long or with spaces/@</td><td>Username is created</td><td>InvalidUsername (invalid_username)</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-02-3</span></td><td>use case</td><td>Developers</td><td>an invalid username</td><td>create_user runs</td><td>BadRequestError invalid_username and nothing is stored</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-03</strong></td><td>Only a password hash is ever stored, never the plain password.</td><td>internal</td><td><span style="white-space:nowrap">TC-03-1</span></td><td>domain</td><td>Developers</td><td>a bcrypt hash</td><td>PasswordHash is created</td><td>it is accepted</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-2</span></td><td>domain</td><td>Developers</td><td>a plain password or malformed hash</td><td>PasswordHash is created</td><td>InvalidPasswordHash</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-3</span></td><td>domain</td><td>Developers</td><td>an account</td><td>change_password gets a plain password</td><td>rejected; the old hash is kept</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-4</span></td><td>use case</td><td>Developers</td><td>a plain password</td><td>set_password runs</td><td>BadRequestError invalid_password_hash; nothing saved; sessions not revoked</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-5</span></td><td>use case</td><td>Developers</td><td>a new bcrypt hash</td><td>set_password runs</td><td>hash saved and every access token revoked (token_version + 1)</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-6</span></td><td>repository</td><td>Developers</td><td>a stored row whose password is not a bcrypt hash</td><td>it is loaded through the repository</td><td>InvalidPasswordHash: invalid data never reaches the use cases</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-03-7</span></td><td>repository</td><td>Developers</td><td>an account loaded once</td><td>increment_token_version runs twice</td><td>the database returns 1 then 2 (counted in SQL, not from the loaded copy)</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-04</strong></td><td>A user&#x27;s role is either user or admin.</td><td>internal</td><td><span style="white-space:nowrap">TC-04-1</span></td><td>domain</td><td>Developers</td><td>the texts &#x27;user&#x27; and &#x27;admin&#x27;</td><td>Role.parse runs</td><td>Role.USER / Role.ADMIN</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-04-2</span></td><td>domain</td><td>Developers</td><td>an unknown role</td><td>Role.parse runs / an account is built</td><td>InvalidRole (invalid_role)</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-04-3</span></td><td>repository</td><td>Developers</td><td>a stored row with an unknown role</td><td>it is loaded through the repository</td><td>InvalidRole: invalid data never reaches the use cases</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-05</strong></td><td>An email must be unique across all users.</td><td>both</td><td><span style="white-space:nowrap">TC-05-1</span></td><td>acceptance</td><td>QA</td><td>an already registered email</td><td>POST /v1/auth/signup with a new password</td><td>201 like a new sign-up; the old password still works and the new one does not</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-05-2</span></td><td>repository</td><td>Developers</td><td>a sign-up that passed the existence check at the same moment as another</td><td>create_account inserts the same email</td><td>ConflictError (409) from the unique constraint; still one account</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-06</strong></td><td>Verifying an email twice keeps the first verification date.</td><td>internal</td><td><span style="white-space:nowrap">TC-06-1</span></td><td>domain</td><td>Developers</td><td>an unverified account</td><td>verify_email runs twice</td><td>first returns True and sets the date; second returns False and keeps it</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-06-2</span></td><td>use case</td><td>Developers</td><td>an unverified account</td><td>mark_email_verified runs twice</td><td>the date is saved once</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-06-3</span></td><td>integration</td><td>Developers</td><td>a new account and its verification link</td><td>POST /v1/auth/verify-email twice</td><td>204 and emailVerified true; the second use is rejected (invalid_or_expired_token)</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-07</strong></td><td>MFA must be set up before it can be enabled, and cannot be set up again while enabled.</td><td>both</td><td><span style="white-space:nowrap">TC-07-1</span></td><td>domain</td><td>Developers</td><td>an account without MFA</td><td>enable_mfa runs</td><td>MfaNotStarted</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-07-2</span></td><td>domain</td><td>Developers</td><td>an account without MFA</td><td>start_mfa_setup then enable_mfa</td><td>MFA enabled at the given time</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-07-3</span></td><td>domain</td><td>Developers</td><td>an account with MFA enabled</td><td>start_mfa_setup runs</td><td>MfaAlreadyEnabled</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-07-4</span></td><td>domain</td><td>Developers</td><td>an account with MFA enabled</td><td>disable_mfa runs</td><td>secret and activation are cleared</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-07-5</span></td><td>use case</td><td>Developers</td><td>an account without MFA</td><td>set_mfa_secret(enabled=True)</td><td>BadRequestError mfa_not_started; nothing saved</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-07-6</span></td><td>acceptance</td><td>QA</td><td>a signed-in user without MFA setup</td><td>POST /v1/auth/mfa/enable</td><td>400 mfa_not_started</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-08</strong></td><td>After 5 failed sign-ins the account is locked for a configurable 15 minutes.</td><td>internal</td><td><span style="white-space:nowrap">TC-08-1</span></td><td>domain</td><td>Developers</td><td>a lock time and a lockout duration</td><td>lockout_expiry runs</td><td>expiry = lock time + duration</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-2</span></td><td>domain</td><td>Developers</td><td>a clock without a timezone</td><td>lockout_expiry runs</td><td>ValueError</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-3</span></td><td>use case</td><td>Developers</td><td>an account with 3 failures</td><td>record_failed_login runs</td><td>4 failures, not locked; failure kept although the response fails</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-4</span></td><td>use case</td><td>Developers</td><td>an account with 4 failures</td><td>record_failed_login runs</td><td>locked for LOGIN_LOCKOUT_MINUTES and the counter restarts</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-5</span></td><td>use case</td><td>Developers</td><td>a locked account / an account without failures</td><td>reset_failed_logins runs</td><td>counter and lock cleared and saved / nothing saved</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-6</span></td><td>integration</td><td>Developers</td><td>a registered user</td><td>5 sign-ins with a wrong password</td><td>the account is locked in the database</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-08-7</span></td><td>repository</td><td>Developers</td><td>an account loaded once (stale copy)</td><td>register_failed_login runs 3 times</td><td>the database counts 3: concurrent failures are never lost</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>A locked user cannot sign in until the lock expires.</td><td>both</td><td><span style="white-space:nowrap">TC-09-1</span></td><td>domain</td><td>Developers</td><td>lock expiry in the future / past / none</td><td>is_locked(now) runs</td><td>True / False / False</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-09-2</span></td><td>domain</td><td>Developers</td><td>a clock without a timezone</td><td>is_locked runs</td><td>ValueError</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-09-3</span></td><td>acceptance</td><td>QA</td><td>an account locked by 5 wrong passwords</td><td>sign-in with the correct password</td><td>401 account_locked</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-09-4</span></td><td>integration</td><td>Developers</td><td>an account whose lock has expired</td><td>sign-in with the correct password</td><td>200 and the lock is cleared in the database</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td>both</td><td><span style="white-space:nowrap">TC-10-1</span></td><td>use case</td><td>Developers</td><td>an account</td><td>delete_account runs</td><td>account deleted and audited; file cleanup scheduled, not run before commit, run after commit</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-10-2</span></td><td>acceptance</td><td>QA</td><td>a signed-in user</td><td>DELETE /v2/user/me</td><td>204, session cookies expired, then 401 on the next call</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-10-3</span></td><td>integration</td><td>Developers</td><td>a user with a todo and a stored file</td><td>DELETE /v2/user/me</td><td>user.deleted is audited, the todo is gone (cascade) and the file is removed</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td>api</td><td><span style="white-space:nowrap">TC-11-1</span></td><td>acceptance</td><td>QA</td><td>a signed-in user</td><td>GET /v2/user/me</td><td>200 with own profile and no secrets</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-2</span></td><td>acceptance</td><td>QA</td><td>no session</td><td>GET /v2/user/me</td><td>401</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-3</span></td><td>acceptance</td><td>QA</td><td>a signed-in normal user</td><td>GET /v2/users/</td><td>403</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-4</span></td><td>acceptance</td><td>QA</td><td>a signed-in admin</td><td>GET /v2/users/</td><td>200 with a page of users</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-11-5</span></td><td>acceptance</td><td>QA</td><td>a signed-in admin</td><td>GET /v2/users/?pageSize=1</td><td>one user per page, with createdAt and lockedUntil, and the total count</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-12</strong></td><td>An inactive (deactivated) account cannot sign in or use an existing session.</td><td>internal</td><td><span style="white-space:nowrap">TC-12-1</span></td><td>integration</td><td>Developers</td><td>a deactivated account</td><td>sign-in with the correct password</td><td>401 account_inactive; a wrong password still answers invalid_credentials</td></tr>
+<tr><td></td><td></td><td></td><td><span style="white-space:nowrap">TC-12-2</span></td><td>integration</td><td>Developers</td><td>a session created before the account was deactivated</td><td>GET /v2/user/me</td><td>401</td></tr>
 </tbody></table></div>
 
           <div class="callout">
-            <strong>For a new entity:</strong> copy the four pieces (catalogue, builders, layer test files,
-            traceability), write the rules and cases first, watch the suite fail, then build each layer until it
-            passes. Keep one test per case and name tests <code>test_br_XX_…</code> so
-            <code>pytest -k br_XX</code> runs a single rule.
+            <strong>For a new entity:</strong> write <code>specs/&lt;service&gt;/&lt;entity&gt;.rules.yaml</code> first,
+            copy the developer suite pieces (catalogue loader, builders, layer test files, traceability) and add a
+            <code>test_&lt;entity&gt;_acceptance.py</code> to the QA project. Keep one test per case and name tests
+            <code>test_br_XX_…</code> so <code>pytest -k br_XX</code> runs a single rule.
           </div>
         </section>
 

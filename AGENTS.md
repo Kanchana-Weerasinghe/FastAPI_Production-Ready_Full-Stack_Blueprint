@@ -38,6 +38,8 @@ Welcome! This document provides commands, rules, and guidelines for developing a
 | `services/identity/` | Identity (auth, users), audit and the `todos` example; issues the access tokens |
 | `services/data-acquisition/` | Data acquisition domain service (`AcquisitionJob`), deployed independently |
 | `packages/platform-kit/` | Shared technical building blocks for domain services (no business rules) |
+| `specs/<service>/` | Business-rule specs (`<entity>.rules.yaml`): rules and test cases shared by the developer and QA suites |
+| `qa/<service>-acceptance/` | QA-owned black-box acceptance suites: HTTP API + `openapi.json` only, run against any environment |
 | `web/` | React front end |
 | `deploy/helm/app`, `deploy/helm/domain-service` | Helm charts: the identity service + web, and one release per domain service |
 
@@ -56,6 +58,12 @@ Run each service's commands from its own folder. See `docs/adr/0016-independent-
 ### Shared package (`packages/platform-kit/`)
 
 * `uv sync`, `uv run task check`, `uv run task type-check`, `uv run task test`. Changes affect every domain service: run their tests too.
+
+### Business-rule specs and QA suites (`specs/`, `qa/`)
+
+* Each case in `specs/<service>/<entity>.rules.yaml` has a `layer`: `domain`, `use_case`, `repository`, `integration` (developers, `services/<service>/tests/business_rules/`) or `acceptance` (QA, `qa/<service>-acceptance/`). Add or change a case in the spec before writing its test; both suites' traceability tests fail otherwise.
+* **Developer suite:** `uv run task test-br` from `services/identity/`.
+* **QA suite:** from `qa/identity-acceptance/`: `uv sync`, `uv run task test` (identity running with `RATE_LIMIT_ENABLED=false` and seeded; `QA_BASE_URL` selects the environment), `uv run task check`, `uv run task type-check`.
 
 ### Backend (`services/identity/`)
 
