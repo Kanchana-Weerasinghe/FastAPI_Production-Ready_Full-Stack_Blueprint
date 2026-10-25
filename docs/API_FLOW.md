@@ -186,7 +186,7 @@
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v1/auth/signin` | POST | False | Verifies credentials and starts a session (or returns an MFA challenge). Failed attempts are counted per account; after `LOGIN_MAX_FAILED_ATTEMPTS` the account is locked for `LOGIN_LOCKOUT_MINUTES` (401 `account_locked`). |
+| `/v1/auth/signin` | POST | False | Verifies credentials and starts a session (or returns an MFA challenge). Failed attempts are counted per account; after `LOGIN_MAX_FAILED_ATTEMPTS` the account is locked for `LOGIN_LOCKOUT_MINUTES` (401 `account_locked`). A deactivated account gets 401 `account_inactive`, but only after a correct password (a wrong one always answers `invalid_credentials`). |
 
 > <details>
 > <summary>Request body</summary>
@@ -238,6 +238,19 @@
 >   "detail": "Incorrect email or password",
 >   "instance": "<request path>",
 >   "code": "unauthenticated",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+>
+> **401 Unauthorized** (If the password is correct but the account is deactivated):
+> ```json
+> {
+>   "type": "https://errors.example.com/account_inactive",
+>   "title": "Unauthenticated",
+>   "status": 401,
+>   "detail": "This account is deactivated",
+>   "instance": "/v1/auth/signin",
+>   "code": "account_inactive",
 >   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
 > }
 > ```

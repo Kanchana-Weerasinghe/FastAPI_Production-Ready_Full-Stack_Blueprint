@@ -52,4 +52,4 @@ def test_test_case_ids_belong_to_their_rule() -> None:
     for rule in USER_RULES:
         for case in rule.cases:
             assert case.id.startswith("TC-" + rule.id.removeprefix("BR-") + "-"), (rule.id, case.id)
-            assert case.layer in {"domain", "use_case", "api"}, (case.id, case.layer)
+            assert case.layer in {"domain", "use_case", "repository", "api"}, (case.id, case.layer)

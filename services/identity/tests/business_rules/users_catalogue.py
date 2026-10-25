@@ -5,7 +5,8 @@ Test-driven workflow: write the business rules and their test cases here first, 
 test per case (tagged `@pytest.mark.br("BR-xx", "TC-xx-y")`), then the code that makes them pass.
 `test_traceability.py` fails the run if a rule or case has no test, or a test names an unknown one.
 
-Layers: domain (no database), use_case (fake ports, no database), api (real HTTP + database).
+Layers: domain (no database), use_case (fake ports, no database), repository (adapter against the
+real database), api (real HTTP + database).
 """
 
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class TestCase:
     id: str
-    layer: str  # domain | use_case | api
+    layer: str  # domain | use_case | repository | api
     given: str
     when: str
     then: str
@@ -66,6 +67,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "a sign-up request with an invalid email",
                 "POST /v1/auth/signup",
                 "422 validation_failed",
+            ),
+            TestCase(
+                "TC-01-6",
+                "repository",
+                "an account stored in the database",
+                "it is loaded through the repository",
+                "every field round-trips and email/username/password/role come back as value objects",
             ),
         ),
     ),
@@ -129,6 +137,20 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "set_password runs",
                 "hash saved and every access token revoked (token_version + 1)",
             ),
+            TestCase(
+                "TC-03-6",
+                "repository",
+                "a stored row whose password is not a bcrypt hash",
+                "it is loaded through the repository",
+                "InvalidPasswordHash: invalid data never reaches the use cases",
+            ),
+            TestCase(
+                "TC-03-7",
+                "repository",
+                "an account loaded once",
+                "increment_token_version runs twice",
+                "the database returns 1 then 2 (counted in SQL, not from the loaded copy)",
+            ),
         ),
     ),
     BusinessRule(
@@ -143,6 +165,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "Role.parse runs / an account is built",
                 "InvalidRole (invalid_role)",
             ),
+            TestCase(
+                "TC-04-3",
+                "repository",
+                "a stored row with an unknown role",
+                "it is loaded through the repository",
+                "InvalidRole: invalid data never reaches the use cases",
+            ),
         ),
     ),
     BusinessRule(
@@ -155,6 +184,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "an already registered email",
                 "POST /v1/auth/signup with a new password",
                 "201 like a new sign-up, no email sent, the old password still works and the new one does not",
+            ),
+            TestCase(
+                "TC-05-2",
+                "repository",
+                "a sign-up that passed the existence check at the same moment as another",
+                "create_account inserts the same email",
+                "ConflictError (409) from the unique constraint; still one account",
             ),
         ),
     ),
@@ -175,6 +211,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "an unverified account",
                 "mark_email_verified runs twice",
                 "the date is saved once",
+            ),
+            TestCase(
+                "TC-06-3",
+                "api",
+                "a new account and its verification link",
+                "POST /v1/auth/verify-email twice",
+                "204 and emailVerified true; the second use is rejected (invalid_or_expired_token)",
             ),
         ),
     ),
@@ -204,6 +247,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "an account without MFA",
                 "set_mfa_secret(enabled=True)",
                 "BadRequestError mfa_not_started; nothing saved",
+            ),
+            TestCase(
+                "TC-07-6",
+                "api",
+                "a signed-in user without MFA setup",
+                "POST /v1/auth/mfa/enable",
+                "400 mfa_not_started",
             ),
         ),
     ),
@@ -247,6 +297,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "5 sign-ins with a wrong password",
                 "the account is locked in the database",
             ),
+            TestCase(
+                "TC-08-7",
+                "repository",
+                "an account loaded once (stale copy)",
+                "register_failed_login runs 3 times",
+                "the database counts 3: concurrent failures are never lost",
+            ),
         ),
     ),
     BusinessRule(
@@ -262,6 +319,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
             ),
             TestCase("TC-09-2", "domain", "a clock without a timezone", "is_locked runs", "ValueError"),
             TestCase("TC-09-3", "api", "a locked account", "sign-in with the correct password", "401 account_locked"),
+            TestCase(
+                "TC-09-4",
+                "api",
+                "an account whose lock has expired",
+                "sign-in with the correct password",
+                "200 and the lock is cleared in the database",
+            ),
         ),
     ),
     BusinessRule(
@@ -282,6 +346,13 @@ USER_RULES: tuple[BusinessRule, ...] = (
                 "DELETE /v2/user/me",
                 "204, session cookies expired, then 401 on the next call",
             ),
+            TestCase(
+                "TC-10-3",
+                "api",
+                "a user with a todo and a stored file",
+                "DELETE /v2/user/me",
+                "user.deleted is audited, the todo is gone (cascade) and the file is removed",
+            ),
         ),
     ),
     BusinessRule(
@@ -292,6 +363,29 @@ USER_RULES: tuple[BusinessRule, ...] = (
             TestCase("TC-11-2", "api", "no session", "GET /v2/user/me", "401"),
             TestCase("TC-11-3", "api", "a signed-in normal user", "GET /v2/users/", "403"),
             TestCase("TC-11-4", "api", "a signed-in admin", "GET /v2/users/", "200 with a page of users"),
+            TestCase(
+                "TC-11-5",
+                "api",
+                "a signed-in admin",
+                "GET /v2/users/?pageSize=1",
+                "one user per page, with createdAt and lockedUntil, and the total count",
+            ),
+        ),
+    ),
+    BusinessRule(
+        "BR-12",
+        "An inactive (deactivated) account cannot sign in or use an existing session.",
+        (
+            TestCase(
+                "TC-12-1",
+                "api",
+                "a deactivated account",
+                "sign-in with the correct password",
+                "401 account_inactive; a wrong password still answers invalid_credentials",
+            ),
+            TestCase(
+                "TC-12-2", "api", "a session created before the account was deactivated", "GET /v2/user/me", "401"
+            ),
         ),
     ),
 )

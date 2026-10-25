@@ -110,6 +110,10 @@ class AuthService:
             reason = "wrong_password" if user else "unknown_email"
             await self._audit_failure("auth.signin.failed", user.id if user else None, reason=reason)
             raise AuthenticationError(INVALID_CREDENTIALS, code="invalid_credentials")
+        # Checked only after the password, so a wrong password reveals nothing about the account state.
+        if not user.is_active:
+            await self._audit_failure("auth.signin.inactive", user.id)
+            raise AuthenticationError("This account is deactivated", code="account_inactive")
         await self.user_use_cases.reset_failed_logins(user)
         if config.REQUIRE_VERIFIED_EMAIL and user.email_verified_at is None:
             raise AuthenticationError("Verify your email address before signing in", code="email_not_verified")

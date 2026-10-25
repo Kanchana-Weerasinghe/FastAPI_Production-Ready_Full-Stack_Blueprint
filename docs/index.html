@@ -3129,6 +3129,7 @@ uv run task openapi     # export the contract and commit it</code></pre>
 <tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>A locked user cannot sign in until the lock expires.</td><td>Entity guard</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td>Use case + after-commit side effect</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td>Router + permission policy</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-12</strong></td><td>An inactive (deactivated) account cannot sign in or use an existing session.</td><td>Entity state + application service (sign-in check)</td></tr>
 </tbody></table></div>
             </div>
           </div>
@@ -3643,8 +3644,9 @@ cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from
             Tests come first: business rules become test cases, test cases become an automated pytest
             suite, and that failing suite plus this guide is what the code is written (or generated) from.
             The work is done when every test passes. The complete suite for <code>UserAccount</code> lives in
-            <code>services/identity/tests/business_rules/</code>: 11 rules, 38 test cases
-            (19 domain, 10 use case, 9 API).
+            <code>services/identity/tests/business_rules/</code>: 12 rules, 51 test cases
+            (19 domain, 10 use case, 6 repository,
+            16 API).
           </p>
 
           <h3>The workflow</h3>
@@ -3668,6 +3670,7 @@ cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from
 <tr><td><code>test_users_domain.py</code></td><td>Value objects, invariants, behaviours, guards</td><td>No</td></tr>
 <tr><td><code>test_users_policies.py</code></td><td>Policies (lockout duration)</td><td>No</td></tr>
 <tr><td><code>test_users_use_cases.py</code></td><td>Use cases wired to in-memory fakes: what is saved, what is not, side effects after commit</td><td>No</td></tr>
+<tr><td><code>test_users_repository.py</code></td><td>The SQLAlchemy adapter against the real database: mapping to value objects, invalid stored data, the unique constraint, atomic counters</td><td>Yes (Testcontainers)</td></tr>
 <tr><td><code>test_users_api.py</code></td><td>The real HTTP API and database; each test runs in a rolled-back transaction</td><td>Yes (Testcontainers)</td></tr>
 <tr><td><code>test_traceability.py</code></td><td>Every catalogue case has exactly one test; every tag points to a real rule and case</td><td>No</td></tr>
 </tbody></table></div>
@@ -3693,6 +3696,7 @@ cd ../../web &amp;&amp; pnpm gen:api # regenerates the TypeScript API types from
           <div class="table-wrap"><table><thead><tr><th>Layer</th><th>Proves</th><th>Uses</th><th>Speed</th></tr></thead><tbody>
 <tr><td>Domain</td><td>Value objects, invariants, behaviours, guards, policies</td><td>Plain objects: <code>an_account(...)</code></td><td>Milliseconds</td></tr>
 <tr><td>Use case</td><td>Workflow order, what is saved, translation to HTTP errors, after-commit side effects</td><td><code>UseCaseWorld</code>: real <code>UserUseCases</code> + in-memory fakes</td><td>Milliseconds</td></tr>
+<tr><td>Repository</td><td>Row ↔ entity mapping, invalid stored data, unique constraints, atomic SQL updates</td><td><code>db_session</code> fixture + <code>SqlAlchemyUserRepository</code></td><td>Fast (rolled-back transaction)</td></tr>
 <tr><td>API</td><td>Status codes, permissions, cookies, database constraints, end-to-end behaviour</td><td><code>client()</code> fixture + Testcontainers PostgreSQL</td><td>Seconds</td></tr>
 </tbody></table></div>
           <h4>Domain test</h4>
@@ -3747,13 +3751,14 @@ uv run pytest tests/business_rules/test_traceability.py                         
           <h3>The complete test-case matrix for <code>UserAccount</code></h3>
           <p class="small-text muted">Generated from <code>services/identity/tests/business_rules/users_catalogue.py</code>. Each row is one test, named
           <code>test_br_XX_…</code> and tagged with its rule and case. Files: domain → test_users_domain.py / test_users_policies.py,
-          use case → test_users_use_cases.py, API → test_users_api.py.</p>
+          use case → test_users_use_cases.py, repository → test_users_repository.py, API → test_users_api.py.</p>
           <div class="table-wrap"><table><thead><tr><th>Rule</th><th>Business rule</th><th>Case</th><th>Layer</th><th>Given</th><th>When</th><th>Then</th></tr></thead><tbody>
 <tr><td><strong style="white-space:nowrap">BR-01</strong></td><td>Every user has an email address that must be a valid address.</td><td><span style="white-space:nowrap">TC-01-1</span></td><td>domain</td><td>a valid email with spaces around it</td><td>EmailAddress is created</td><td>it is accepted and trimmed</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-2</span></td><td>domain</td><td>malformed or over-long emails</td><td>EmailAddress is created</td><td>InvalidEmailAddress (invalid_email)</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-3</span></td><td>domain</td><td>an account built with an invalid email</td><td>UserAccount is created</td><td>InvalidEmailAddress: the entity can never hold it</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-4</span></td><td>use case</td><td>an invalid email</td><td>create_user runs</td><td>BadRequestError invalid_email and nothing is stored</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-5</span></td><td>api</td><td>a sign-up request with an invalid email</td><td>POST /v1/auth/signup</td><td>422 validation_failed</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-01-6</span></td><td>repository</td><td>an account stored in the database</td><td>it is loaded through the repository</td><td>every field round-trips and email/username/password/role come back as value objects</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-02</strong></td><td>A username is 3-50 letters, digits, dots, underscores or hyphens.</td><td><span style="white-space:nowrap">TC-02-1</span></td><td>domain</td><td>a handle with allowed characters</td><td>Username is created</td><td>it is accepted and trimmed</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-02-2</span></td><td>domain</td><td>too short, too long or with spaces/@</td><td>Username is created</td><td>InvalidUsername (invalid_username)</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-02-3</span></td><td>use case</td><td>an invalid username</td><td>create_user runs</td><td>BadRequestError invalid_username and nothing is stored</td></tr>
@@ -3762,31 +3767,43 @@ uv run pytest tests/business_rules/test_traceability.py                         
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-3</span></td><td>domain</td><td>an account</td><td>change_password gets a plain password</td><td>rejected; the old hash is kept</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-4</span></td><td>use case</td><td>a plain password</td><td>set_password runs</td><td>BadRequestError invalid_password_hash; nothing saved; sessions not revoked</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-5</span></td><td>use case</td><td>a new bcrypt hash</td><td>set_password runs</td><td>hash saved and every access token revoked (token_version + 1)</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-6</span></td><td>repository</td><td>a stored row whose password is not a bcrypt hash</td><td>it is loaded through the repository</td><td>InvalidPasswordHash: invalid data never reaches the use cases</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-03-7</span></td><td>repository</td><td>an account loaded once</td><td>increment_token_version runs twice</td><td>the database returns 1 then 2 (counted in SQL, not from the loaded copy)</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-04</strong></td><td>A user&#x27;s role is either user or admin.</td><td><span style="white-space:nowrap">TC-04-1</span></td><td>domain</td><td>the texts &#x27;user&#x27; and &#x27;admin&#x27;</td><td>Role.parse runs</td><td>Role.USER / Role.ADMIN</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-04-2</span></td><td>domain</td><td>an unknown role</td><td>Role.parse runs / an account is built</td><td>InvalidRole (invalid_role)</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-04-3</span></td><td>repository</td><td>a stored row with an unknown role</td><td>it is loaded through the repository</td><td>InvalidRole: invalid data never reaches the use cases</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-05</strong></td><td>An email must be unique across all users.</td><td><span style="white-space:nowrap">TC-05-1</span></td><td>api</td><td>an already registered email</td><td>POST /v1/auth/signup with a new password</td><td>201 like a new sign-up, no email sent, the old password still works and the new one does not</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-05-2</span></td><td>repository</td><td>a sign-up that passed the existence check at the same moment as another</td><td>create_account inserts the same email</td><td>ConflictError (409) from the unique constraint; still one account</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-06</strong></td><td>Verifying an email twice keeps the first verification date.</td><td><span style="white-space:nowrap">TC-06-1</span></td><td>domain</td><td>an unverified account</td><td>verify_email runs twice</td><td>first returns True and sets the date; second returns False and keeps it</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-06-2</span></td><td>use case</td><td>an unverified account</td><td>mark_email_verified runs twice</td><td>the date is saved once</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-06-3</span></td><td>api</td><td>a new account and its verification link</td><td>POST /v1/auth/verify-email twice</td><td>204 and emailVerified true; the second use is rejected (invalid_or_expired_token)</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-07</strong></td><td>MFA must be set up before it can be enabled, and cannot be set up again while enabled.</td><td><span style="white-space:nowrap">TC-07-1</span></td><td>domain</td><td>an account without MFA</td><td>enable_mfa runs</td><td>MfaNotStarted</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-2</span></td><td>domain</td><td>an account without MFA</td><td>start_mfa_setup then enable_mfa</td><td>MFA enabled at the given time</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-3</span></td><td>domain</td><td>an account with MFA enabled</td><td>start_mfa_setup runs</td><td>MfaAlreadyEnabled</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-4</span></td><td>domain</td><td>an account with MFA enabled</td><td>disable_mfa runs</td><td>secret and activation are cleared</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-5</span></td><td>use case</td><td>an account without MFA</td><td>set_mfa_secret(enabled=True)</td><td>BadRequestError mfa_not_started; nothing saved</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-07-6</span></td><td>api</td><td>a signed-in user without MFA setup</td><td>POST /v1/auth/mfa/enable</td><td>400 mfa_not_started</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-08</strong></td><td>After 5 failed sign-ins the account is locked for a configurable 15 minutes.</td><td><span style="white-space:nowrap">TC-08-1</span></td><td>domain</td><td>a lock time and a lockout duration</td><td>lockout_expiry runs</td><td>expiry = lock time + duration</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-2</span></td><td>domain</td><td>a clock without a timezone</td><td>lockout_expiry runs</td><td>ValueError</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-3</span></td><td>use case</td><td>an account with 3 failures</td><td>record_failed_login runs</td><td>4 failures, not locked; failure kept although the response fails</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-4</span></td><td>use case</td><td>an account with 4 failures</td><td>record_failed_login runs</td><td>locked for LOGIN_LOCKOUT_MINUTES and the counter restarts</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-5</span></td><td>use case</td><td>a locked account / an account without failures</td><td>reset_failed_logins runs</td><td>counter and lock cleared and saved / nothing saved</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-6</span></td><td>api</td><td>a registered user</td><td>5 sign-ins with a wrong password</td><td>the account is locked in the database</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-08-7</span></td><td>repository</td><td>an account loaded once (stale copy)</td><td>register_failed_login runs 3 times</td><td>the database counts 3: concurrent failures are never lost</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-09</strong></td><td>A locked user cannot sign in until the lock expires.</td><td><span style="white-space:nowrap">TC-09-1</span></td><td>domain</td><td>lock expiry in the future / past / none</td><td>is_locked(now) runs</td><td>True / False / False</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-2</span></td><td>domain</td><td>a clock without a timezone</td><td>is_locked runs</td><td>ValueError</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-3</span></td><td>api</td><td>a locked account</td><td>sign-in with the correct password</td><td>401 account_locked</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-09-4</span></td><td>api</td><td>an account whose lock has expired</td><td>sign-in with the correct password</td><td>200 and the lock is cleared in the database</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-10</strong></td><td>A user can delete their own account; their files are removed only after the deletion is saved.</td><td><span style="white-space:nowrap">TC-10-1</span></td><td>use case</td><td>an account</td><td>delete_account runs</td><td>account deleted and audited; file cleanup scheduled, not run before commit, run after commit</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-10-2</span></td><td>api</td><td>a signed-in user</td><td>DELETE /v2/user/me</td><td>204, session cookies expired, then 401 on the next call</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-10-3</span></td><td>api</td><td>a user with a todo and a stored file</td><td>DELETE /v2/user/me</td><td>user.deleted is audited, the todo is gone (cascade) and the file is removed</td></tr>
 <tr><td><strong style="white-space:nowrap">BR-11</strong></td><td>A signed-in user can view their own profile; only admins can list all users.</td><td><span style="white-space:nowrap">TC-11-1</span></td><td>api</td><td>a signed-in user</td><td>GET /v2/user/me</td><td>200 with own profile and no secrets</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-2</span></td><td>api</td><td>no session</td><td>GET /v2/user/me</td><td>401</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-3</span></td><td>api</td><td>a signed-in normal user</td><td>GET /v2/users/</td><td>403</td></tr>
 <tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-4</span></td><td>api</td><td>a signed-in admin</td><td>GET /v2/users/</td><td>200 with a page of users</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-11-5</span></td><td>api</td><td>a signed-in admin</td><td>GET /v2/users/?pageSize=1</td><td>one user per page, with createdAt and lockedUntil, and the total count</td></tr>
+<tr><td><strong style="white-space:nowrap">BR-12</strong></td><td>An inactive (deactivated) account cannot sign in or use an existing session.</td><td><span style="white-space:nowrap">TC-12-1</span></td><td>api</td><td>a deactivated account</td><td>sign-in with the correct password</td><td>401 account_inactive; a wrong password still answers invalid_credentials</td></tr>
+<tr><td></td><td></td><td><span style="white-space:nowrap">TC-12-2</span></td><td>api</td><td>a session created before the account was deactivated</td><td>GET /v2/user/me</td><td>401</td></tr>
 </tbody></table></div>
 
           <div class="callout">
