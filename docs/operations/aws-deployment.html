@@ -41,6 +41,9 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
     display: flex; flex-direction: column; gap: 40px; }
   .prose { max-width: 760px; min-width: 0; }
+  .wide { max-width: 1100px; min-width: 0; }
+  .wide td:first-child { min-width: 200px; }
+  table.adr td:last-child { white-space: nowrap; }
   header { display: flex; flex-direction: column; gap: 10px; }
   .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--helm); }
   h1 { margin: 0; font-size: clamp(2rem, 4.5vw, 2.9rem); line-height: 1.1; font-weight: 700; letter-spacing: -.02em; text-wrap: balance; }
@@ -343,6 +346,113 @@
       so a failed migration stops the rollout and the old pods keep serving. The CI pipeline box is dashed because the repository
       has no workflow under <code>.github/workflows</code> yet.</figcaption>
   </figure>
+
+  <section class="wide">
+    <h2>Why this architecture</h2>
+    <p class="prose">Each choice below comes from a requirement the template already has: several independently released
+      services, cookie sessions for the browser, background side effects, and no single availability zone as a point of failure.
+      The last column points to the decision record in <code>docs/adr/</code> that explains it in full.</p>
+    <div class="table-wrap">
+      <table class="adr">
+        <thead><tr><th>Decision</th><th>Why</th><th>Trade-off accepted</th><th>ADR</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Containers on EKS, deployed with Helm</strong></td>
+            <td>Every service ships as an image with its own Helm release, so teams release independently. Kubernetes gives autoscaling, disruption budgets, NetworkPolicies and rolling updates out of the box, and the same charts run on GKE or AKS.</td>
+            <td>A cluster to operate and a fixed control-plane fee per cluster. Smaller teams may prefer ECS (see below).</td>
+            <td><code>0013</code> <code>0016</code></td></tr>
+          <tr><td><strong>Three subnet tiers; only the load balancer and NAT are public</strong></td>
+            <td>Pods, Redis and the database have no public address. RDS and Redis security groups accept connections only from the cluster, so a leaked credential is useless from the internet.</td>
+            <td>Outbound calls need NAT gateways, which cost per hour and per GB.</td>
+            <td><code>0013</code></td></tr>
+          <tr><td><strong>One origin: <code>/</code> to the web app, <code>/v1</code> and <code>/v2</code> to the API</strong></td>
+            <td>Session cookies stay first-party and <code>SameSite</code>, the CSRF double-submit works, and there is no CORS configuration to get wrong.</td>
+            <td>The web app and the API share one hostname and one ingress.</td>
+            <td><code>0008</code> <code>0014</code></td></tr>
+          <tr><td><strong>CloudFront and AWS WAF in front</strong></td>
+            <td>TLS ends close to users, static SPA assets are cached at the edge, and managed WAF rules and rate rules drop bad traffic before it reaches the cluster.</td>
+            <td>One more layer to configure, owned by the platform stack rather than this repository.</td>
+            <td><code>0013</code></td></tr>
+          <tr><td><strong>NLB + ingress-nginx rather than an ALB Ingress</strong></td>
+            <td>The chart's Ingress uses the <code>nginx</code> class and its annotations (body-size limit, forced HTTPS), which behave the same on every cloud and locally.</td>
+            <td>You run and upgrade the ingress controller yourself.</td>
+            <td><code>0013</code></td></tr>
+          <tr><td><strong>RDS PostgreSQL 16, Multi-AZ, 35-day point-in-time restore</strong></td>
+            <td>A synchronous standby in a second zone takes over automatically, and backups cover operator mistakes as well as hardware loss. TLS is enforced and slow queries are logged.</td>
+            <td>The standby doubles the instance cost and serves no reads.</td>
+            <td><code>0012</code></td></tr>
+          <tr><td><strong>One database server, one schema per service</strong></td>
+            <td>Each service owns its tables and roles and references other data by ID only, so services stay independent without paying for an instance each.</td>
+            <td>Services share the server's capacity and maintenance window. Give a service its own instance when it needs isolation.</td>
+            <td><code>0016</code></td></tr>
+          <tr><td><strong>ElastiCache Redis</strong></td>
+            <td>Rate-limit counters must be shared by every API replica, and the ARQ worker needs a queue. Production runs two nodes with failover; TLS and an auth token are always on.</td>
+            <td>One more managed service; Redis is required in every deployed environment.</td>
+            <td><code>0006</code> <code>0010</code></td></tr>
+          <tr><td><strong>Separate worker with a transactional outbox</strong></td>
+            <td>E-mail and other side effects never slow a request, and an event exists only if its business change committed. Several workers can run safely.</td>
+            <td>Side effects arrive a few seconds after the response instead of inside it.</td>
+            <td><code>0010</code></td></tr>
+          <tr><td><strong>Private S3 bucket, accessed through an IAM role (IRSA)</strong></td>
+            <td>Pods stay stateless, so any replica can serve any file, and there are no access keys to leak. Versioning and KMS protect against deletion and disclosure.</td>
+            <td>The IAM role and its trust policy must be created with the cluster.</td>
+            <td><code>0005</code></td></tr>
+          <tr><td><strong>Secrets Manager synced by External Secrets</strong></td>
+            <td>No secret is stored in Git or Helm values, secrets rotate in one place, and the services refuse to start with default secrets outside development.</td>
+            <td>An operator to run, and a short delay before a rotated value reaches the pods.</td>
+            <td><code>0007</code></td></tr>
+          <tr><td><strong>Migrations as a Helm pre-upgrade Job</strong></td>
+            <td>Exactly one runner applies them before any new pod starts. If a migration fails, the rollout stops and the old version keeps serving.</td>
+            <td>Migrations must be backward compatible (expand, then contract), because old pods keep running during the rollout.</td>
+            <td><code>0012</code> <code>0013</code></td></tr>
+          <tr><td><strong>3 or more API pods spread across zones, at least 2 always up</strong></td>
+            <td>Losing a node or a whole zone, or draining nodes for an upgrade, never takes the API down. The autoscaler adds pods up to 12 under load.</td>
+            <td>Three pods run even when traffic is low.</td>
+            <td><code>0013</code></td></tr>
+          <tr><td><strong>Build once, promote the same image digests</strong></td>
+            <td>Production runs exactly the bytes that passed staging, and a rollback is a redeploy of the previous digest.</td>
+            <td>Environment differences must live in configuration, never in the image.</td>
+            <td><code>0013</code></td></tr>
+          <tr><td><strong>Domain services verify tokens offline</strong></td>
+            <td>data-acquisition checks identity's access tokens itself, so no request depends on identity being reachable.</td>
+            <td>The HS256 signing key is shared; move to asymmetric keys and JWKS when more services trust identity.</td>
+            <td><code>0016</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wide">
+    <h2>What happens when one availability zone fails</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Behaviour in production</th></tr></thead>
+        <tbody>
+          <tr><td>Load balancer</td><td>Keeps serving from the remaining zones.</td></tr>
+          <tr><td>identity API and web</td><td>Pods in the other zones keep serving (at least 2 API pods are guaranteed), and replacements are scheduled there.</td></tr>
+          <tr><td>RDS PostgreSQL</td><td>Fails over to the standby automatically, typically within one to two minutes. Requests in that window fail and clients retry.</td></tr>
+          <tr><td>ElastiCache Redis</td><td>The replica is promoted; rate limits and queued jobs continue.</td></tr>
+          <tr><td>NAT gateway</td><td>Each zone has its own, so outbound e-mail and error reporting continue. Staging shares one NAT and loses egress if that zone fails.</td></tr>
+          <tr><td>S3 and Secrets Manager</td><td>Regional services, unaffected by the loss of one zone.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="wide">
+    <h2>When to choose differently</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Situation</th><th>Change</th><th>What stays the same</th></tr></thead>
+        <tbody>
+          <tr><td>One small team, one or two services, no Kubernetes experience</td><td>Run the same images on ECS with Fargate instead of EKS</td><td>Terraform for the VPC, RDS, Redis, S3 and secrets; the images</td></tr>
+          <tr><td>Heavy read traffic, or failover in seconds</td><td>Aurora PostgreSQL with read replicas</td><td>Schemas, roles and migrations</td></tr>
+          <tr><td>A service needs isolation, its own scaling or its own maintenance window</td><td>Give that service its own RDS instance</td><td>Its schema and code; only connection settings change</td></tr>
+          <tr><td>You prefer AWS-native load balancing</td><td>AWS Load Balancer Controller with an ALB Ingress (new annotations)</td><td>Path routing and the single origin</td></tr>
+          <tr><td>Several services trust identity's tokens</td><td>Asymmetric signing keys published as JWKS</td><td>Token claims and how services verify them</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <section class="prose">
     <h2>First deployment, in order</h2>
