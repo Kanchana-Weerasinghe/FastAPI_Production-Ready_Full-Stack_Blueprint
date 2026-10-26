@@ -22,18 +22,19 @@
     --helm: #087f78;
     --helm-fill: #e6f5f3;
     --plat: #a86a00;
+    --entra: #0067b8;
     --sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0e1824; --card: #15243a; --zone: #122033; --band: #172a40; --ink: #e2ebf5; --muted: #9fb2c6;
-      --line: #2e4560; --tf: #6db0ea; --helm: #4fc4b9; --helm-fill: #11353a; --plat: #e2a64a; color-scheme: dark;
+      --line: #2e4560; --tf: #6db0ea; --helm: #4fc4b9; --helm-fill: #11353a; --plat: #e2a64a; --entra: #5aa9f0; color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0e1824; --card: #15243a; --zone: #122033; --band: #172a40; --ink: #e2ebf5; --muted: #9fb2c6;
-    --line: #2e4560; --tf: #6db0ea; --helm: #4fc4b9; --helm-fill: #11353a; --plat: #e2a64a; color-scheme: dark;
+    --line: #2e4560; --tf: #6db0ea; --helm: #4fc4b9; --helm-fill: #11353a; --plat: #e2a64a; --entra: #5aa9f0; color-scheme: dark;
   }
 
   body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--sans); }
@@ -78,6 +79,10 @@
   .edge { fill: none; stroke: var(--ink); stroke-width: 1.4; }
   .edge.dash { stroke-dasharray: 4 4; }
   .head { fill: var(--ink); }
+  .n.entra { stroke: var(--entra); stroke-width: 1.8; }
+  .edge.entra-edge { stroke: var(--entra); }
+  .lifeline { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 3 4; }
+  .who.entra { color: var(--entra); border-color: var(--entra); }
 
   table { border-collapse: collapse; width: 100%; font-size: .95rem; }
   .table-wrap { overflow-x: auto; }
@@ -99,13 +104,13 @@
   <header class="prose">
     <div class="eyebrow">Boost · deployment architecture</div>
     <h1>Boost on AWS</h1>
-    <p class="lede">How the identity API, the web app and the data-acquisition service run on AWS, what the repository
+    <p class="lede">How the identity API, the web app and the data-acquisition service run on AWS, sign-in through Microsoft Entra ID, what the repository
       already provisions (<code>deploy/terraform/aws</code>, <code>deploy/helm</code>) and what your platform stack has to provide.</p>
   </header>
 
   <figure>
     <div class="scroll">
-      <svg viewBox="0 0 1200 1056" role="img" aria-label="Runtime architecture: users reach CloudFront and WAF, then a load balancer in the public subnets, then ingress-nginx in an EKS cluster in the private subnets, which routes / to the web pods and /v1 and /v2 to the identity API. The pods use RDS PostgreSQL Multi-AZ in the database subnets, ElastiCache Redis, an S3 uploads bucket and Secrets Manager, and reach the e-mail API, Sentry and the image registry through NAT gateways.">
+      <svg viewBox="0 0 1200 1112" role="img" aria-label="Runtime architecture: users sign in with Microsoft Entra ID through the identity service, and reach CloudFront and WAF, then a load balancer in the public subnets, then ingress-nginx in an EKS cluster in the private subnets, which routes / to the web pods and /v1 and /v2 to the identity API. The pods use RDS PostgreSQL Multi-AZ in the database subnets, ElastiCache Redis, an S3 uploads bucket and Secrets Manager, and reach the e-mail API, Sentry and the image registry through NAT gateways.">
         <defs>
           <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path class="head" d="M0 0 L10 5 L0 10 z"></path>
@@ -113,7 +118,7 @@
         </defs>
 
         <!-- Internet -->
-        <rect class="zone" x="20" y="12" width="1160" height="104" rx="10"></rect>
+        <rect class="zone" x="20" y="12" width="1160" height="160" rx="10"></rect>
         <text class="zl" x="36" y="31">INTERNET</text>
         <rect class="n" x="40" y="40" width="150" height="52" rx="8"></rect>
         <text class="t1" x="115" y="62" text-anchor="middle">Users</text>
@@ -138,6 +143,7 @@
         <line class="edge" x1="400" y1="66" x2="458" y2="66" marker-end="url(#arr)"></line>
         <text class="el" x="429" y="58" text-anchor="middle">alias</text>
 
+        <g transform="translate(0,56)">
         <!-- Region and VPC -->
         <rect class="frame" x="20" y="124" width="1160" height="920" rx="12"></rect>
         <text class="zl" x="36" y="144">AWS REGION · eu-west-1 (S3_REGION in values.yaml)</text>
@@ -225,7 +231,7 @@
         <rect class="tf" x="906" y="360" width="258" height="72" rx="8"></rect>
         <text class="t1" x="1035" y="382" text-anchor="middle">Secrets Manager</text>
         <text class="t2" x="1035" y="400" text-anchor="middle">&lt;project&gt;-&lt;env&gt;/app</text>
-        <text class="t2" x="1035" y="417" text-anchor="middle">keys · DB · Redis URLs</text>
+        <text class="t2" x="1035" y="417" text-anchor="middle">keys · DB · Redis · Entra cert</text>
         <rect class="tf" x="906" y="474" width="258" height="72" rx="8"></rect>
         <text class="t1" x="1035" y="496" text-anchor="middle">S3 uploads bucket</text>
         <text class="t2" x="1035" y="514" text-anchor="middle">private · KMS · versioned</text>
@@ -236,8 +242,6 @@
         <text class="t2" x="1035" y="863" text-anchor="middle">RDS enhanced monitoring</text>
 
         <!-- Request path -->
-        <line class="edge" x1="560" y1="92" x2="560" y2="220" marker-end="url(#arr)"></line>
-        <text class="el" x="568" y="200">HTTPS to origin</text>
         <line class="edge" x1="560" y1="280" x2="560" y2="382" marker-end="url(#arr)"></line>
         <text class="el" x="568" y="374">TCP 443</text>
 
@@ -256,22 +260,92 @@
         <!-- Outbound through NAT -->
         <polyline class="edge" points="676,350 676,316 775,316 775,282" marker-end="url(#arr)"></polyline>
         <text class="el" x="783" y="300">egress</text>
-        <line class="edge" x1="775" y1="222" x2="775" y2="94" marker-end="url(#arr)"></line>
+        </g>
+
+        <!-- Crosses from the Internet band into the region (drawn outside the shifted group) -->
+        <line class="edge" x1="560" y1="92" x2="560" y2="276" marker-end="url(#arr)"></line>
+        <text class="el" x="568" y="256">HTTPS to origin</text>
+        <line class="edge" x1="775" y1="278" x2="775" y2="94" marker-end="url(#arr)"></line>
         <polyline class="edge" points="775,104 1077,104 1077,94" marker-end="url(#arr)"></polyline>
         <line class="edge" x1="915" y1="104" x2="915" y2="94" marker-end="url(#arr)"></line>
-        <text class="el" x="783" y="140">outbound HTTPS</text>
+        <circle class="head" cx="775" cy="104" r="2.5"></circle>
+        <text class="el" x="783" y="198">outbound HTTPS</text>
+
+        <!-- Microsoft Entra ID -->
+        <rect class="n entra" x="40" y="118" width="210" height="48" rx="8"></rect>
+        <text class="t1" x="145" y="138" text-anchor="middle">Microsoft Entra ID</text>
+        <text class="t2" x="145" y="155" text-anchor="middle">login.microsoftonline.com</text>
+        <line class="edge entra-edge" x1="115" y1="94" x2="115" y2="116" marker-start="url(#arr)" marker-end="url(#arr)"></line>
+        <text class="el" x="123" y="109">sign-in redirect · MFA</text>
+        <line class="edge entra-edge" x1="775" y1="142" x2="252" y2="142" marker-end="url(#arr)"></line>
+        <circle class="head" cx="775" cy="142" r="2.5"></circle>
+        <text class="el" x="405" y="136" text-anchor="middle">token exchange · signing keys</text>
       </svg>
     </div>
     <figcaption>Runtime view. Requests enter through CloudFront and the WAF, reach ingress-nginx in EKS, and are routed
       by path: <code>/</code> to the web pods and <code>/v1</code>, <code>/v2</code> to the identity API on the same origin, so cookies
-      and CSRF work without CORS. All workloads run in private subnets; only the load balancer and NAT gateways sit in public subnets.
+      and CSRF work without CORS. Users sign in with Microsoft Entra ID: the browser is redirected there,
+      and the identity service exchanges the returned code with Entra ID through the NAT gateways. All workloads run in private subnets; only the load balancer and NAT gateways sit in public subnets.
       Database and Redis accept connections only from the cluster's security groups. Arrows that start at the cluster edge apply to every workload that needs that resource.</figcaption>
     <div class="legend" aria-label="Legend">
       <span><svg viewBox="0 0 34 18" aria-hidden="true"><rect class="tf" x="1" y="1" width="32" height="16" rx="4"></rect></svg>Created by <code>deploy/terraform/aws</code></span>
       <span><svg viewBox="0 0 34 18" aria-hidden="true"><rect class="helm" x="1" y="1" width="32" height="16" rx="4"></rect></svg>Deployed by <code>deploy/helm</code></span>
       <span><svg viewBox="0 0 34 18" aria-hidden="true"><rect class="plat" x="1" y="1" width="32" height="16" rx="4"></rect></svg>Your platform stack (not in this repo)</span>
+      <span><svg viewBox="0 0 34 18" aria-hidden="true"><line class="edge entra-edge" x1="2" y1="9" x2="32" y2="9"></line></svg>Entra ID sign-in traffic</span>
       <span><svg viewBox="0 0 34 18" aria-hidden="true"><line class="edge dash" x1="2" y1="9" x2="32" y2="9"></line></svg>Not wired yet / optional</span>
     </div>
+  </figure>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1200 560" role="img" aria-label="Sign-in with Microsoft Entra ID: the browser starts at identity, is redirected to Entra ID to sign in, returns to identity's callback with a code, identity exchanges the code for an ID token, verifies it, finds or creates the user in PostgreSQL and sets the usual Boost session cookies; later API calls are unchanged.">
+        <defs>
+          <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path class="head" d="M0 0 L10 5 L0 10 z"></path>
+          </marker>
+        </defs>
+        <rect class="n" x="70" y="20" width="140" height="44" rx="8"></rect>
+        <text class="t1" x="140" y="47" text-anchor="middle">Browser</text>
+        <rect class="helm" x="410" y="20" width="140" height="44" rx="8"></rect>
+        <text class="t1" x="480" y="47" text-anchor="middle">identity API</text>
+        <rect class="n entra" x="715" y="20" width="170" height="44" rx="8"></rect>
+        <text class="t1" x="800" y="47" text-anchor="middle">Microsoft Entra ID</text>
+        <rect class="tf" x="1010" y="20" width="140" height="44" rx="8"></rect>
+        <text class="t1" x="1080" y="47" text-anchor="middle">RDS PostgreSQL</text>
+        <line class="lifeline" x1="140" y1="64" x2="140" y2="545"></line>
+        <line class="lifeline" x1="480" y1="64" x2="480" y2="545"></line>
+        <line class="lifeline" x1="800" y1="64" x2="800" y2="545"></line>
+        <line class="lifeline" x1="1080" y1="64" x2="1080" y2="545"></line>
+
+        <line class="edge" x1="140" y1="100" x2="478" y2="100" marker-end="url(#arr3)"></line>
+        <text class="el" x="310" y="92" text-anchor="middle">1  GET /v1/auth/oidc/login</text>
+        <line class="edge" x1="480" y1="140" x2="142" y2="140" marker-end="url(#arr3)"></line>
+        <text class="el" x="310" y="132" text-anchor="middle">2  302 to Entra · PKCE, state, nonce</text>
+        <line class="edge entra-edge" x1="140" y1="180" x2="798" y2="180" marker-end="url(#arr3)"></line>
+        <text class="el" x="640" y="172" text-anchor="middle">3  sign in · MFA · Conditional Access</text>
+        <line class="edge entra-edge" x1="800" y1="220" x2="142" y2="220" marker-end="url(#arr3)"></line>
+        <text class="el" x="640" y="212" text-anchor="middle">4  302 to /v1/auth/oidc/callback</text>
+        <line class="edge" x1="140" y1="260" x2="478" y2="260" marker-end="url(#arr3)"></line>
+        <text class="el" x="310" y="252" text-anchor="middle">5  GET callback · code, state</text>
+        <line class="edge entra-edge" x1="480" y1="300" x2="798" y2="300" marker-end="url(#arr3)"></line>
+        <text class="el" x="640" y="292" text-anchor="middle">6  POST /token · code, verifier, certificate</text>
+        <line class="edge entra-edge" x1="800" y1="340" x2="482" y2="340" marker-end="url(#arr3)"></line>
+        <text class="el" x="640" y="332" text-anchor="middle">7  ID token (signed JWT)</text>
+        <rect class="helm" x="472" y="364" width="16" height="36" rx="3"></rect>
+        <text class="el" x="462" y="386" text-anchor="end">8  verify signature, iss, aud, tid, nonce</text>
+        <line class="edge" x1="480" y1="430" x2="1078" y2="430" marker-end="url(#arr3)"></line>
+        <text class="el" x="940" y="422" text-anchor="middle">9  find or create user by (tid, oid)</text>
+        <text class="el" x="940" y="447" text-anchor="middle">map app roles to Boost roles</text>
+        <line class="edge" x1="480" y1="480" x2="142" y2="480" marker-end="url(#arr3)"></line>
+        <text class="el" x="310" y="472" text-anchor="middle">10  Set-Cookie: Boost session (as today)</text>
+        <line class="edge dash" x1="140" y1="520" x2="478" y2="520" marker-end="url(#arr3)"></line>
+        <text class="el" x="310" y="512" text-anchor="middle">11  /v1 and /v2 calls, unchanged</text>
+      </svg>
+    </div>
+    <figcaption>Sign-in with Microsoft Entra ID. The identity service acts as the broker: Entra ID proves who the user is
+      (with its own MFA and Conditional Access), and identity then issues the same session cookies and access tokens as today.
+      The web app's API calls, data-acquisition and every other service are unchanged, because they still trust identity's tokens.
+      Steps 6 and 7 leave the cluster through the NAT gateways.</figcaption>
   </figure>
 
   <section class="prose">
@@ -291,6 +365,8 @@
           <tr><td>DNS, CDN, WAF, certificates at the edge</td><td>Route 53, CloudFront, WAF, ACM</td><td><span class="who plat">platform</span></td></tr>
           <tr><td>Load balancer controller, ingress-nginx, cert-manager, External Secrets, Prometheus</td><td>EKS add-ons</td><td><span class="who plat">platform</span></td></tr>
           <tr><td>IAM role for the API's service account (S3 access without keys)</td><td>IAM (IRSA)</td><td><span class="who plat">platform</span></td></tr>
+          <tr><td>App registration: redirect URI, app roles, client certificate; Conditional Access and MFA policies</td><td>Microsoft Entra ID (Azure)</td><td><span class="who entra">Azure tenant admin</span></td></tr>
+          <tr><td>OIDC login and callback endpoints, user mapping by <code>(tid, oid)</code>, role mapping</td><td>identity service</td><td><span class="who helm">to build</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -412,6 +488,10 @@
             <td>Production runs exactly the bytes that passed staging, and a rollback is a redeploy of the previous digest.</td>
             <td>Environment differences must live in configuration, never in the image.</td>
             <td><code>0013</code></td></tr>
+          <tr><td><strong>Sign-in through Microsoft Entra ID, brokered by identity</strong></td>
+            <td>Staff use their company account, with Entra's MFA and Conditional Access. Only identity changes: it trades Entra's ID token for the usual Boost session, so the web app and every service keep trusting identity's tokens.</td>
+            <td>Sign-in depends on Entra ID being reachable; keep a local admin account for emergencies. identity holds a client certificate that must be rotated.</td>
+            <td><code>0008</code> <code>0016</code></td></tr>
           <tr><td><strong>Domain services verify tokens offline</strong></td>
             <td>data-acquisition checks identity's access tokens itself, so no request depends on identity being reachable.</td>
             <td>The HS256 signing key is shared; move to asymmetric keys and JWKS when more services trust identity.</td>
@@ -433,6 +513,7 @@
           <tr><td>ElastiCache Redis</td><td>The replica is promoted; rate limits and queued jobs continue.</td></tr>
           <tr><td>NAT gateway</td><td>Each zone has its own, so outbound e-mail and error reporting continue. Staging shares one NAT and loses egress if that zone fails.</td></tr>
           <tr><td>S3 and Secrets Manager</td><td>Regional services, unaffected by the loss of one zone.</td></tr>
+          <tr><td>Microsoft Entra ID</td><td>Runs outside AWS, so an AWS zone failure does not affect it. If Entra ID itself is unavailable, new sign-ins fail but existing Boost sessions keep working until they expire.</td></tr>
         </tbody>
       </table>
     </div>
@@ -448,6 +529,7 @@
           <tr><td>Heavy read traffic, or failover in seconds</td><td>Aurora PostgreSQL with read replicas</td><td>Schemas, roles and migrations</td></tr>
           <tr><td>A service needs isolation, its own scaling or its own maintenance window</td><td>Give that service its own RDS instance</td><td>Its schema and code; only connection settings change</td></tr>
           <tr><td>You prefer AWS-native load balancing</td><td>AWS Load Balancer Controller with an ALB Ingress (new annotations)</td><td>Path routing and the single origin</td></tr>
+          <tr><td>Other Microsoft 365 apps must call the services with Entra tokens</td><td>Services also validate Entra access tokens against its published keys</td><td>Domain code and use cases; only token verification changes</td></tr>
           <tr><td>Several services trust identity's tokens</td><td>Asymmetric signing keys published as JWKS</td><td>Token claims and how services verify them</td></tr>
         </tbody>
       </table>
@@ -463,6 +545,7 @@
       <li>Run <code>deploy/db/roles.sql</code> and <code>roles-data-acquisition.sql</code> against RDS, then replace <code>app_admin</code> in Secrets Manager with those least-privilege roles.</li>
       <li>Create the ExternalSecrets <code>app-secrets</code> and <code>data-acquisition-secrets</code>. The data-acquisition <code>JWT_SECRET_KEY</code> must be identity's signing key, because both verify the same HS256 tokens.</li>
       <li>Create the IAM role for the API's service account with access to the uploads bucket and set it in <code>serviceAccount.annotations</code>.</li>
+      <li>In Entra ID, register the app: redirect URI <code>https://app.example.com/v1/auth/oidc/callback</code>, app roles that map to Boost roles, and a client certificate stored in Secrets Manager.</li>
       <li>Build and push the three images, and replace the <code>ghcr.io/your-org/your-repo</code> placeholders in the values files.</li>
       <li>Run <code>helm upgrade --install</code> for <code>deploy/helm/app</code> with <code>values-production.yaml</code>, <code>ingress.host</code> and <code>config.S3_BUCKET</code> (the chart refuses to install without it), then for <code>deploy/helm/domain-service</code>.</li>
       <li>Point CloudFront's origin at the load balancer and the Route 53 record at CloudFront.</li>
@@ -488,6 +571,7 @@
   <section class="prose">
     <h2>Close before go-live</h2>
     <ul class="gaps">
+      <li>Entra ID sign-in is designed but not built: identity still needs the OIDC login and callback endpoints, <code>tid</code> and <code>oid</code> columns on <code>users</code> (a migration), the role mapping, and an ADR.</li>
       <li>Add a CI workflow: the release flow above assumes one, and the repository has none yet.</li>
       <li>data-acquisition has no Ingress route. Add one (for example <code>/acquisition</code>) if browsers or other clients must reach it.</li>
       <li>S3 traffic currently leaves through the NAT gateways. A VPC gateway endpoint for S3 keeps it inside AWS and lowers NAT cost.</li>
