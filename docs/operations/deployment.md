@@ -1,5 +1,7 @@
 # Deployment
 
+See the [AWS deployment diagram](aws-deployment.html) for the runtime architecture, the release pipeline and who provisions each part.
+
 ## Environments
 
 | Environment | Purpose | Infrastructure | Deploys |
