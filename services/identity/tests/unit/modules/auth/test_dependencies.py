@@ -1,13 +1,17 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
+import jwt
 import pytest
 from fastapi import Request
 
+from app.core.config import config
 from app.core.errors import AuthenticationError, BadRequestError, NotFoundError, PermissionDeniedError
-from app.modules.auth.dependencies import check_ownership, get_current_user
+from app.core.security import ALGORITHM
+from app.modules.auth.dependencies import check_ownership, get_access_subject, get_current_user, resolve_session
 from app.modules.users.domain.value_objects import EmailAddress, PasswordHash, Role, Username
 from app.modules.users.public import UserAccount
 
@@ -31,39 +35,80 @@ def _user(token_version: int = 0, user_id: UUID | None = None) -> UserAccount:
     )
 
 
+def _cookie_request(claims: dict[str, Any] | None = None, *, token: str | None = None) -> MagicMock:
+    """A request carrying an access token cookie signed with the app's key (or no cookie)."""
+    if claims is not None:
+        now = datetime.now(UTC)
+        token = jwt.encode(
+            {"type": "access", "iat": now, "exp": now + timedelta(minutes=5), **claims},
+            config.SECRET_KEY.get_secret_value(),
+            algorithm=ALGORITHM,
+        )
+    request = MagicMock(spec=Request)
+    request.cookies = {config.AUTH_COOKIE_NAME: token} if token else {}
+    return request
+
+
 async def test_get_current_user_success() -> None:
-    """Test get_current_user returns the user when the token's version matches the user's token_version."""
+    """Test the session resolves the user when the token's version matches the user's token_version."""
     user = _user(token_version=2)
     mock_service = AsyncMock()
     mock_service.get_by_id.return_value = user
-    result = await get_current_user(claims={"sub": str(user.id), "ver": 2}, users=mock_service)
+    session = await resolve_session(_cookie_request({"sub": str(user.id), "ver": 2}), users=mock_service)
+    result = await get_current_user(session)
     assert result.id == user.id
     mock_service.get_by_id.assert_called_once_with(user.id)
 
 
 async def test_get_current_user_revoked_token_version() -> None:
-    """Test get_current_user rejects tokens issued before the user's token_version was bumped."""
+    """Test tokens issued before the user's token_version was bumped are rejected."""
     user = _user(token_version=3)
     mock_service = AsyncMock()
     mock_service.get_by_id.return_value = user
+    session = await resolve_session(_cookie_request({"sub": str(user.id), "ver": 2}), users=mock_service)
     with pytest.raises(AuthenticationError) as exc_info:
-        await get_current_user(claims={"sub": str(user.id), "ver": 2}, users=mock_service)
+        await get_current_user(session)
     assert exc_info.value.code == "token_revoked"
 
 
 async def test_get_current_user_invalid_subject() -> None:
-    """Test get_current_user raises AuthenticationError when the subject claim is missing or malformed."""
+    """Test a missing or malformed subject claim is rejected as an invalid token."""
     for claims in ({}, {"sub": "not-a-uuid"}):
+        session = await resolve_session(_cookie_request(claims), users=AsyncMock())
         with pytest.raises(AuthenticationError, match="Invalid token"):
-            await get_current_user(claims=claims, users=AsyncMock())
+            await get_current_user(session)
 
 
 async def test_get_current_user_not_found() -> None:
-    """Test get_current_user raises AuthenticationError when the user no longer exists."""
+    """Test a token for a user that no longer exists is rejected."""
     mock_service = AsyncMock()
     mock_service.get_by_id.side_effect = NotFoundError("Record not found")
+    session = await resolve_session(_cookie_request({"sub": str(uuid.uuid4()), "ver": 0}), users=mock_service)
     with pytest.raises(AuthenticationError, match="User not found"):
-        await get_current_user(claims={"sub": str(uuid.uuid4()), "ver": 0}, users=mock_service)
+        await get_current_user(session)
+
+
+async def test_get_current_user_without_cookie() -> None:
+    """Test a request without the access token cookie is not authenticated."""
+    session = await resolve_session(_cookie_request(), users=AsyncMock())
+    with pytest.raises(AuthenticationError) as exc_info:
+        await get_current_user(session)
+    assert exc_info.value.code == "not_authenticated"
+
+
+async def test_access_subject_is_anonymous_with_the_reason_or_signed_in_with_the_role() -> None:
+    """Test the access check sees anonymous callers (keeping the 401 reason) and signed-in callers' roles."""
+    anonymous = await get_access_subject(await resolve_session(_cookie_request(), users=AsyncMock()))
+    assert not anonymous.authenticated
+    assert isinstance(anonymous.authentication_error, AuthenticationError)
+
+    user = _user()
+    mock_service = AsyncMock()
+    mock_service.get_by_id.return_value = user
+    session = await resolve_session(_cookie_request({"sub": str(user.id), "ver": 0}), users=mock_service)
+    signed_in = await get_access_subject(session)
+    assert signed_in.authenticated
+    assert signed_in.roles == frozenset({"user"})
 
 
 async def test_check_ownership_success() -> None:

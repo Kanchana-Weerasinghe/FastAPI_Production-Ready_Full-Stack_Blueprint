@@ -13,27 +13,21 @@ from uuid import UUID
 
 import jwt
 
-from platform_kit.errors import AuthenticationError, PermissionDeniedError
+from platform_kit.errors import AuthenticationError
 
 ACCESS_TOKEN_TYPE = "access"
-ADMIN_ROLE = "admin"
 
 
 @dataclass(frozen=True, slots=True)
 class Principal:
-    """The authenticated caller, as stated by a verified access token."""
+    """
+    The authenticated caller, as stated by a verified access token. `role` is the role the access
+    check looks up in the access document (`platform_kit.access`); never compare it in code.
+    """
 
     user_id: UUID
     role: str
     token: str
-
-    @property
-    def is_admin(self) -> bool:
-        return self.role == ADMIN_ROLE
-
-    def require_role(self, *roles: str) -> None:
-        if self.role not in roles and not self.is_admin:
-            raise PermissionDeniedError("You do not have permission to perform this action")
 
 
 class TokenVerifier:

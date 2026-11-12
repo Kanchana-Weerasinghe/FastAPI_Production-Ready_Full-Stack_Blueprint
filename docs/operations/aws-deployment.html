@@ -104,7 +104,7 @@
   <header class="prose">
     <div class="eyebrow">Boost · deployment architecture</div>
     <h1>Boost on AWS</h1>
-    <p class="lede">How the identity API, the web app and the data-acquisition service run on AWS, sign-in through Microsoft Entra ID, what the repository
+    <p class="lede">How the identity API and the web app run on AWS, sign-in through Microsoft Entra ID, what the repository
       already provisions (<code>deploy/terraform/aws</code>, <code>deploy/helm</code>) and what your platform stack has to provide.</p>
   </header>
 
@@ -186,8 +186,8 @@
         <text class="t1" x="385" y="504" text-anchor="middle">identity API</text>
         <text class="t2" x="385" y="522" text-anchor="middle">HPA 3–12 · PDB 2</text>
         <rect class="helm" x="510" y="480" width="160" height="60" rx="8"></rect>
-        <text class="t1" x="590" y="504" text-anchor="middle">data-acquisition</text>
-        <text class="t2" x="590" y="522" text-anchor="middle">own Helm release</text>
+        <text class="t1" x="590" y="504" text-anchor="middle">domain services</text>
+        <text class="t2" x="590" y="522" text-anchor="middle">planned · own release</text>
 
         <rect class="helm" x="90" y="568" width="170" height="60" rx="8"></rect>
         <text class="t1" x="175" y="592" text-anchor="middle">migrate Jobs</text>
@@ -217,7 +217,7 @@
         <rect class="tf" x="150" y="800" width="260" height="84" rx="8"></rect>
         <text class="t1" x="280" y="824" text-anchor="middle">RDS PostgreSQL 16</text>
         <text class="t2" x="280" y="842" text-anchor="middle">primary · AZ a</text>
-        <text class="t2" x="280" y="860" text-anchor="middle">schemas: public, data_acquisition</text>
+        <text class="t2" x="280" y="860" text-anchor="middle">schema: public (+1 per domain service)</text>
         <rect class="tf" x="480" y="800" width="220" height="84" rx="8"></rect>
         <text class="t1" x="590" y="824" text-anchor="middle">Standby replica</text>
         <text class="t2" x="590" y="842" text-anchor="middle">AZ b · Multi-AZ</text>
@@ -344,7 +344,7 @@
     </div>
     <figcaption>Sign-in with Microsoft Entra ID. The identity service acts as the broker: Entra ID proves who the user is
       (with its own MFA and Conditional Access), and identity then issues the same session cookies and access tokens as today.
-      The web app's API calls, data-acquisition and every other service are unchanged, because they still trust identity's tokens.
+      The web app's API calls and any future domain service are unchanged, because they still trust identity's tokens.
       Steps 6 and 7 leave the cluster through the NAT gateways.</figcaption>
   </figure>
 
@@ -360,7 +360,7 @@
           <tr><td>Private uploads bucket, KMS encryption, versioning</td><td>S3</td><td><span class="who tf">Terraform</span></td></tr>
           <tr><td>Generated app secrets, database and Redis URLs</td><td>Secrets Manager</td><td><span class="who tf">Terraform</span></td></tr>
           <tr><td>identity API, worker, web, migrate Jobs, HPA, PDB, NetworkPolicies</td><td>EKS workloads</td><td><span class="who helm">deploy/helm/app</span></td></tr>
-          <tr><td>data-acquisition API and its migrate Job</td><td>EKS workloads</td><td><span class="who helm">deploy/helm/domain-service</span></td></tr>
+          <tr><td>Future domain services and their migrate Jobs (none yet)</td><td>EKS workloads</td><td><span class="who helm">deploy/helm/domain-service</span></td></tr>
           <tr><td>Kubernetes cluster and node groups</td><td>EKS</td><td><span class="who plat">platform</span></td></tr>
           <tr><td>DNS, CDN, WAF, certificates at the edge</td><td>Route 53, CloudFront, WAF, ACM</td><td><span class="who plat">platform</span></td></tr>
           <tr><td>Load balancer controller, ingress-nginx, cert-manager, External Secrets, Prometheus</td><td>EKS add-ons</td><td><span class="who plat">platform</span></td></tr>
@@ -374,7 +374,7 @@
 
   <figure>
     <div class="scroll small">
-      <svg viewBox="0 0 1200 230" role="img" aria-label="Release pipeline: a git push triggers CI, which builds and pushes images to the registry; helm upgrade deploys the app and data-acquisition releases, a pre-upgrade migrate Job runs alembic upgrade head, then a rolling update replaces the pods. Argo CD can replace the helm upgrade step by syncing the chart from Git.">
+      <svg viewBox="0 0 1200 230" role="img" aria-label="Release pipeline: a git push triggers CI, which builds and pushes images to the registry; helm upgrade deploys the app release (and later one release per domain service), a pre-upgrade migrate Job runs alembic upgrade head, then a rolling update replaces the pods. Argo CD can replace the helm upgrade step by syncing the chart from Git.">
         <defs>
           <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path class="head" d="M0 0 L10 5 L0 10 z"></path>
@@ -388,10 +388,10 @@
         <text class="t2" x="300" y="103" text-anchor="middle">lint · test · build</text>
         <rect class="n" x="416" y="60" width="165" height="60" rx="8"></rect>
         <text class="t1" x="498" y="85" text-anchor="middle">Image registry</text>
-        <text class="t2" x="498" y="103" text-anchor="middle">api · web · data-acq</text>
+        <text class="t2" x="498" y="103" text-anchor="middle">api · web</text>
         <rect class="helm" x="614" y="60" width="165" height="60" rx="8"></rect>
         <text class="t1" x="696" y="85" text-anchor="middle">helm upgrade</text>
-        <text class="t2" x="696" y="103" text-anchor="middle">app + data-acquisition</text>
+        <text class="t2" x="696" y="103" text-anchor="middle">app release</text>
         <rect class="helm" x="812" y="60" width="165" height="60" rx="8"></rect>
         <text class="t1" x="894" y="85" text-anchor="middle">migrate Job</text>
         <text class="t2" x="894" y="103" text-anchor="middle">alembic upgrade head</text>
@@ -493,7 +493,7 @@
             <td>Sign-in depends on Entra ID being reachable; keep a local admin account for emergencies. identity holds a client certificate that must be rotated.</td>
             <td><code>0008</code> <code>0016</code></td></tr>
           <tr><td><strong>Domain services verify tokens offline</strong></td>
-            <td>data-acquisition checks identity's access tokens itself, so no request depends on identity being reachable.</td>
+            <td>Domain services (none yet) will check identity's access tokens themselves, so no request depends on identity being reachable.</td>
             <td>The HS256 signing key is shared; move to asymmetric keys and JWKS when more services trust identity.</td>
             <td><code>0016</code></td></tr>
         </tbody>
@@ -542,8 +542,8 @@
       <li>In your platform stack, create the EKS cluster, the Route 53 zone, CloudFront and the WAF.</li>
       <li>From <code>deploy/terraform/aws</code>, run <code>terraform apply -var-file=envs/production.tfvars</code>, passing the cluster's node security group in <code>app_security_group_ids</code>.</li>
       <li>Install the cluster add-ons: AWS Load Balancer Controller, ingress-nginx, cert-manager with a <code>letsencrypt</code> issuer, External Secrets Operator and, optionally, kube-prometheus-stack.</li>
-      <li>Run <code>deploy/db/roles.sql</code> and <code>roles-data-acquisition.sql</code> against RDS, then replace <code>app_admin</code> in Secrets Manager with those least-privilege roles.</li>
-      <li>Create the ExternalSecrets <code>app-secrets</code> and <code>data-acquisition-secrets</code>. The data-acquisition <code>JWT_SECRET_KEY</code> must be identity's signing key, because both verify the same HS256 tokens.</li>
+      <li>Run <code>deploy/db/roles.sql</code> against RDS, then replace <code>app_admin</code> in Secrets Manager with those least-privilege roles.</li>
+      <li>Create the ExternalSecret <code>app-secrets</code>.</li>
       <li>Create the IAM role for the API's service account with access to the uploads bucket and set it in <code>serviceAccount.annotations</code>.</li>
       <li>In Entra ID, register the app: redirect URI <code>https://app.example.com/v1/auth/oidc/callback</code>, app roles that map to Boost roles, and a client certificate stored in Secrets Manager.</li>
       <li>Build and push the three images, and replace the <code>ghcr.io/your-org/your-repo</code> placeholders in the values files.</li>
@@ -573,7 +573,6 @@
     <ul class="gaps">
       <li>Entra ID sign-in is designed but not built: identity still needs the OIDC login and callback endpoints, <code>tid</code> and <code>oid</code> columns on <code>users</code> (a migration), the role mapping, and an ADR.</li>
       <li>Add a CI workflow: the release flow above assumes one, and the repository has none yet.</li>
-      <li>data-acquisition has no Ingress route. Add one (for example <code>/acquisition</code>) if browsers or other clients must reach it.</li>
       <li>S3 traffic currently leaves through the NAT gateways. A VPC gateway endpoint for S3 keeps it inside AWS and lowers NAT cost.</li>
       <li>Rotate the generated secrets in Secrets Manager and replace the <code>app_admin</code> database user, as the Terraform comments ask.</li>
     </ul>

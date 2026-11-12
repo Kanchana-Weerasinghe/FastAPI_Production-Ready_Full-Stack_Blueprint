@@ -1,0 +1,12 @@
+{{- if .Values.accessControl.document }}
+# The central access document, mounted over /app/config/access-control.json in the API pods.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-access
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  access-control.json: |-
+    {{- .Values.accessControl.document | nindent 4 }}
+{{- end }}

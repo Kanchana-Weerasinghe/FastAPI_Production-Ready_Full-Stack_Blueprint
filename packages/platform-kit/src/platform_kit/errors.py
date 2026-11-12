@@ -91,3 +91,10 @@ class ServiceUnavailableError(AppError):
     status = 503
     code = "service_unavailable"
     title = "Service Unavailable"
+
+
+class AccessDeniedError(PermissionDeniedError):
+    """The caller is authenticated, but none of its roles holds a privilege that includes this endpoint."""
+
+    code = "access_denied"
+    title = "Access Denied"

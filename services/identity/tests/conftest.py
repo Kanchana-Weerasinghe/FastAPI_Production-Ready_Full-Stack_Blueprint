@@ -1,6 +1,6 @@
 import os
 import sys
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +60,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
 
 from httpx import ASGITransport, AsyncClient
+from platform_kit.access import ANONYMOUS_ROLE, load_access_policy
+from platform_kit.access.testing import AccessOverride, override_access
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import config
@@ -131,6 +133,30 @@ async def client() -> AsyncGenerator[Any, None]:
             return client_instance
 
         yield _client
+
+
+# --- Access control: replace the access document for one test; the real `require_access` still runs ---
+
+
+@pytest.fixture
+def _access_override() -> Iterator[AccessOverride]:
+    # Public endpoints (sign-in, ...) stay open, so the signed-in test caller can still sign in.
+    document = load_access_policy(config.ACCESS_CONFIG_PATH, service=config.SERVICE_NAME)
+    public = document.role_operations.get(ANONYMOUS_ROLE, frozenset())
+    with override_access(app_instance, service=config.SERVICE_NAME, public=public) as access:
+        yield access
+
+
+@pytest.fixture
+def grant_access(_access_override: AccessOverride) -> Callable[..., None]:
+    """`grant_access("listUsers", ...)`: the signed-in test caller may call exactly these operationIds."""
+    return _access_override.grant
+
+
+@pytest.fixture
+def deny_access(_access_override: AccessOverride) -> Callable[[], None]:
+    """`deny_access()`: the signed-in test caller may call nothing (public endpoints stay open)."""
+    return _access_override.deny
 
 
 @pytest.fixture(scope="session", autouse=True)

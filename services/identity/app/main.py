@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 
 from fastapi import FastAPI, Request, Response
+from platform_kit.access import JsonFileAccessLookup, install_access
 from sqlalchemy import func, select, text
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -28,12 +29,18 @@ from app.core.middleware import CoreMiddleware
 from app.core.security import limiter, tokens_match
 from app.core.telemetry import setup_sentry, setup_tracing
 from app.core.versioning import deprecated
+from app.devtools.code_graphs import install_dev_docs
+from app.modules.auth.dependencies import get_access_subject
 from app.shared.idempotency import IdempotencyMiddleware
 from app.shared.outbox import STATUS_DEAD, STATUS_PENDING, OutboxEvents
 from app.shared.utils.singleton import singleton
 
 setup_logging()
 setup_sentry()
+
+# Routes outside access control: probes, the metrics scrape (own token) and the development-only docs
+# and code-graph tools. Everything else must carry an operation_id and pass `require_access()`.
+ACCESS_EXEMPT_PATH_PREFIXES = ("/health", "/metrics", "/docs", "/admin/code-graphs")
 
 
 @singleton
@@ -52,10 +59,11 @@ class AppCreator:
         self.container = Container()
         self.db = self.container.db()
 
+        openapi_url = f"{config.API}/openapi.json"
         self.app = FastAPI(
             title=config.PROJECT_NAME,
-            openapi_url=f"{config.API}/openapi.json" if config.ENVIRONMENT == "development" else None,
-            docs_url="/docs" if config.ENVIRONMENT == "development" else None,
+            openapi_url=openapi_url if config.ENVIRONMENT == "development" else None,
+            docs_url=None,  # served by install_dev_docs in development
             redoc_url="/redoc" if config.ENVIRONMENT == "development" else None,
             version="0.0.1",
             lifespan=self.lifespan,
@@ -121,6 +129,18 @@ class AppCreator:
 
         for router in API_ROUTERS:
             self.app.include_router(router)
+        if config.ENVIRONMENT == "development":
+            install_dev_docs(self.app, openapi_url=openapi_url)
+        # Central access control: every API route is checked against the access document (deny by
+        # default). Refuses to start if a route lacks an operation_id / the check, or the document is invalid.
+        install_access(
+            self.app,
+            subject=get_access_subject,
+            lookup=JsonFileAccessLookup(
+                config.ACCESS_CONFIG_PATH, service=config.SERVICE_NAME, reload_seconds=config.ACCESS_RELOAD_SECONDS
+            ),
+            exempt_path_prefixes=ACCESS_EXEMPT_PATH_PREFIXES,
+        )
         setup_tracing(self.app, self.db.engine)
 
     async def refresh_gauges(self) -> None:

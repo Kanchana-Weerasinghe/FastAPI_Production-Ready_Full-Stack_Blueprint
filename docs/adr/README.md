@@ -14,7 +14,7 @@ An ADR captures one significant decision: the context, the choice, and its conse
 | [0006](0006-rate-limiting-and-client-ip.md) | Shared rate-limit storage and trusted-proxy client IPs | Accepted |
 | [0007](0007-fail-closed-configuration.md) | Fail-closed configuration outside development | Accepted |
 | [0008](0008-session-tokens.md) | Session tokens, revocation, CSRF and MFA | Accepted |
-| [0009](0009-authorization-rbac.md) | Authorization: RBAC in code plus central ownership checks | Accepted |
+| [0009](0009-authorization-rbac.md) | Authorization: RBAC in code plus central ownership checks | Superseded by 0017 |
 | [0010](0010-background-jobs-and-outbox.md) | Background jobs (ARQ) and the transactional outbox | Accepted |
 | [0011](0011-observability.md) | Observability: logs, metrics, traces, errors and audit | Accepted |
 | [0012](0012-data-layer.md) | Data layer: migrations, concurrency, pooling and tenancy | Accepted |
@@ -22,6 +22,7 @@ An ADR captures one significant decision: the context, the choice, and its conse
 | [0014](0014-frontend.md) | Frontend: secure sessions, resilience, monitoring, budgets and accessibility | Accepted |
 | [0015](0015-governance-and-feature-flags.md) | Governance: privacy rights, retention, feature flags and supply-chain policy | Accepted |
 | [0016](0016-independent-domain-services.md) | Independent domain services with a shared platform kit | Accepted |
+| [0017](0017-central-access-control.md) | Central access control: data-driven, deny by default | Accepted |
 
 ## Template
 

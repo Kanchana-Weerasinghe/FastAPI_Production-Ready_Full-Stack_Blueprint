@@ -2,7 +2,7 @@
 SQLAlchemy base for a service's own schema.
 
 Each service declares one `Base(DeclarativeBase)` with `metadata = schema_metadata(schema)` so every
-table lives in that service's schema (e.g. `data_acquisition.acquisition_jobs`). Never reference
+table lives in that service's schema (e.g. `ordering.orders`). Never reference
 another service's schema: store other aggregates' IDs as plain columns without foreign keys.
 """
 

@@ -12,8 +12,7 @@ the complete reference example.
 | Part | What it is |
 | :--- | :--- |
 | [`services/identity/`](services/identity) | Sign-up, sign-in, sessions, MFA, users, roles and audit log; issues the access tokens |
-| [`services/data-acquisition/`](services/data-acquisition) | Example of an independent domain service with its own schema |
-| [`packages/platform-kit/`](packages/platform-kit) | Shared technical building blocks for domain services |
+| [`packages/platform-kit/`](packages/platform-kit) | Shared technical building blocks (central access control; base for future domain services) |
 | [`web/`](web) | React 19 + TypeScript front end (Vite, TanStack Router / Query / Form) |
 | [`specs/`](specs), [`qa/`](qa) | Business-rule catalogues and the QA-owned acceptance suites |
 | [`deploy/`](deploy) | Helm charts and Terraform |
@@ -53,8 +52,7 @@ Install the packages of every project (each `uv sync` creates that project's `.v
 
 ```bash
 cd services/identity          && uv sync && cd ../..   # identity API (auth, users, audit)
-cd services/data-acquisition  && uv sync && cd ../..   # example domain service
-cd packages/platform-kit      && uv sync && cd ../..   # shared building blocks for domain services
+cd packages/platform-kit      && uv sync && cd ../..   # shared building blocks (identity depends on them)
 cd qa/identity-acceptance     && uv sync && cd ../..   # QA acceptance suite
 cd web && pnpm install --frozen-lockfile && cd ..      # React front end
 ```
@@ -90,8 +88,7 @@ pnpm dev
 Sign in with `demo@example.com` or `admin@example.com`, password `Password123!`.
 
 No `.env` file is needed for local development: every setting has a safe development default
-(see `services/identity/.env.example` to override one). The data-acquisition service runs the same way from its
-own folder (`uv run task upgrade`, then `uv run task dev` on port 8010).
+(see `services/identity/.env.example` to override one).
 
 On Windows, set `PYTHONUTF8=1` before `uv run task dev` if the console shows a Unicode error
 (PowerShell: `$env:PYTHONUTF8 = "1"`).

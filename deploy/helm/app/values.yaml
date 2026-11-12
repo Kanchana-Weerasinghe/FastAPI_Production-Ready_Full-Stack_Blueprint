@@ -40,6 +40,12 @@ config:
 # and for the migration job MIGRATION_DB_USERNAME / MIGRATION_DB_PASSWORD.
 existingSecret: app-secrets
 
+# Central access document (which role may call which operationId; docs/adr/0017-central-access-control.md).
+# Empty = the copy baked into the image. Override per environment without a rebuild:
+#   helm upgrade ... --set-file accessControl.document=config/access-control.json
+accessControl:
+  document: ""
+
 serviceAccount:
   create: true
   # e.g. eks.amazonaws.com/role-arn for IRSA (S3 access without static keys)

@@ -1,0 +1,13 @@
+# Code graphs for the identity service. Regenerate with:
+#   uv run codegraphs run --config codegraphs.toml
+src = "app"
+prefix = "app"
+out = "docs/code-graphs"
+title = "Identity service"
+exclude = []
+
+[[flows]]
+name = "signup"
+title = "User signup (POST /v1/auth/signup)"
+entries = ["app.modules.auth.router:signup"]
+depth = 8

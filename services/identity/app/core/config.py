@@ -1,5 +1,6 @@
 import ipaddress
 import warnings
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import SecretStr, model_validator
@@ -52,6 +53,15 @@ class Configs(BaseSettings):
     # Base of the RFC 9457 `type` URI for error responses (`<base>/<code>`); point it at your error docs.
     PROBLEM_TYPE_BASE_URI: str = "https://errors.example.com"
     API: str = "/api"
+
+    # --- Access control (see docs/adr/0017-central-access-control.md) ---
+    # Name of this service in the central access document; endpoints are keyed (service, operationId).
+    SERVICE_NAME: str = "identity"
+    # The central access document: config/access-control.json in the repository (baked into the image
+    # at /app/config/access-control.json; mount a ConfigMap over it to change access without a rebuild).
+    ACCESS_CONFIG_PATH: str = str(Path(__file__).resolve().parents[4] / "config" / "access-control.json")
+    # How often the document is checked for changes (0 = never re-read).
+    ACCESS_RELOAD_SECONDS: float = 30.0
 
     SQLALCHEMY_ECHO: bool = False
     # Pool per process. Total connections = replicas x gunicorn workers x (pool size + overflow) (+ worker);

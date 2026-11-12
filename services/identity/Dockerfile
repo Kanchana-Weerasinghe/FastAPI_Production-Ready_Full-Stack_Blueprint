@@ -3,6 +3,9 @@
 # - Multi-stage: build tools and uv stay in the builder; the runtime has only the venv and app code.
 # - Runs as a fixed non-root UID and works with a read-only root filesystem (writable: /tmp, uploads).
 # - Pin base images by digest in your registry mirror (Dependabot/Renovate keep them updated).
+# Build from the repository root so the shared platform-kit package and the central access document
+# are in the context:
+#   docker build -f services/identity/Dockerfile -t identity .
 
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
@@ -12,14 +15,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=never
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
+# UV_PROJECT_ENVIRONMENT: create the venv at its final path (console-script shebangs embed its location).
 
 COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /usr/local/bin/uv
 
-WORKDIR /app
-COPY pyproject.toml uv.lock ./
+# Same relative layout as the repository, so the `../../packages/platform-kit` path source resolves.
+WORKDIR /src
+COPY packages/platform-kit ./packages/platform-kit
+COPY services/identity/pyproject.toml services/identity/uv.lock ./services/identity/
+WORKDIR /src/services/identity
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev --no-editable
 
 
 FROM ${PYTHON_IMAGE} AS runtime
@@ -33,17 +41,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
     APP_VERSION=${APP_VERSION} \
-    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus \
+    ACCESS_CONFIG_PATH=/app/config/access-control.json
+# ACCESS_CONFIG_PATH: the central access document; mount a ConfigMap over it to change access without a rebuild.
 
 RUN groupadd --system --gid 10001 app && \
     useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
 
 WORKDIR /app
 COPY --from=builder --chown=root:root /app/.venv /app/.venv
-COPY --chown=root:root alembic.ini gunicorn.conf.py ./
-COPY --chown=root:root app ./app
-COPY --chown=root:root migrations ./migrations
-COPY --chown=root:root scripts ./scripts
+COPY --chown=root:root services/identity/alembic.ini services/identity/gunicorn.conf.py ./
+COPY --chown=root:root services/identity/app ./app
+COPY --chown=root:root services/identity/migrations ./migrations
+COPY --chown=root:root services/identity/scripts ./scripts
+COPY --chown=root:root config/access-control.json ./config/access-control.json
 
 # Code is owned by root and read-only for the app user; only the upload dir is writable
 # (mount a volume there, or use STORAGE_BACKEND=s3 and drop it).

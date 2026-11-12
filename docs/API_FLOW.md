@@ -6,6 +6,9 @@
 > [!NOTE]
 > **Error format.** Every error response is an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object served as `application/problem+json`: `type` (`PROBLEM_TYPE_BASE_URI/<code>`), `title`, `status`, `detail`, `instance` (request path), a stable machine-readable `code` that clients should branch on, the `request_id` (also sent as the `X-Request-ID` header) and, for 422 responses, an `errors` list with one entry per invalid field. Failed requests (any 4xx/5xx) never persist partial writes.
 
+> [!NOTE]
+> **Access control.** Every endpoint has a stable `operationId` (OpenAPI) and is checked against the central access document [`config/access-control.json`](/config/access-control.json): it is allowed only if a role of the caller holds a privilege that includes `(service, operationId)`; everything else is refused (deny by default). Callers who are not signed in get **401** (`not_authenticated`, `invalid_token`, `token_expired`, `token_revoked`) unless the endpoint is public (granted to the `anonymous` role); signed-in callers without a grant get **403** `access_denied`. The "Auth Required" column names each endpoint's `operationId`. See [ADR 0017](/docs/adr/0017-central-access-control.md).
+
 > [!IMPORTANT]
 > If any API updates modify the underlying database schemas, fields, or relationships, make sure to update the [DATABASE_DESIGN.md](/docs/DATABASE_DESIGN.md) file, which contains the Mermaid entity-relationship diagram and detailed column descriptions.
 
@@ -28,6 +31,10 @@
   - [Enable MFA (POST `/v1/auth/mfa/enable`)](#enable-mfa)
   - [Disable MFA (POST `/v1/auth/mfa/disable`)](#disable-mfa)
 
+- **Access Endpoints**
+
+  - [Get My Access (GET `/v1/access/me`)](#get-my-access)
+
 - **Users Endpoints**
 
   - [Get Current User (GET `/v2/user/me`)](#get-current-user)
@@ -43,11 +50,9 @@
   - [Liveness Probe (GET `/health/live`)](#liveness-probe)
   - [Readiness Probe (GET `/health/ready`)](#readiness-probe)
 
-- **Data Acquisition Endpoints** (`data-acquisition`, a separate service)
+- **Development Tools** (local development only)
 
-  - [Service contract and authentication](#data-acquisition-service)
-  - [Create Acquisition Job (POST `/v1/acquisition-jobs/`)](#create-acquisition-job)
-  - [Job lifecycle endpoints (`:start`, `:progress`, `:complete`, `:fail`, `:retry`, `:cancel`)](#acquisition-job-lifecycle)
+  - [Generate Code Graph (POST `/admin/code-graphs/generate`)](#generate-code-graph)
 
 ---
 
@@ -1744,6 +1749,116 @@
 </details>
 
 ---
+## Access Endpoints
+
+### <a id="get-my-access"></a>Get My Access
+
+<details>
+<summary>Get My Access (GET /v1/access/me)</summary>
+
+| URL | Method | Auth Required | Description |
+| :--- | :--- | :--- | :--- |
+| `/v1/access/me` | GET | True (`getMyAccess`) | Returns the caller's roles and every identity `operationId` the access document lets them call, e.g. for the web app to hide actions the user cannot perform. Rate limit 60/minute. |
+
+> <details>
+> <summary>Request body</summary>
+>
+> No request body payload.
+>
+> ```json
+> null
+> ```
+> </details>
+>
+> <details>
+> <summary>Response body</summary>
+>
+> ```json
+> {
+>   "service": "identity",
+>   "roles": ["user"],
+>   "operations": ["changePassword", "deleteCurrentUser", "getCurrentUser", "getMyAccess", "signIn", "..."]
+> }
+> ```
+> </details>
+>
+> <details>
+> <summary>Error body</summary>
+>
+> **401 Unauthorized** (No valid session, or the session was revoked):
+> ```json
+> {
+>   "type": "https://errors.example.com/not_authenticated",
+>   "title": "Unauthenticated",
+>   "status": 401,
+>   "detail": "Not authenticated",
+>   "instance": "<request path>",
+>   "code": "not_authenticated",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+>
+> **403 Forbidden** (No role of the caller is granted `getMyAccess`):
+> ```json
+> {
+>   "type": "https://errors.example.com/access_denied",
+>   "title": "Access Denied",
+>   "status": 403,
+>   "detail": "You do not have access to this operation",
+>   "instance": "<request path>",
+>   "code": "access_denied",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+>
+> **429 Too Many Requests** (More than 60/minute per client IP):
+> ```json
+> {
+>   "type": "https://errors.example.com/rate_limited",
+>   "title": "Too Many Requests",
+>   "status": 429,
+>   "detail": "Too many requests. Please try again later.",
+>   "instance": "<request path>",
+>   "code": "rate_limited",
+>   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
+> }
+> ```
+> </details>
+
+> <details>
+> <summary>Flow Diagram</summary>
+>
+> <div align="center">
+>
+> ```mermaid
+> flowchart TD
+>     Client([Client Frontend])
+>     Router[Access Router]
+>     Check[require_access]
+>     Doc[(config/access-control.json)]
+>
+>     Client -->|1. GET /v1/access/me| Router
+>     Router -->|2. Resolve session + roles| Check
+>     Check -->|3. Role to operationIds, cached, reloaded on change| Doc
+>     Check -->|4. getMyAccess granted| Router
+>     Router -->|5. 200 roles and operations| Client
+>
+>     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+>     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+>     classDef auth fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+>
+>     class Client client
+>     class Router route
+>     class Check,Doc auth
+> ```
+>
+> </div>
+> </details>
+
+</details>
+
+---
+
 ## Users Endpoints
 
 ### <a id="get-current-user"></a>Get Current User
@@ -1947,7 +2062,7 @@
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v2/users/` | GET | True (`users:read_all`) | Lists all user accounts with pagination. Requires the `users:read_all` permission (granted to the `admin` role). |
+| `/v2/users/` | GET | True (`listUsers`) | Lists all user accounts with pagination. Allowed to roles granted `listUsers` in the access document (by default `admin`, privilege `userAdministration`). |
 
 > <details>
 > <summary>Request body</summary>
@@ -1999,15 +2114,15 @@
 > }
 > ```
 >
-> **403 Forbidden** (Role lacks `users:read_all`):
+> **403 Forbidden** (No role of the caller is granted `listUsers`):
 > ```json
 > {
->   "type": "https://errors.example.com/forbidden",
->   "title": "Forbidden",
+>   "type": "https://errors.example.com/access_denied",
+>   "title": "Access Denied",
 >   "status": 403,
->   "detail": "You do not have permission to perform this action",
+>   "detail": "You do not have access to this operation",
 >   "instance": "<request path>",
->   "code": "forbidden",
+>   "code": "access_denied",
 >   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
 > }
 > ```
@@ -2040,7 +2155,7 @@
 >     DB[(PostgreSQL)]
 >
 >     Client -->|1. GET /v2/users/| Router
->     Router -->|2. require_permission + UserUseCases.get_list| Service
+>     Router -->|2. require_access listUsers + UserUseCases.get_list| Service
 >     Service -->|3. Paginated query| Repo
 >     Repo -->|4. SELECT users| DB
 >     Router -->|5. 200 page of users| Client
@@ -2073,7 +2188,7 @@
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v2/audit-logs/` | GET | True (`audit:read`) | Searches the append-only audit trail of security-relevant and administrative actions (sign-ins, lockouts, refresh-token reuse, password/MFA changes, account deletion). |
+| `/v2/audit-logs/` | GET | True (`listAuditLogs`) | Searches the append-only audit trail of security-relevant and administrative actions (sign-ins, lockouts, refresh-token reuse, password/MFA changes, account deletion). |
 
 > <details>
 > <summary>Request body</summary>
@@ -2137,15 +2252,15 @@
 > }
 > ```
 >
-> **403 Forbidden** (Role lacks `audit:read`):
+> **403 Forbidden** (No role of the caller is granted `listAuditLogs`):
 > ```json
 > {
->   "type": "https://errors.example.com/forbidden",
->   "title": "Forbidden",
+>   "type": "https://errors.example.com/access_denied",
+>   "title": "Access Denied",
 >   "status": 403,
->   "detail": "You do not have permission to perform this action",
+>   "detail": "You do not have access to this operation",
 >   "instance": "<request path>",
->   "code": "forbidden",
+>   "code": "access_denied",
 >   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
 > }
 > ```
@@ -2178,7 +2293,7 @@
 >     DB[(PostgreSQL)]
 >
 >     Client -->|1. GET /v2/audit-logs/| Router
->     Router -->|2. require_permission + AuditService.get_list| Service
+>     Router -->|2. require_access listAuditLogs + AuditService.get_list| Service
 >     Service -->|3. Filtered, paginated query| Repo
 >     Repo -->|4. SELECT audit_logs| DB
 >     Router -->|5. 200 page of entries| Client
@@ -2341,46 +2456,26 @@
 
 ---
 
-## Data Acquisition Endpoints
+## Development Tools
 
-### <a id="data-acquisition-service"></a>Service contract and authentication
-
-These endpoints belong to **data-acquisition** (`services/data-acquisition`), deployed separately from the identity service. Its machine-readable contract is [`services/data-acquisition/openapi.json`](/services/data-acquisition/openapi.json).
-
-| Aspect | Behaviour |
-| :--- | :--- |
-| Authentication | `Authorization: Bearer <access token>` issued by the identity service (`/v1/auth/signin`), verified offline. Cookies are not accepted. Missing, invalid, expired or non-access tokens → 401. |
-| Ownership | Owners (and admins) see, cancel and retry their jobs; anyone else gets 404 `acquisition_job_not_found`. |
-| Worker role | `:start`, `:progress`, `:complete` and `:fail` require role `acquisition_worker` (or admin); otherwise 403. |
-| Concurrency | Responses carry `ETag: W/"<version>"`; `If-Match` on `:cancel`/`:retry` → 412 `precondition_failed` (body has `current_etag`) when stale. |
-| Errors | RFC 9457 Problem Details with stable codes: `invalid_job_name`, `invalid_source`, `invalid_max_attempts`, `invalid_progress`, `invalid_failure_reason` (422); `invalid_status_transition`, `retry_limit_reached`, `active_job_limit_reached`, `concurrent_modification` (409). |
-| Transactions | One transaction per request; any 4xx/5xx rolls back. Domain events are published only after commit. |
-
-### <a id="create-acquisition-job"></a>Create Acquisition Job
+### <a id="generate-code-graph"></a>Generate Code Graph
 
 <details>
-<summary>Create Acquisition Job (POST /v1/acquisition-jobs/)</summary>
+<summary>Generate Code Graph (POST /admin/code-graphs/generate)</summary>
+
+Development only (`ENVIRONMENT=development` and the `codegraphs` dev dependency installed); hidden from `openapi.json`. Backs the **Graph** button that `/docs` adds to every operation. The generated viewer is served from `/code-graphs/index.html` (files in `services/identity/docs/code-graphs/`).
 
 | URL | Method | Auth Required | Description |
 | :--- | :--- | :--- | :--- |
-| `/v1/acquisition-jobs/` | POST | True (Bearer) | Queues a job for the caller. Returns 201 with `Location` and `ETag`. |
+| `/admin/code-graphs/generate` | POST | False | Resolves a Swagger operation to its route handler, traces its call graph statically with `codegraphs`, and returns a link to it in the viewer. A version prefix (`/v1`, `/v2`) is stripped when matching. |
 
 > <details>
 > <summary>Request body</summary>
 >
-> **Fields:**
->
-> - `name` (string, **Required**): 3-120 characters after whitespace normalisation.
-> - `sourceType` (string, **Required**): `web` (http/https), `api` (https only) or `file` (s3/sftp).
-> - `sourceUri` (string, **Required**): Must match the source type's schemes, include a host/bucket and contain no embedded credentials.
-> - `maxAttempts` (integer, *Optional*, default: `3`): 1-10.
->
 > ```json
 > {
->   "name": "Product catalogue crawl",
->   "sourceType": "web",
->   "sourceUri": "https://example.org/catalogue",
->   "maxAttempts": 3
+>   "method": "POST",
+>   "path": "/v1/auth/signup"
 > }
 > ```
 > </details>
@@ -2390,21 +2485,8 @@ These endpoints belong to **data-acquisition** (`services/data-acquisition`), de
 >
 > ```json
 > {
->   "id": "4b1d1f0e-2a3c-4e5f-8a9b-0c1d2e3f4a5b",
->   "ownerId": "d7e393b4-19dc-43ab-9a31-6ab9256123cb",
->   "name": "Product catalogue crawl",
->   "sourceType": "web",
->   "sourceUri": "https://example.org/catalogue",
->   "status": "queued",
->   "attempts": 0,
->   "maxAttempts": 3,
->   "canRetry": false,
->   "recordsCollected": 0,
->   "errorMessage": null,
->   "createdAt": "2026-10-20T12:00:00Z",
->   "startedAt": null,
->   "finishedAt": null,
->   "version": 1
+>   "url": "/code-graphs/index.html#post-auth-signup",
+>   "label": "POST /auth/signup"
 > }
 > ```
 > </details>
@@ -2412,31 +2494,9 @@ These endpoints belong to **data-acquisition** (`services/data-acquisition`), de
 > <details>
 > <summary>Error body</summary>
 >
-> **422 Unprocessable Entity** (business rule: an `api` source must use https):
-> ```json
-> {
->   "type": "https://errors.example.com/invalid_source",
->   "title": "Business Rule Violation",
->   "status": 422,
->   "detail": "A api source must use one of: https",
->   "instance": "/v1/acquisition-jobs/",
->   "code": "invalid_source",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
->
-> **409 Conflict** (the owner already has `ACTIVE_JOB_LIMIT_PER_OWNER` queued or running jobs):
-> ```json
-> {
->   "type": "https://errors.example.com/active_job_limit_reached",
->   "title": "Conflict",
->   "status": 409,
->   "detail": "You already have 10 active jobs (limit 10)",
->   "instance": "/v1/acquisition-jobs/",
->   "code": "active_job_limit_reached",
->   "request_id": "8c1b2f0e-5d7a-4c1e-9f3b-2a6d4e8c0b1a"
-> }
-> ```
+> - `404 endpoint_not_found`: no route decorator matches the method and path (e.g. routes defined in `app/main.py`); `detail` lists the closest matches.
+> - `503 graphviz_not_found`: Graphviz's `dot` is not on `PATH`.
+> - `422`: invalid method or missing path.
 > </details>
 
 > <details>
@@ -2446,54 +2506,29 @@ These endpoints belong to **data-acquisition** (`services/data-acquisition`), de
 >
 > ```mermaid
 > flowchart TD
->     Client([Client / BFF])
->     Router[acquisition_jobs router]
->     Auth[Bearer token verification]
->     UseCase[CreateJob use case]
->     Domain[JobName / DataSource / MaxAttempts + active-job policy]
->     Repo[SqlAlchemyJobRepository]
->     DB[(PostgreSQL schema data_acquisition)]
->     Events[EventPublisher after commit]
+>     Client([Swagger UI Graph button])
+>     Router[Code Graph Route]
+>     Codegraphs[codegraphs: load_modules, build_endpoint_flow, run]
+>     Files[(docs/code-graphs)]
 >
->     Client -->|1. POST /v1/acquisition-jobs/| Router
->     Router -->|2. Verify access token| Auth
->     Auth -->|3. Principal| UseCase
->     UseCase -->|4. Validate values| Domain
->     UseCase -->|5. count_active owner| Repo
->     UseCase -->|6. Apply policy, AcquisitionJob.create| Domain
->     UseCase -->|7. add| Repo
->     Repo -->|8. INSERT| DB
->     UseCase -->|9. AcquisitionJobQueued| Events
->     Router -->|10. 201 + Location + ETag| Client
+>     Client -->|1. POST /admin/code-graphs/generate| Router
+>     Router -->|2. Resolve handler and trace| Codegraphs
+>     Codegraphs -->|3. Write SVG + index.html| Files
+>     Router -->|4. 200 url, label| Client
+>     Client -->|5. Open /code-graphs/index.html#flow| Files
+>
+>     classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+>     classDef route fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+>     classDef service fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+>     classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+>
+>     class Client client
+>     class Router route
+>     class Codegraphs service
+>     class Files db
 > ```
 >
 > </div>
 > </details>
 
 </details>
-
----
-
-### <a id="acquisition-job-lifecycle"></a>Job lifecycle endpoints
-
-```
-QUEUED --start--> RUNNING --complete--> COMPLETED
-   |                 |
-   |                 +--fail--> FAILED --retry--> QUEUED   (while attempts < maxAttempts)
-   +-----cancel------+--cancel--> CANCELLED
-```
-
-| URL | Method | Caller | Body | Rule enforced by the `AcquisitionJob` aggregate |
-| :--- | :--- | :--- | :--- | :--- |
-| `/v1/acquisition-jobs/` | GET | owner (admin: `allOwners=true`) | — | Query: `status`, `page` (≥ 1), `pageSize` (1-100). Response `{ items, pageInfo: { page, pageSize, totalCount } }`. |
-| `/v1/acquisition-jobs/{job_id}` | GET | owner/admin | — | Returns the job with `ETag`. |
-| `/v1/acquisition-jobs/{job_id}:start` | POST | worker | — | Only `queued` jobs; increments `attempts`. |
-| `/v1/acquisition-jobs/{job_id}:progress` | POST | worker | `{ "records": 250 }` | Only `running` jobs; `records` ≥ 1, added to `recordsCollected`. |
-| `/v1/acquisition-jobs/{job_id}:complete` | POST | worker | — | Only `running` jobs; publishes `AcquisitionJobCompleted`. |
-| `/v1/acquisition-jobs/{job_id}:fail` | POST | worker | `{ "reason": "Vendor returned 503" }` | Only `running` jobs; reason required (stored up to 1000 chars); publishes `AcquisitionJobFailed`. |
-| `/v1/acquisition-jobs/{job_id}:retry` | POST | owner/admin (`If-Match` optional) | — | Only `failed` jobs with attempts left (else 409 `retry_limit_reached`); resets `recordsCollected`. |
-| `/v1/acquisition-jobs/{job_id}:cancel` | POST | owner/admin (`If-Match` optional) | — | Only `queued`/`running` jobs; publishes `AcquisitionJobCancelled`. |
-
-All lifecycle endpoints return the updated job (200) with its new `ETag`; a transition that is not allowed returns 409 `invalid_status_transition`.
-
----

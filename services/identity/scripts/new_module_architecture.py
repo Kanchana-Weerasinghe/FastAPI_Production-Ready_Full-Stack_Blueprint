@@ -266,18 +266,26 @@ from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
+from platform_kit.access import require_access
 
 from app.modules.auth.dependencies import CurrentUserDep
 from app.modules.{{module}}.public import Create{{Singular}}
 from app.modules.{{module}}.schemas import {{Singular}}Create, {{Singular}}Response
 
-router = APIRouter(prefix="/{{route}}", tags=["{{module}}"])
+# Every route needs a stable camelCase operation_id; grant it to roles in config/access-control.json
+# (an operation no privilege includes is refused).
+router = APIRouter(prefix="/{{route}}", tags=["{{module}}"], dependencies=[require_access()])
 Create{{Singular}}Dep = Annotated[
     Create{{Singular}}, Depends(Provide["{{module}}.create_{{singular_module}}"])
 ]
 
 
-@router.post("/", response_model={{Singular}}Response, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model={{Singular}}Response,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="create{{Singular}}",
+)
 @inject
 async def create_{{singular_module}}(
     data: {{Singular}}Create,

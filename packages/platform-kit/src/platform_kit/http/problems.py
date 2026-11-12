@@ -5,8 +5,8 @@ Maps every error to an RFC 9457 Problem Details response (`application/problem+j
       "type": "<PROBLEM_TYPE_BASE_URI>/not_found",
       "title": "Not Found",
       "status": 404,
-      "detail": "Acquisition job not found",
-      "instance": "/v1/acquisition-jobs/1f0e...",
+      "detail": "Order not found",
+      "instance": "/v1/orders/1f0e...",
       "code": "not_found",
       "request_id": "8c1b...",
       "errors": [{"field": "...", "message": "...", "type": "..."}]   # validation errors only

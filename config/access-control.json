@@ -1,0 +1,68 @@
+{
+  "privileges": {
+    "publicSignIn": {
+      "name": "Public sign-in and account recovery",
+      "description": "Endpoints anyone may call without being signed in.",
+      "endpoints": {
+        "identity": [
+          "signUp",
+          "signIn",
+          "verifyMfaSignIn",
+          "refreshSession",
+          "signOut",
+          "verifyEmail",
+          "requestPasswordReset",
+          "resetPassword"
+        ]
+      }
+    },
+    "ownAccount": {
+      "name": "Own account",
+      "description": "Manage the signed-in user's own account, session and MFA.",
+      "endpoints": {
+        "identity": [
+          "signOutEverywhere",
+          "resendVerificationEmail",
+          "changePassword",
+          "startMfaSetup",
+          "enableMfa",
+          "disableMfa",
+          "getCurrentUser",
+          "deleteCurrentUser",
+          "getMyAccess"
+        ]
+      }
+    },
+    "userAdministration": {
+      "name": "User administration",
+      "description": "List every user account.",
+      "endpoints": {
+        "identity": [
+          "listUsers"
+        ]
+      }
+    },
+    "auditRead": {
+      "name": "Audit log",
+      "description": "Search the audit trail.",
+      "endpoints": {
+        "identity": [
+          "listAuditLogs"
+        ]
+      }
+    }
+  },
+  "roles": {
+    "anonymous": [
+      "publicSignIn"
+    ],
+    "user": [
+      "ownAccount"
+    ],
+    "admin": [
+      "ownAccount",
+      "userAdministration",
+      "auditRead"
+    ]
+  }
+}

@@ -2,6 +2,7 @@ from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Request, Response, status
+from platform_kit.access import AccessGrant, check_access, require_access
 
 from app.core.client_ip import get_real_ip_address
 from app.core.config import config
@@ -14,6 +15,7 @@ from app.modules.auth.schemas import (
     MfaCode,
     MfaSetupResponse,
     MfaVerify,
+    MyAccess,
     PasswordChange,
     PasswordReset,
     SignIn,
@@ -22,7 +24,8 @@ from app.modules.auth.schemas import (
     TokenRequest,
 )
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[require_access()])
+access_router = APIRouter(prefix="/access", tags=["access"], dependencies=[require_access()])
 
 AuthServiceDep = Annotated[AuthService, Depends(Provide["auth.service"])]
 
@@ -44,7 +47,11 @@ def _start_session(response: Response, tokens: SessionTokens) -> None:
 
 
 @router.post(
-    "/signup", status_code=status.HTTP_201_CREATED, summary="User Signup", dependencies=[rate_limit("5/minute")]
+    "/signup",
+    status_code=status.HTTP_201_CREATED,
+    summary="User Signup",
+    operation_id="signUp",
+    dependencies=[rate_limit("5/minute")],
 )
 @inject
 async def signup(user_info: SignUp, service: AuthServiceDep) -> None:
@@ -52,7 +59,13 @@ async def signup(user_info: SignUp, service: AuthServiceDep) -> None:
     await service.sign_up(user_info.email, user_info.password)
 
 
-@router.post("/signin", response_model=SignInResponse, summary="User Signin", dependencies=[rate_limit("10/minute")])
+@router.post(
+    "/signin",
+    response_model=SignInResponse,
+    summary="User Signin",
+    operation_id="signIn",
+    dependencies=[rate_limit("10/minute")],
+)
 @inject
 async def signin(response: Response, credentials: SignIn, client: ClientDep, service: AuthServiceDep) -> SignInResponse:
     """Verifies credentials and starts a session, or returns an MFA challenge when TOTP is enabled."""
@@ -66,6 +79,7 @@ async def signin(response: Response, credentials: SignIn, client: ClientDep, ser
     "/mfa/verify",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Complete MFA Signin",
+    operation_id="verifyMfaSignIn",
     dependencies=[rate_limit("10/minute")],
 )
 @inject
@@ -78,6 +92,7 @@ async def mfa_verify(response: Response, data: MfaVerify, client: ClientDep, ser
     "/refresh",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Refresh Session",
+    operation_id="refreshSession",
     dependencies=[rate_limit("30/minute")],
 )
 @inject
@@ -91,6 +106,7 @@ async def refresh(request: Request, response: Response, client: ClientDep, servi
     "/signout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="User Signout",
+    operation_id="signOut",
     dependencies=[rate_limit("30/minute")],
 )
 @inject
@@ -104,6 +120,7 @@ async def signout(request: Request, response: Response, service: AuthServiceDep)
     "/signout-all",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Sign Out Everywhere",
+    operation_id="signOutEverywhere",
     dependencies=[rate_limit("10/minute")],
 )
 @inject
@@ -117,6 +134,7 @@ async def signout_all(response: Response, current_user: CurrentUserDep, service:
     "/verify-email",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Verify Email",
+    operation_id="verifyEmail",
     dependencies=[rate_limit("10/minute")],
 )
 @inject
@@ -129,6 +147,7 @@ async def verify_email(data: TokenRequest, service: AuthServiceDep) -> None:
     "/verify-email/resend",
     status_code=status.HTTP_202_ACCEPTED,
     summary="Resend Verification Email",
+    operation_id="resendVerificationEmail",
     dependencies=[rate_limit("3/minute")],
 )
 @inject
@@ -141,6 +160,7 @@ async def resend_verification(current_user: CurrentUserDep, service: AuthService
     "/password/forgot",
     status_code=status.HTTP_202_ACCEPTED,
     summary="Request Password Reset",
+    operation_id="requestPasswordReset",
     dependencies=[rate_limit("3/minute")],
 )
 @inject
@@ -153,6 +173,7 @@ async def forgot_password(data: EmailRequest, service: AuthServiceDep) -> None:
     "/password/reset",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Reset Password",
+    operation_id="resetPassword",
     dependencies=[rate_limit("5/minute")],
 )
 @inject
@@ -166,6 +187,7 @@ async def reset_password(response: Response, data: PasswordReset, service: AuthS
     "/password/change",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Change Password",
+    operation_id="changePassword",
     dependencies=[rate_limit("5/minute")],
 )
 @inject
@@ -178,7 +200,11 @@ async def change_password(
 
 
 @router.post(
-    "/mfa/setup", response_model=MfaSetupResponse, summary="Start MFA Setup", dependencies=[rate_limit("5/minute")]
+    "/mfa/setup",
+    response_model=MfaSetupResponse,
+    summary="Start MFA Setup",
+    operation_id="startMfaSetup",
+    dependencies=[rate_limit("5/minute")],
 )
 @inject
 async def mfa_setup(current_user: CurrentUserDep, service: AuthServiceDep) -> MfaSetupResponse:
@@ -191,6 +217,7 @@ async def mfa_setup(current_user: CurrentUserDep, service: AuthServiceDep) -> Mf
     "/mfa/enable",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Enable MFA",
+    operation_id="enableMfa",
     dependencies=[rate_limit("10/minute")],
 )
 @inject
@@ -203,9 +230,26 @@ async def mfa_enable(data: MfaCode, current_user: CurrentUserDep, service: AuthS
     "/mfa/disable",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Disable MFA",
+    operation_id="disableMfa",
     dependencies=[rate_limit("10/minute")],
 )
 @inject
 async def mfa_disable(data: MfaCode, current_user: CurrentUserDep, service: AuthServiceDep) -> None:
     """Turns MFA off; requires a current authenticator code."""
     await service.disable_mfa(current_user, data.code)
+
+
+@access_router.get(
+    "/me",
+    response_model=MyAccess,
+    summary="Get My Access",
+    operation_id="getMyAccess",
+    dependencies=[rate_limit("60/minute")],
+)
+async def get_my_access(grant: Annotated[AccessGrant, Depends(check_access)]) -> MyAccess:
+    """The caller's roles and the identity operationIds they may call (e.g. for the web app to hide actions)."""
+    return MyAccess(
+        service=config.SERVICE_NAME,
+        roles=sorted(grant.subject.roles),
+        operations=sorted(grant.operations),
+    )

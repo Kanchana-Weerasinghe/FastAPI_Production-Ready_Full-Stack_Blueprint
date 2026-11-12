@@ -13,7 +13,7 @@ class Users(BaseModel):
     email: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False, index=True)
     username: Mapped[str] = mapped_column(TEXT, unique=True, nullable=False, index=True)
     _password: Mapped[str] = mapped_column("password", TEXT, nullable=False)
-    # Authorization role; permissions per role live in app/modules/auth/permissions.py.
+    # The account's role; what each role may call is data in config/access-control.json.
     role: Mapped[str] = mapped_column(VARCHAR(32), nullable=False, server_default=text("'user'"))
     # Incremented on password change/reset and "sign out everywhere": invalidates all access tokens.
     token_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))

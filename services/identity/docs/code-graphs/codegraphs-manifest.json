@@ -1,0 +1,2280 @@
+[
+  {
+    "id": "overview",
+    "label": "Overview",
+    "meta": {
+      "title": "Architecture overview",
+      "description": "How the scanned layers call each other. Arrow labels count distinct calls from one layer into another; thicker means more.",
+      "nodes": {},
+      "edges": {}
+    }
+  },
+  {
+    "id": "get-user-me",
+    "label": "GET /user/me",
+    "meta": {
+      "title": "GET /user/me",
+      "description": "End-to-end trace from the GET /user/me handler (app.modules.users.router:get_me).",
+      "nodes": {
+        "n0": {
+          "name": "_is_trusted_proxy",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 8,
+          "entry": false
+        },
+        "n1": {
+          "name": "get_real_ip_address",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 16,
+          "entry": false
+        },
+        "n2": {
+          "name": "rate_limit",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 42,
+          "entry": false
+        },
+        "n3": {
+          "name": "get_current_user",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "line": 26,
+          "entry": false
+        },
+        "n4": {
+          "name": "UserUseCases.get_by_id",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 61,
+          "entry": false
+        },
+        "n5": {
+          "name": "get_me",
+          "module": "modules.users.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "line": 21,
+          "entry": true
+        }
+      },
+      "edges": {
+        "e0": [
+          "n1",
+          "n0",
+          false
+        ],
+        "e1": [
+          "n2",
+          "n1",
+          true
+        ],
+        "e2": [
+          "n3",
+          "n4",
+          true
+        ],
+        "e3": [
+          "n5",
+          "n2",
+          false
+        ],
+        "e4": [
+          "n5",
+          "n3",
+          true
+        ]
+      }
+    }
+  },
+  {
+    "id": "post-auth-signup",
+    "label": "POST /auth/signup",
+    "meta": {
+      "title": "POST /auth/signup",
+      "description": "End-to-end trace from the POST /auth/signup handler (app.modules.auth.router:signup).",
+      "nodes": {
+        "n0": {
+          "name": "_is_trusted_proxy",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 8,
+          "entry": false
+        },
+        "n1": {
+          "name": "get_real_ip_address",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 16,
+          "entry": false
+        },
+        "n6": {
+          "name": "rate_limit",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 42,
+          "entry": false
+        },
+        "n2": {
+          "name": "generate_opaque_token",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 113,
+          "entry": false
+        },
+        "n5": {
+          "name": "hash_token",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 118,
+          "entry": false
+        },
+        "n3": {
+          "name": "hash_password",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 130,
+          "entry": false
+        },
+        "n4": {
+          "name": "hash_password_async",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 145,
+          "entry": false
+        },
+        "n7": {
+          "name": "AuditService.record",
+          "module": "modules.audit.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "line": 19,
+          "entry": false
+        },
+        "n11": {
+          "name": "generate_username",
+          "module": "modules.auth.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "line": 40,
+          "entry": false
+        },
+        "n10": {
+          "name": "AuthService.sign_up",
+          "module": "modules.auth.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "line": 71,
+          "entry": false
+        },
+        "n9": {
+          "name": "AuthService._send_verification",
+          "module": "modules.auth.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "line": 305,
+          "entry": false
+        },
+        "n8": {
+          "name": "AuthService._create_one_time_token",
+          "module": "modules.auth.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "line": 313,
+          "entry": false
+        },
+        "n12": {
+          "name": "_link",
+          "module": "modules.auth.emails",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "line": 9,
+          "entry": false
+        },
+        "n14": {
+          "name": "welcome_email",
+          "module": "modules.auth.emails",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "line": 13,
+          "entry": false
+        },
+        "n13": {
+          "name": "verification_email",
+          "module": "modules.auth.emails",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "line": 18,
+          "entry": false
+        },
+        "n15": {
+          "name": "signup",
+          "module": "modules.auth.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/router.py",
+          "line": 50,
+          "entry": true
+        },
+        "n18": {
+          "name": "business_rules",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 29,
+          "entry": false
+        },
+        "n17": {
+          "name": "UserUseCases.get_by_email",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 64,
+          "entry": false
+        },
+        "n16": {
+          "name": "UserUseCases.create_user",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 73,
+          "entry": false
+        }
+      },
+      "edges": {
+        "e0": [
+          "n1",
+          "n0",
+          false
+        ],
+        "e1": [
+          "n4",
+          "n3",
+          true
+        ],
+        "e2": [
+          "n6",
+          "n1",
+          true
+        ],
+        "e3": [
+          "n8",
+          "n2",
+          false
+        ],
+        "e4": [
+          "n8",
+          "n5",
+          false
+        ],
+        "e5": [
+          "n9",
+          "n8",
+          false
+        ],
+        "e6": [
+          "n9",
+          "n13",
+          false
+        ],
+        "e7": [
+          "n10",
+          "n4",
+          false
+        ],
+        "e8": [
+          "n10",
+          "n7",
+          true
+        ],
+        "e9": [
+          "n10",
+          "n9",
+          false
+        ],
+        "e10": [
+          "n10",
+          "n11",
+          false
+        ],
+        "e11": [
+          "n10",
+          "n14",
+          false
+        ],
+        "e12": [
+          "n10",
+          "n16",
+          true
+        ],
+        "e13": [
+          "n10",
+          "n17",
+          true
+        ],
+        "e14": [
+          "n13",
+          "n12",
+          false
+        ],
+        "e15": [
+          "n15",
+          "n6",
+          false
+        ],
+        "e16": [
+          "n15",
+          "n10",
+          true
+        ],
+        "e17": [
+          "n16",
+          "n18",
+          false
+        ]
+      }
+    }
+  },
+  {
+    "id": "delete-user-me",
+    "label": "DELETE /user/me",
+    "meta": {
+      "title": "DELETE /user/me",
+      "description": "End-to-end trace from the DELETE /user/me handler (app.modules.users.router:delete_me).",
+      "nodes": {
+        "n0": {
+          "name": "_is_trusted_proxy",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 8,
+          "entry": false
+        },
+        "n1": {
+          "name": "get_real_ip_address",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 16,
+          "entry": false
+        },
+        "n3": {
+          "name": "rate_limit",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 42,
+          "entry": false
+        },
+        "n2": {
+          "name": "clear_auth_cookies",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 212,
+          "entry": false
+        },
+        "n4": {
+          "name": "AuditService.record",
+          "module": "modules.audit.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "line": 19,
+          "entry": false
+        },
+        "n5": {
+          "name": "get_current_user",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "line": 26,
+          "entry": false
+        },
+        "n7": {
+          "name": "UserUseCases.get_by_id",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 61,
+          "entry": false
+        },
+        "n6": {
+          "name": "UserUseCases.delete_account",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 87,
+          "entry": false
+        },
+        "n8": {
+          "name": "delete_me",
+          "module": "modules.users.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "line": 33,
+          "entry": true
+        }
+      },
+      "edges": {
+        "e0": [
+          "n1",
+          "n0",
+          false
+        ],
+        "e1": [
+          "n3",
+          "n1",
+          true
+        ],
+        "e2": [
+          "n5",
+          "n7",
+          true
+        ],
+        "e3": [
+          "n6",
+          "n4",
+          true
+        ],
+        "e4": [
+          "n8",
+          "n2",
+          false
+        ],
+        "e5": [
+          "n8",
+          "n3",
+          false
+        ],
+        "e6": [
+          "n8",
+          "n5",
+          true
+        ],
+        "e7": [
+          "n8",
+          "n6",
+          true
+        ]
+      }
+    }
+  },
+  {
+    "id": "get-users",
+    "label": "GET /users/",
+    "meta": {
+      "title": "GET /users/",
+      "description": "End-to-end trace from the GET /users/ handler (app.modules.users.router:list_users).",
+      "nodes": {
+        "n0": {
+          "name": "_is_trusted_proxy",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 8,
+          "entry": false
+        },
+        "n1": {
+          "name": "get_real_ip_address",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 16,
+          "entry": false
+        },
+        "n2": {
+          "name": "rate_limit",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 42,
+          "entry": false
+        },
+        "n3": {
+          "name": "get_current_user",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "line": 26,
+          "entry": false
+        },
+        "n4": {
+          "name": "require_permission",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "line": 52,
+          "entry": false
+        },
+        "n5": {
+          "name": "has_permission",
+          "module": "modules.auth.permissions",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/permissions.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/permissions.py",
+          "line": 33,
+          "entry": false
+        },
+        "n7": {
+          "name": "UserUseCases.get_list",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 58,
+          "entry": false
+        },
+        "n6": {
+          "name": "UserUseCases.get_by_id",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 61,
+          "entry": false
+        },
+        "n8": {
+          "name": "list_users",
+          "module": "modules.users.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "line": 46,
+          "entry": true
+        }
+      },
+      "edges": {
+        "e0": [
+          "n1",
+          "n0",
+          false
+        ],
+        "e1": [
+          "n2",
+          "n1",
+          true
+        ],
+        "e2": [
+          "n3",
+          "n6",
+          true
+        ],
+        "e3": [
+          "n4",
+          "n3",
+          true
+        ],
+        "e4": [
+          "n4",
+          "n5",
+          false
+        ],
+        "e5": [
+          "n8",
+          "n2",
+          false
+        ],
+        "e6": [
+          "n8",
+          "n4",
+          false
+        ],
+        "e7": [
+          "n8",
+          "n7",
+          true
+        ]
+      }
+    }
+  },
+  {
+    "id": "modules",
+    "label": "Modules",
+    "meta": {
+      "title": "Module map -- which file imports which",
+      "kind": "modules",
+      "description": "Every scanned file and the files it imports, grouped by layer and package. Click a file to see what it depends on and what depends on it.",
+      "nodes": {
+        "n0": {
+          "name": "api",
+          "module": "api",
+          "layer": "api",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/api.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/api.py",
+          "line": 1,
+          "entry": false
+        },
+        "n1": {
+          "name": "container",
+          "module": "container",
+          "layer": "container",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n2": {
+          "name": "client_ip",
+          "module": "core.client_ip",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/client_ip.py",
+          "line": 1,
+          "entry": false
+        },
+        "n3": {
+          "name": "conditional",
+          "module": "core.conditional",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/conditional.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/conditional.py",
+          "line": 1,
+          "entry": false
+        },
+        "n4": {
+          "name": "config",
+          "module": "core.config",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/config.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/config.py",
+          "line": 1,
+          "entry": false
+        },
+        "n5": {
+          "name": "csrf",
+          "module": "core.csrf",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/csrf.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/csrf.py",
+          "line": 1,
+          "entry": false
+        },
+        "n6": {
+          "name": "database",
+          "module": "core.database",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/database.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/database.py",
+          "line": 1,
+          "entry": false
+        },
+        "n7": {
+          "name": "error_handlers",
+          "module": "core.error_handlers",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/error_handlers.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/error_handlers.py",
+          "line": 1,
+          "entry": false
+        },
+        "n8": {
+          "name": "errors",
+          "module": "core.errors",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/errors.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/errors.py",
+          "line": 1,
+          "entry": false
+        },
+        "n9": {
+          "name": "logging",
+          "module": "core.logging",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/logging.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/logging.py",
+          "line": 1,
+          "entry": false
+        },
+        "n10": {
+          "name": "metrics",
+          "module": "core.metrics",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/metrics.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/metrics.py",
+          "line": 1,
+          "entry": false
+        },
+        "n11": {
+          "name": "middleware",
+          "module": "core.middleware",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/middleware.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/middleware.py",
+          "line": 1,
+          "entry": false
+        },
+        "n12": {
+          "name": "security",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/security.py",
+          "line": 1,
+          "entry": false
+        },
+        "n13": {
+          "name": "telemetry",
+          "module": "core.telemetry",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/telemetry.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/telemetry.py",
+          "line": 1,
+          "entry": false
+        },
+        "n14": {
+          "name": "versioning",
+          "module": "core.versioning",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/versioning.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/core/versioning.py",
+          "line": 1,
+          "entry": false
+        },
+        "n15": {
+          "name": "code_graphs",
+          "module": "devtools.code_graphs",
+          "layer": "devtools",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/devtools/code_graphs.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/devtools/code_graphs.py",
+          "line": 1,
+          "entry": false
+        },
+        "n16": {
+          "name": "main",
+          "module": "main",
+          "layer": "main",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/main.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/main.py",
+          "line": 1,
+          "entry": false
+        },
+        "n17": {
+          "name": "models",
+          "module": "models",
+          "layer": "models",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n20": {
+          "name": "container",
+          "module": "modules.audit.container",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n24": {
+          "name": "public",
+          "module": "modules.audit.public",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/public.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/public.py",
+          "line": 1,
+          "entry": false
+        },
+        "n25": {
+          "name": "router",
+          "module": "modules.audit.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/router.py",
+          "line": 1,
+          "entry": false
+        },
+        "n26": {
+          "name": "schemas",
+          "module": "modules.audit.schemas",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/schemas.py",
+          "line": 1,
+          "entry": false
+        },
+        "n18": {
+          "name": "audit_repository",
+          "module": "modules.audit.application.ports.audit_repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/ports/audit_repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/ports/audit_repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n19": {
+          "name": "service",
+          "module": "modules.audit.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/application/use_cases/service.py",
+          "line": 1,
+          "entry": false
+        },
+        "n21": {
+          "name": "entities",
+          "module": "modules.audit.domain.entities",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/domain/entities.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/domain/entities.py",
+          "line": 1,
+          "entry": false
+        },
+        "n22": {
+          "name": "models",
+          "module": "modules.audit.infrastructure.persistence.models",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/infrastructure/persistence/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/infrastructure/persistence/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n23": {
+          "name": "repository",
+          "module": "modules.audit.infrastructure.persistence.repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/infrastructure/persistence/repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/audit/infrastructure/persistence/repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n31": {
+          "name": "container",
+          "module": "modules.auth.container",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n32": {
+          "name": "dependencies",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/dependencies.py",
+          "line": 1,
+          "entry": false
+        },
+        "n34": {
+          "name": "emails",
+          "module": "modules.auth.emails",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/emails.py",
+          "line": 1,
+          "entry": false
+        },
+        "n37": {
+          "name": "permissions",
+          "module": "modules.auth.permissions",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/permissions.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/permissions.py",
+          "line": 1,
+          "entry": false
+        },
+        "n38": {
+          "name": "public",
+          "module": "modules.auth.public",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/public.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/public.py",
+          "line": 1,
+          "entry": false
+        },
+        "n39": {
+          "name": "router",
+          "module": "modules.auth.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/router.py",
+          "line": 1,
+          "entry": false
+        },
+        "n40": {
+          "name": "schemas",
+          "module": "modules.auth.schemas",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/schemas.py",
+          "line": 1,
+          "entry": false
+        },
+        "n27": {
+          "name": "contracts",
+          "module": "modules.auth.application.contracts",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/contracts.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/contracts.py",
+          "line": 1,
+          "entry": false
+        },
+        "n28": {
+          "name": "email_sender",
+          "module": "modules.auth.application.ports.email_sender",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/ports/email_sender.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/ports/email_sender.py",
+          "line": 1,
+          "entry": false
+        },
+        "n29": {
+          "name": "token_repositories",
+          "module": "modules.auth.application.ports.token_repositories",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/ports/token_repositories.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/ports/token_repositories.py",
+          "line": 1,
+          "entry": false
+        },
+        "n30": {
+          "name": "service",
+          "module": "modules.auth.application.use_cases.service",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/application/use_cases/service.py",
+          "line": 1,
+          "entry": false
+        },
+        "n33": {
+          "name": "entities",
+          "module": "modules.auth.domain.entities",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/domain/entities.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/domain/entities.py",
+          "line": 1,
+          "entry": false
+        },
+        "n35": {
+          "name": "models",
+          "module": "modules.auth.infrastructure.persistence.models",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/infrastructure/persistence/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/infrastructure/persistence/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n36": {
+          "name": "repository",
+          "module": "modules.auth.infrastructure.persistence.repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/infrastructure/persistence/repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/auth/infrastructure/persistence/repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n43": {
+          "name": "container",
+          "module": "modules.users.container",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n50": {
+          "name": "public",
+          "module": "modules.users.public",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/public.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/public.py",
+          "line": 1,
+          "entry": false
+        },
+        "n51": {
+          "name": "router",
+          "module": "modules.users.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/router.py",
+          "line": 1,
+          "entry": false
+        },
+        "n52": {
+          "name": "schemas",
+          "module": "modules.users.schemas",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/schemas.py",
+          "line": 1,
+          "entry": false
+        },
+        "n41": {
+          "name": "user_repository",
+          "module": "modules.users.application.ports.user_repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/ports/user_repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/ports/user_repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n42": {
+          "name": "user_use_cases",
+          "module": "modules.users.application.use_cases.user_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/application/use_cases/user_use_cases.py",
+          "line": 1,
+          "entry": false
+        },
+        "n44": {
+          "name": "entities",
+          "module": "modules.users.domain.entities",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/entities.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/entities.py",
+          "line": 1,
+          "entry": false
+        },
+        "n45": {
+          "name": "exceptions",
+          "module": "modules.users.domain.exceptions",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/exceptions.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/exceptions.py",
+          "line": 1,
+          "entry": false
+        },
+        "n46": {
+          "name": "policies",
+          "module": "modules.users.domain.policies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/policies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/policies.py",
+          "line": 1,
+          "entry": false
+        },
+        "n47": {
+          "name": "value_objects",
+          "module": "modules.users.domain.value_objects",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/value_objects.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/domain/value_objects.py",
+          "line": 1,
+          "entry": false
+        },
+        "n48": {
+          "name": "models",
+          "module": "modules.users.infrastructure.persistence.models",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/infrastructure/persistence/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/infrastructure/persistence/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n49": {
+          "name": "sqlalchemy_user_repository",
+          "module": "modules.users.infrastructure.persistence.sqlalchemy_user_repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/infrastructure/persistence/sqlalchemy_user_repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/modules/users/infrastructure/persistence/sqlalchemy_user_repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n53": {
+          "name": "http",
+          "module": "shared.http",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/http.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/http.py",
+          "line": 1,
+          "entry": false
+        },
+        "n54": {
+          "name": "idempotency",
+          "module": "shared.idempotency",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/idempotency.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/idempotency.py",
+          "line": 1,
+          "entry": false
+        },
+        "n57": {
+          "name": "models",
+          "module": "shared.models",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n58": {
+          "name": "outbox",
+          "module": "shared.outbox",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/outbox.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/outbox.py",
+          "line": 1,
+          "entry": false
+        },
+        "n59": {
+          "name": "pagination",
+          "module": "shared.pagination",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/pagination.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/pagination.py",
+          "line": 1,
+          "entry": false
+        },
+        "n60": {
+          "name": "repository",
+          "module": "shared.repository",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n61": {
+          "name": "schemas",
+          "module": "shared.schemas",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/schemas.py",
+          "line": 1,
+          "entry": false
+        },
+        "n62": {
+          "name": "service",
+          "module": "shared.service",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/service.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/service.py",
+          "line": 1,
+          "entry": false
+        },
+        "n63": {
+          "name": "storage",
+          "module": "shared.storage",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/storage.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/storage.py",
+          "line": 1,
+          "entry": false
+        },
+        "n64": {
+          "name": "storage_s3",
+          "module": "shared.storage_s3",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/storage_s3.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/storage_s3.py",
+          "line": 1,
+          "entry": false
+        },
+        "n65": {
+          "name": "tasks",
+          "module": "shared.tasks",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/tasks.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/tasks.py",
+          "line": 1,
+          "entry": false
+        },
+        "n66": {
+          "name": "unit_of_work",
+          "module": "shared.unit_of_work",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/unit_of_work.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/unit_of_work.py",
+          "line": 1,
+          "entry": false
+        },
+        "n55": {
+          "name": "autosend",
+          "module": "shared.integrations.autosend",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/integrations/autosend.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/integrations/autosend.py",
+          "line": 1,
+          "entry": false
+        },
+        "n56": {
+          "name": "email",
+          "module": "shared.integrations.email",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/integrations/email.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/integrations/email.py",
+          "line": 1,
+          "entry": false
+        },
+        "n67": {
+          "name": "query_builder",
+          "module": "shared.utils.query_builder",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/utils/query_builder.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/utils/query_builder.py",
+          "line": 1,
+          "entry": false
+        },
+        "n68": {
+          "name": "singleton",
+          "module": "shared.utils.singleton",
+          "layer": "shared",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/utils/singleton.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/shared/utils/singleton.py",
+          "line": 1,
+          "entry": false
+        },
+        "n69": {
+          "name": "worker",
+          "module": "worker",
+          "layer": "worker",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/worker.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/identity/app/worker.py",
+          "line": 1,
+          "entry": false
+        }
+      },
+      "edges": {
+        "e0": [
+          "n0",
+          "n25",
+          false
+        ],
+        "e1": [
+          "n0",
+          "n39",
+          false
+        ],
+        "e2": [
+          "n0",
+          "n51",
+          false
+        ],
+        "e3": [
+          "n1",
+          "n4",
+          false
+        ],
+        "e4": [
+          "n1",
+          "n6",
+          false
+        ],
+        "e5": [
+          "n1",
+          "n20",
+          false
+        ],
+        "e6": [
+          "n1",
+          "n31",
+          false
+        ],
+        "e7": [
+          "n1",
+          "n43",
+          false
+        ],
+        "e8": [
+          "n1",
+          "n55",
+          false
+        ],
+        "e9": [
+          "n1",
+          "n56",
+          false
+        ],
+        "e10": [
+          "n1",
+          "n58",
+          false
+        ],
+        "e11": [
+          "n1",
+          "n63",
+          false
+        ],
+        "e12": [
+          "n1",
+          "n64",
+          false
+        ],
+        "e13": [
+          "n1",
+          "n65",
+          false
+        ],
+        "e14": [
+          "n2",
+          "n4",
+          false
+        ],
+        "e15": [
+          "n3",
+          "n8",
+          false
+        ],
+        "e16": [
+          "n5",
+          "n4",
+          false
+        ],
+        "e17": [
+          "n5",
+          "n7",
+          false
+        ],
+        "e18": [
+          "n5",
+          "n9",
+          false
+        ],
+        "e19": [
+          "n5",
+          "n12",
+          false
+        ],
+        "e20": [
+          "n6",
+          "n4",
+          false
+        ],
+        "e21": [
+          "n6",
+          "n9",
+          false
+        ],
+        "e22": [
+          "n7",
+          "n4",
+          false
+        ],
+        "e23": [
+          "n7",
+          "n8",
+          false
+        ],
+        "e24": [
+          "n7",
+          "n9",
+          false
+        ],
+        "e25": [
+          "n9",
+          "n4",
+          false
+        ],
+        "e26": [
+          "n11",
+          "n2",
+          false
+        ],
+        "e27": [
+          "n11",
+          "n4",
+          false
+        ],
+        "e28": [
+          "n11",
+          "n6",
+          false
+        ],
+        "e29": [
+          "n11",
+          "n7",
+          false
+        ],
+        "e30": [
+          "n11",
+          "n9",
+          false
+        ],
+        "e31": [
+          "n11",
+          "n10",
+          false
+        ],
+        "e32": [
+          "n12",
+          "n2",
+          false
+        ],
+        "e33": [
+          "n12",
+          "n4",
+          false
+        ],
+        "e34": [
+          "n12",
+          "n8",
+          false
+        ],
+        "e35": [
+          "n12",
+          "n9",
+          false
+        ],
+        "e36": [
+          "n13",
+          "n4",
+          false
+        ],
+        "e37": [
+          "n13",
+          "n9",
+          false
+        ],
+        "e38": [
+          "n14",
+          "n9",
+          false
+        ],
+        "e39": [
+          "n15",
+          "n4",
+          false
+        ],
+        "e40": [
+          "n15",
+          "n8",
+          false
+        ],
+        "e41": [
+          "n16",
+          "n0",
+          false
+        ],
+        "e42": [
+          "n16",
+          "n1",
+          false
+        ],
+        "e43": [
+          "n16",
+          "n4",
+          false
+        ],
+        "e44": [
+          "n16",
+          "n5",
+          false
+        ],
+        "e45": [
+          "n16",
+          "n6",
+          false
+        ],
+        "e46": [
+          "n16",
+          "n7",
+          false
+        ],
+        "e47": [
+          "n16",
+          "n8",
+          false
+        ],
+        "e48": [
+          "n16",
+          "n9",
+          false
+        ],
+        "e49": [
+          "n16",
+          "n10",
+          false
+        ],
+        "e50": [
+          "n16",
+          "n11",
+          false
+        ],
+        "e51": [
+          "n16",
+          "n12",
+          false
+        ],
+        "e52": [
+          "n16",
+          "n13",
+          false
+        ],
+        "e53": [
+          "n16",
+          "n14",
+          false
+        ],
+        "e54": [
+          "n16",
+          "n15",
+          false
+        ],
+        "e55": [
+          "n16",
+          "n17",
+          false
+        ],
+        "e56": [
+          "n16",
+          "n54",
+          false
+        ],
+        "e57": [
+          "n16",
+          "n58",
+          false
+        ],
+        "e58": [
+          "n16",
+          "n68",
+          false
+        ],
+        "e59": [
+          "n17",
+          "n22",
+          false
+        ],
+        "e60": [
+          "n17",
+          "n35",
+          false
+        ],
+        "e61": [
+          "n17",
+          "n48",
+          false
+        ],
+        "e62": [
+          "n17",
+          "n54",
+          false
+        ],
+        "e63": [
+          "n17",
+          "n57",
+          false
+        ],
+        "e64": [
+          "n17",
+          "n58",
+          false
+        ],
+        "e65": [
+          "n18",
+          "n21",
+          false
+        ],
+        "e66": [
+          "n19",
+          "n9",
+          false
+        ],
+        "e67": [
+          "n19",
+          "n18",
+          false
+        ],
+        "e68": [
+          "n20",
+          "n6",
+          false
+        ],
+        "e69": [
+          "n20",
+          "n19",
+          false
+        ],
+        "e70": [
+          "n20",
+          "n23",
+          false
+        ],
+        "e71": [
+          "n22",
+          "n57",
+          false
+        ],
+        "e72": [
+          "n23",
+          "n21",
+          false
+        ],
+        "e73": [
+          "n23",
+          "n22",
+          false
+        ],
+        "e74": [
+          "n23",
+          "n60",
+          false
+        ],
+        "e75": [
+          "n24",
+          "n19",
+          false
+        ],
+        "e76": [
+          "n24",
+          "n21",
+          false
+        ],
+        "e77": [
+          "n25",
+          "n12",
+          false
+        ],
+        "e78": [
+          "n25",
+          "n19",
+          false
+        ],
+        "e79": [
+          "n25",
+          "n26",
+          false
+        ],
+        "e80": [
+          "n25",
+          "n32",
+          false
+        ],
+        "e81": [
+          "n25",
+          "n37",
+          false
+        ],
+        "e82": [
+          "n26",
+          "n61",
+          false
+        ],
+        "e83": [
+          "n29",
+          "n33",
+          false
+        ],
+        "e84": [
+          "n30",
+          "n4",
+          false
+        ],
+        "e85": [
+          "n30",
+          "n8",
+          false
+        ],
+        "e86": [
+          "n30",
+          "n9",
+          false
+        ],
+        "e87": [
+          "n30",
+          "n12",
+          false
+        ],
+        "e88": [
+          "n30",
+          "n19",
+          false
+        ],
+        "e89": [
+          "n30",
+          "n27",
+          false
+        ],
+        "e90": [
+          "n30",
+          "n28",
+          false
+        ],
+        "e91": [
+          "n30",
+          "n29",
+          false
+        ],
+        "e92": [
+          "n30",
+          "n33",
+          false
+        ],
+        "e93": [
+          "n30",
+          "n34",
+          false
+        ],
+        "e94": [
+          "n30",
+          "n42",
+          false
+        ],
+        "e95": [
+          "n30",
+          "n44",
+          false
+        ],
+        "e96": [
+          "n30",
+          "n66",
+          false
+        ],
+        "e97": [
+          "n31",
+          "n6",
+          false
+        ],
+        "e98": [
+          "n31",
+          "n19",
+          false
+        ],
+        "e99": [
+          "n31",
+          "n28",
+          false
+        ],
+        "e100": [
+          "n31",
+          "n30",
+          false
+        ],
+        "e101": [
+          "n31",
+          "n36",
+          false
+        ],
+        "e102": [
+          "n31",
+          "n42",
+          false
+        ],
+        "e103": [
+          "n32",
+          "n8",
+          false
+        ],
+        "e104": [
+          "n32",
+          "n12",
+          false
+        ],
+        "e105": [
+          "n32",
+          "n37",
+          false
+        ],
+        "e106": [
+          "n32",
+          "n42",
+          false
+        ],
+        "e107": [
+          "n32",
+          "n44",
+          false
+        ],
+        "e108": [
+          "n34",
+          "n4",
+          false
+        ],
+        "e109": [
+          "n35",
+          "n57",
+          false
+        ],
+        "e110": [
+          "n36",
+          "n33",
+          false
+        ],
+        "e111": [
+          "n36",
+          "n35",
+          false
+        ],
+        "e112": [
+          "n37",
+          "n47",
+          false
+        ],
+        "e113": [
+          "n38",
+          "n30",
+          false
+        ],
+        "e114": [
+          "n39",
+          "n2",
+          false
+        ],
+        "e115": [
+          "n39",
+          "n4",
+          false
+        ],
+        "e116": [
+          "n39",
+          "n12",
+          false
+        ],
+        "e117": [
+          "n39",
+          "n27",
+          false
+        ],
+        "e118": [
+          "n39",
+          "n30",
+          false
+        ],
+        "e119": [
+          "n39",
+          "n32",
+          false
+        ],
+        "e120": [
+          "n39",
+          "n40",
+          false
+        ],
+        "e121": [
+          "n41",
+          "n44",
+          false
+        ],
+        "e122": [
+          "n42",
+          "n4",
+          false
+        ],
+        "e123": [
+          "n42",
+          "n8",
+          false
+        ],
+        "e124": [
+          "n42",
+          "n9",
+          false
+        ],
+        "e125": [
+          "n42",
+          "n19",
+          false
+        ],
+        "e126": [
+          "n42",
+          "n41",
+          false
+        ],
+        "e127": [
+          "n42",
+          "n44",
+          false
+        ],
+        "e128": [
+          "n42",
+          "n45",
+          false
+        ],
+        "e129": [
+          "n42",
+          "n46",
+          false
+        ],
+        "e130": [
+          "n42",
+          "n47",
+          false
+        ],
+        "e131": [
+          "n42",
+          "n63",
+          false
+        ],
+        "e132": [
+          "n42",
+          "n66",
+          false
+        ],
+        "e133": [
+          "n43",
+          "n6",
+          false
+        ],
+        "e134": [
+          "n43",
+          "n19",
+          false
+        ],
+        "e135": [
+          "n43",
+          "n42",
+          false
+        ],
+        "e136": [
+          "n43",
+          "n49",
+          false
+        ],
+        "e137": [
+          "n43",
+          "n63",
+          false
+        ],
+        "e138": [
+          "n44",
+          "n45",
+          false
+        ],
+        "e139": [
+          "n44",
+          "n47",
+          false
+        ],
+        "e140": [
+          "n47",
+          "n45",
+          false
+        ],
+        "e141": [
+          "n48",
+          "n57",
+          false
+        ],
+        "e142": [
+          "n49",
+          "n41",
+          false
+        ],
+        "e143": [
+          "n49",
+          "n44",
+          false
+        ],
+        "e144": [
+          "n49",
+          "n47",
+          false
+        ],
+        "e145": [
+          "n49",
+          "n48",
+          false
+        ],
+        "e146": [
+          "n49",
+          "n60",
+          false
+        ],
+        "e147": [
+          "n50",
+          "n42",
+          false
+        ],
+        "e148": [
+          "n50",
+          "n44",
+          false
+        ],
+        "e149": [
+          "n50",
+          "n47",
+          false
+        ],
+        "e150": [
+          "n51",
+          "n12",
+          false
+        ],
+        "e151": [
+          "n51",
+          "n32",
+          false
+        ],
+        "e152": [
+          "n51",
+          "n37",
+          false
+        ],
+        "e153": [
+          "n51",
+          "n42",
+          false
+        ],
+        "e154": [
+          "n51",
+          "n44",
+          false
+        ],
+        "e155": [
+          "n51",
+          "n52",
+          false
+        ],
+        "e156": [
+          "n51",
+          "n61",
+          false
+        ],
+        "e157": [
+          "n53",
+          "n4",
+          false
+        ],
+        "e158": [
+          "n53",
+          "n8",
+          false
+        ],
+        "e159": [
+          "n53",
+          "n9",
+          false
+        ],
+        "e160": [
+          "n54",
+          "n2",
+          false
+        ],
+        "e161": [
+          "n54",
+          "n4",
+          false
+        ],
+        "e162": [
+          "n54",
+          "n6",
+          false
+        ],
+        "e163": [
+          "n54",
+          "n7",
+          false
+        ],
+        "e164": [
+          "n54",
+          "n8",
+          false
+        ],
+        "e165": [
+          "n54",
+          "n9",
+          false
+        ],
+        "e166": [
+          "n54",
+          "n12",
+          false
+        ],
+        "e167": [
+          "n54",
+          "n57",
+          false
+        ],
+        "e168": [
+          "n55",
+          "n4",
+          false
+        ],
+        "e169": [
+          "n55",
+          "n9",
+          false
+        ],
+        "e170": [
+          "n55",
+          "n53",
+          false
+        ],
+        "e171": [
+          "n56",
+          "n58",
+          false
+        ],
+        "e172": [
+          "n58",
+          "n4",
+          false
+        ],
+        "e173": [
+          "n58",
+          "n6",
+          false
+        ],
+        "e174": [
+          "n58",
+          "n9",
+          false
+        ],
+        "e175": [
+          "n58",
+          "n57",
+          false
+        ],
+        "e176": [
+          "n59",
+          "n8",
+          false
+        ],
+        "e177": [
+          "n60",
+          "n4",
+          false
+        ],
+        "e178": [
+          "n60",
+          "n8",
+          false
+        ],
+        "e179": [
+          "n60",
+          "n9",
+          false
+        ],
+        "e180": [
+          "n60",
+          "n57",
+          false
+        ],
+        "e181": [
+          "n60",
+          "n59",
+          false
+        ],
+        "e182": [
+          "n60",
+          "n67",
+          false
+        ],
+        "e183": [
+          "n61",
+          "n4",
+          false
+        ],
+        "e184": [
+          "n62",
+          "n9",
+          false
+        ],
+        "e185": [
+          "n62",
+          "n60",
+          false
+        ],
+        "e186": [
+          "n63",
+          "n4",
+          false
+        ],
+        "e187": [
+          "n63",
+          "n8",
+          false
+        ],
+        "e188": [
+          "n64",
+          "n4",
+          false
+        ],
+        "e189": [
+          "n64",
+          "n8",
+          false
+        ],
+        "e190": [
+          "n64",
+          "n63",
+          false
+        ],
+        "e191": [
+          "n69",
+          "n1",
+          false
+        ],
+        "e192": [
+          "n69",
+          "n4",
+          false
+        ],
+        "e193": [
+          "n69",
+          "n9",
+          false
+        ],
+        "e194": [
+          "n69",
+          "n17",
+          false
+        ],
+        "e195": [
+          "n69",
+          "n22",
+          false
+        ],
+        "e196": [
+          "n69",
+          "n35",
+          false
+        ],
+        "e197": [
+          "n69",
+          "n54",
+          false
+        ],
+        "e198": [
+          "n69",
+          "n58",
+          false
+        ]
+      }
+    }
+  }
+]

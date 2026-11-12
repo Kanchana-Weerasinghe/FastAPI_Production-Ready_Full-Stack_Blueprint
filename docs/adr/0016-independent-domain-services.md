@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-10-20
 - Amends: [0001](0001-modular-monolith.md) (the monolith becomes `identity`, one service among several)
+- Note (2026-11-12): the sample `data-acquisition` service was removed; no domain service exists yet. The decision
+  stands for the next one (`packages/platform-kit`, `deploy/helm/domain-service`).
 
 ## Context
 
@@ -22,7 +24,7 @@ service would create several diverging copies of the same infrastructure code.
   value objects, policies, use cases, ports). Other applications call its HTTP API or, later, consume its
   domain events. No service imports another service's code.
 - **One PostgreSQL server, one schema per service** with its own owner and runtime roles
-  (e.g. `deploy/db/roles-data-acquisition.sql`). Other services' data is referenced by ID only: no
+  (e.g. `deploy/db/roles-<service>.sql`). Other services' data is referenced by ID only: no
   cross-schema foreign keys, joins or reads.
 - **The identity service is the identity provider.** Domain services verify its short-lived access tokens offline
   (`platform_kit.auth`) and accept them only as `Authorization: Bearer`. Cookies and CSRF stay at the
@@ -46,5 +48,5 @@ service would create several diverging copies of the same infrastructure code.
   signing keys with a JWKS endpoint before many services trust the identity service, so they do not share a secret.
 - The identity service still has its own copy of the infrastructure code. Migrate it to `platform-kit` incrementally;
   until then, fixes to shared concerns must be applied in both places.
-- An API gateway (routing `/v1/acquisition-jobs` → data-acquisition, `/v1/auth`, `/v2/...` → the identity service)
+- An API gateway (routing a domain service's paths to it, `/v1/auth`, `/v2/...` → the identity service)
   and the message broker are the next platform pieces; neither exists yet.

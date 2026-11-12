@@ -1,8 +1,8 @@
 # Defaults shared by every domain service. Each service has its own values file
-# (e.g. values-data-acquisition.yaml) that sets serviceName, image, schema and the secret name.
+# (values-<service>.yaml) that sets serviceName, image, schema and the secret name.
 # Secrets are never stored here: reference an existing Secret created from the cloud secrets manager.
 
-serviceName: ""        # required, e.g. data-acquisition
+serviceName: ""        # required, e.g. ordering
 
 image:
   repository: ""       # required

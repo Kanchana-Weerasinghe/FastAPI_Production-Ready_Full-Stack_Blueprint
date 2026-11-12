@@ -6,7 +6,7 @@ Architecture rules for the modular monolith, enforced on every test run.
 2. Domain code is framework- and persistence-agnostic. Application workflows never import HTTP
    frameworks. Persistence implementations belong under `infrastructure/`.
 3. A module may use another module only through its public API (`public`, `schemas`,
-   `dependencies`, `permissions`), never its persistence adapter, router or container.
+   `dependencies`), never its persistence adapter, router or container.
 4. Modules never import the composition root (`app.container`, `app.api`, `app.main`); routes
    resolve services by container path, e.g. `Provide["users.use_cases"]`.
 5. Domain modules share `domain/`, `application/ports/`, `application/use_cases/`, and
@@ -22,7 +22,7 @@ import pytest
 APP_DIR = Path(__file__).resolve().parents[2] / "app"
 APPLICATION_ORCHESTRATION_MODULES: set[str] = set()
 REQUIRED_DOMAIN_MODULES = {"audit", "auth", "users"}
-PUBLIC_MODULE_FILES = {"public", "schemas", "dependencies", "permissions"}
+PUBLIC_MODULE_FILES = {"public", "schemas", "dependencies"}
 FRAMEWORK_FREE_FILES = {"public", "repository", "models"}
 COMPOSITION_ROOT = ("app.container", "app.api", "app.main")
 

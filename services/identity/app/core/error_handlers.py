@@ -20,6 +20,7 @@ from typing import Any
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from platform_kit.errors import AppError as PlatformAppError
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -65,8 +66,11 @@ def problem_response(
     return JSONResponse(status_code=status, content=body, media_type=PROBLEM_JSON, headers=headers)
 
 
-async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-    """Domain errors: expected failures, logged at warning level (5xx at error level)."""
+async def app_error_handler(request: Request, exc: AppError | PlatformAppError) -> JSONResponse:
+    """
+    Domain errors: expected failures, logged at warning level (5xx at error level). Also renders the
+    errors of shared platform-kit code (e.g. 403 `access_denied` from the access check) identically.
+    """
     log = logger.error if exc.status >= 500 else logger.warning
     log("app_error", code=exc.code, status=exc.status, detail=exc.detail)
     return problem_response(request, status=exc.status, code=exc.code, title=exc.title, detail=exc.detail, **exc.extra)
@@ -128,6 +132,7 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 EXCEPTION_HANDLERS: dict[Any, Any] = {
     AppError: app_error_handler,
+    PlatformAppError: app_error_handler,
     HTTPException: http_exception_handler,
     StarletteHTTPException: http_exception_handler,
     RequestValidationError: validation_exception_handler,

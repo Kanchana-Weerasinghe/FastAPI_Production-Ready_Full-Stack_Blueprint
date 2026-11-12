@@ -59,7 +59,7 @@ class PasswordHash(str):
 
 
 class Role(StrEnum):
-    """What kind of account this is. Permissions per role are decided by the auth module."""
+    """What kind of account this is. What each role may call is data (config/access-control.json), not code."""
 
     USER = "user"
     ADMIN = "admin"

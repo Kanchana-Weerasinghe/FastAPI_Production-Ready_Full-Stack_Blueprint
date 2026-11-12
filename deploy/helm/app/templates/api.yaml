@@ -24,6 +24,7 @@ spec:
         {{- include "app.selector" (dict "root" . "component" "api") | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/access: {{ .Values.accessControl.document | sha256sum }}
     spec:
       serviceAccountName: {{ include "app.fullname" . }}
       {{- with .Values.imagePullSecrets }}
@@ -69,12 +70,21 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
             - {name: uploads, mountPath: /app/uploads}
+            {{- if .Values.accessControl.document }}
+            - {name: access-control, mountPath: /app/config/access-control.json, subPath: access-control.json, readOnly: true}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
         # Only used with STORAGE_BACKEND=local (single replica / dev clusters); use s3 in production.
         - name: uploads
           emptyDir: {}
+        {{- if .Values.accessControl.document }}
+        # Mounted with subPath (no live update): checksum/access rolls the pods when the document changes.
+        - name: access-control
+          configMap:
+            name: {{ include "app.fullname" . }}-access
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service

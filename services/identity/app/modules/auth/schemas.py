@@ -84,3 +84,12 @@ class PasswordChange(BaseModel):
     model_config = _camel
     current_password: LoginPassword
     new_password: NewPassword
+
+
+class MyAccess(BaseModel):
+    """What the signed-in caller may do, from the central access document."""
+
+    model_config = _camel
+    service: str = Field(description="Service the operations belong to")
+    roles: list[str] = Field(description="Roles the caller holds")
+    operations: list[str] = Field(description="operationIds the caller may call in this service")

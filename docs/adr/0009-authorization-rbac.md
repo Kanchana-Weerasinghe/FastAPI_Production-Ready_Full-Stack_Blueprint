@@ -1,6 +1,6 @@
 # 0009. Authorization: RBAC in code plus central ownership checks
 
-- Status: Accepted
+- Status: Superseded by [0017](0017-central-access-control.md) (role → permission mapping); the ownership check remains
 - Date: 2026-10-16
 
 ## Context

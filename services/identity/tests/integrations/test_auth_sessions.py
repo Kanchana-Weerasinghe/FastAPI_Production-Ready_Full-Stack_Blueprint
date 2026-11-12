@@ -148,11 +148,11 @@ async def test_mfa_enrolment_and_signin(client: Any) -> None:
 
 
 async def test_admin_endpoint_requires_permission(client: Any) -> None:
-    """Integration test verifying RBAC: regular users get 403 on admin endpoints."""
+    """Integration test verifying access control: regular users get 403 `access_denied` on admin endpoints."""
     api_client = await client(**FIRST_USER)
     response = await api_client.get("/v2/users/")
     assert response.status_code == 403
-    assert response.json()["code"] == "forbidden"
+    assert response.json()["code"] == "access_denied"
 
 
 async def test_failed_signin_is_audited_despite_401(client: Any) -> None:

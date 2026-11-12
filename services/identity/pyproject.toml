@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "FastAPI Template by aps08 | https://github.com/aps08"
 requires-python = ">=3.12"
 dependencies = [
+    "platform-kit",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
@@ -34,6 +35,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
+    "codegraphs",
     "faker>=40.19.1",
     "mypy>=1.20.1",
     "pytest>=9.0.3",
@@ -156,3 +158,7 @@ warn_required_dynamic_aliases = true
 
 [tool.fastapi]
 entrypoint = "app.main:app"
+
+[tool.uv.sources]
+platform-kit = { path = "../../packages/platform-kit", editable = true }
+codegraphs = { path = "../../../codegraphs", editable = true }

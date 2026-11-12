@@ -43,6 +43,11 @@ class ServiceSettings(BaseSettings):
     JWT_SECRET_KEY: SecretStr = SecretStr(INSECURE_SECRET_KEY)
     JWT_ALGORITHM: str = "HS256"
 
+    # --- Access control: the central access document (config/access-control.json in the repository;
+    # a mounted ConfigMap when deployed). Re-read when it changes, checked every ACCESS_RELOAD_SECONDS.
+    ACCESS_CONFIG_PATH: str = "../../config/access-control.json"
+    ACCESS_RELOAD_SECONDS: float = 30.0
+
     # --- HTTP ---
     MAX_REQUEST_BODY_BYTES: int = 1_048_576
     PROBLEM_TYPE_BASE_URI: str = "https://errors.example.com"
