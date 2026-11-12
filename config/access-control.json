@@ -50,6 +50,21 @@
           "listAuditLogs"
         ]
       }
+    },
+    "monitoringItems": {
+      "name": "Monitoring: items",
+      "description": "Create, read, update, archive, restore and delete items.",
+      "endpoints": {
+        "monitoring": [
+          "createItem",
+          "listItems",
+          "getItem",
+          "updateItem",
+          "archiveItem",
+          "restoreItem",
+          "deleteItem"
+        ]
+      }
     }
   },
   "roles": {
@@ -57,12 +72,14 @@
       "publicSignIn"
     ],
     "user": [
-      "ownAccount"
+      "ownAccount",
+      "monitoringItems"
     ],
     "admin": [
       "ownAccount",
       "userAdministration",
-      "auditRead"
+      "auditRead",
+      "monitoringItems"
     ]
   }
 }

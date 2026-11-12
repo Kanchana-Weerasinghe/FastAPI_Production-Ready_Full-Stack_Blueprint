@@ -1,0 +1,17 @@
+# Used by `docker build -f services/monitoring/Dockerfile .` (the build context is the repo root).
+# Allow-list: only the shared package, the central access document and this service reach the context.
+*
+!packages/platform-kit/
+!config/access-control.json
+!services/monitoring/
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/.coverage
+**/.env
+**/.env.*
+services/monitoring/tests/
+packages/platform-kit/tests/

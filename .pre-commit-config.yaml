@@ -42,25 +42,26 @@ repos:
         entry: uv run --directory services/identity mypy .
         language: system
         types: [python]
-        files: ^services/identity/
+        # platform-kit changes can break the identity service's types too.
+        files: ^(services/identity|packages/platform-kit)/
         pass_filenames: false
         stages: [pre-push]
 
-      - id: data-acquisition-ruff
-        name: ruff (data-acquisition)
-        entry: uv run --directory services/data-acquisition task check
+      - id: monitoring-ruff
+        name: ruff (monitoring)
+        entry: uv run --directory services/monitoring task check
         language: system
         types: [python]
-        files: ^services/data-acquisition/
+        files: ^services/monitoring/
         pass_filenames: false
 
-      - id: data-acquisition-mypy
-        name: mypy (data-acquisition)
-        entry: uv run --directory services/data-acquisition mypy .
+      - id: monitoring-mypy
+        name: mypy (monitoring)
+        entry: uv run --directory services/monitoring mypy .
         language: system
         types: [python]
         # platform-kit changes can break the service's types too.
-        files: ^(services/data-acquisition|packages/platform-kit)/
+        files: ^(services/monitoring|packages/platform-kit)/
         pass_filenames: false
         stages: [pre-push]
 

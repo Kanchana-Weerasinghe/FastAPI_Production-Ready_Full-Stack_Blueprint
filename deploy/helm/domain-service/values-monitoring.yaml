@@ -1,0 +1,19 @@
+# monitoring release:
+#   helm upgrade --install monitoring deploy/helm/domain-service \
+#     -f deploy/helm/domain-service/values-monitoring.yaml --set image.tag=<git-sha>
+
+serviceName: monitoring
+
+image:
+  repository: ghcr.io/your-org/your-repo/monitoring
+
+config:
+  DB_SCHEMA: monitoring
+  PROBLEM_TYPE_BASE_URI: https://errors.example.com
+  # Share rate-limit counters across replicas, e.g. redis://redis:6379/2
+  RATE_LIMIT_STORAGE_URI: memory://
+
+existingSecret: monitoring-secrets
+
+networkPolicy:
+  allowedCallers: []   # other services' pods (app.kubernetes.io/name) that call this one directly

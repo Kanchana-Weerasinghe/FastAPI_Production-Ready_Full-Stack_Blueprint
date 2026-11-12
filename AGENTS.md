@@ -36,33 +36,44 @@ Welcome! This document provides commands, rules, and guidelines for developing a
 | Path | What it is |
 | :--- | :--- |
 | `services/identity/` | Identity (auth, users) and audit; issues the access tokens |
-| `services/data-acquisition/` | Data acquisition domain service (`AcquisitionJob`), deployed independently |
-| `packages/platform-kit/` | Shared technical building blocks for domain services (no business rules) |
-| `specs/<service>/` | Business-rule specs (`<entity>.rules.yaml`): rules and test cases shared by the developer and QA suites |
+| `packages/platform-kit/` | Shared technical building blocks (no business rules): central access control, and the base for future domain services |
+| `specs/<service>/<module>/` | One folder per module: `service.yaml`, `<module>.rules.yaml`, `<module>.domain.yaml` (rules, test cases and design shared by the developer and QA suites) |
 | `qa/<service>-acceptance/` | QA-owned black-box acceptance suites: HTTP API + `openapi.json` only, run against any environment |
 | `web/` | React front end |
 | `deploy/helm/app`, `deploy/helm/domain-service` | Helm charts: the identity service + web, and one release per domain service |
 
 Run each service's commands from its own folder. See `docs/adr/0016-independent-domain-services.md`.
 
-### Domain services (`services/<name>/`, e.g. `data-acquisition`)
+### Domain services (`services/<name>/`)
 
-* **Environment Sync:** `uv sync` (installs `platform-kit` as an editable path dependency)
-* **Development Server:** `uv run task dev` (data-acquisition on `:8010`)
-* **Migrations:** `uv run task upgrade` (own schema, e.g. `data_acquisition`)
-* **Checks:** `uv run task check`, `uv run task format`, `uv run task type-check`
-* **Testing:** `uv run task test` (unit, architecture and Testcontainers integration tests)
-* **Export OpenAPI contract:** `uv run task openapi` (commit the service's `openapi.json`)
-* **Image:** `docker build -f services/<name>-api/Dockerfile .` from the repository root
+There is no domain service yet; the identity service is the only backend. A new one follows
+`docs/adr/0016-independent-domain-services.md`: its own folder, schema, migrations and image, `platform-kit` as an
+editable path dependency, central access control (`install_access`, see "Access control"), and one release of
+the `deploy/helm/domain-service` chart.
+
+Two generators (from the repository root; `--dry-run` previews). Both create `services/<name>/` with the same
+skeleton (identity's names: `app/core/{config,errors,security}.py`, `app/modules/auth/dependencies.py`, the
+`client` / `grant_access` / `deny_access` / `db_session` / `fake_uow` / `isolated_app_transaction` fixtures,
+`tests/business_rules/`), `deploy/db/roles-<name>.sql`, `values-<name>.yaml`, docker-compose and pre-commit entries,
+then run `uv lock`/`uv sync`, ruff and the OpenAPI export.
+
+| Command | Use |
+| :--- | :--- |
+| `python scripts/new_service.py <name>` | **Real services:** empty, ready for `/generate-test-suite` and `/generate-source-code` (no manual steps) |
+| `python scripts/new_service_demo.py <name> [--module <plural>]` | **Learning:** adds a working demo module (domain → API), its migration and privilege |
+| `python scripts/new_service_demo.py <name> --add-module <plural>` | Another demo module in a generated service (then autogenerate its migration) |
+| `python scripts/new_module.py <service> <module>` | **New module by hand:** every layer filled with a commented CRUD example (entity with `id`, `name`, unique `code`; create / list / get / update / delete), a module README, wired in, granted, its migration chained to the head, unit + integration tests |
+
+In the service: `uv run task test` (needs Docker), `uv run task test-br`, `uv run task check-access`.
 
 ### Shared package (`packages/platform-kit/`)
 
-* `uv sync`, `uv run task check`, `uv run task type-check`, `uv run task test`. Changes affect every domain service: run their tests too.
+* `uv sync`, `uv run task check`, `uv run task type-check`, `uv run task test`. Identity depends on it: run identity's tests too.
 
 ### Business-rule specs and QA suites (`specs/`, `qa/`)
 
-* Each case in `specs/<service>/<entity>.rules.yaml` has a `layer`: `domain`, `use_case`, `repository`, `integration` (developers, `services/<service>/tests/business_rules/`) or `acceptance` (QA, `qa/<service>-acceptance/`). Add or change a case in the spec before writing its test; both suites' traceability tests fail otherwise.
-* **Generate with Claude:** `/generate-test-suite <service> <entities> <BR file> <test-case file>` (catalogue + both suites, RED), then `/generate-source-code <service> <entities>` (code until GREEN). Skills in `.agents/skills/generate_test_suite/` and `generate_source_code/`; review steps in `docs/index.html#quick-start`.
+* Each case in `specs/<service>/<module>/<module>.rules.yaml` has a `layer`: `domain`, `use_case`, `repository`, `integration` (developers, `services/<service>/tests/business_rules/`) or `acceptance` (QA, `qa/<service>-acceptance/`). Add or change a case in the spec before writing its test; both suites' traceability tests fail otherwise.
+* **Generate with Claude:** `/generate-test-suite specs/<service>/<module>` (both suites, RED), then `/generate-source-code specs/<service>/<module> core` and `... api` (code until GREEN). Skills in `.agents/skills/generate_test_suite/` and `generate_source_code/`; review steps in `docs/index.html#quick-start`.
 * **Developer suite:** `uv run task test-br` from `services/identity/`.
 * **QA suite:** from `qa/identity-acceptance/`: `uv sync`, `uv run task test` (identity running with `RATE_LIMIT_ENABLED=false` and seeded; `QA_BASE_URL` selects the environment), `uv run task check`, `uv run task type-check`.
 
@@ -96,23 +107,13 @@ The application resides in the `services/identity/app/` directory and is a **mod
   * The root `public.py` is the module's public API: the only file other modules may import from. Keep it to re-exports, not business logic. Put use-case implementations under `application/use_cases/`.
   * `router.py` and `schemas.py` translate and validate HTTP input/output; keep business rules in the domain and application layers.
   * Cross-module workflows use another module's public service/application API. Do not import another module's repository, infrastructure, router, or container. Keep domain entities module-local; use application contracts for cross-module data.
-  * `auth/dependencies.py` provides `CurrentUserDep` and `check_ownership(...)` for route authentication and resource ownership checks.
+  * `auth/dependencies.py` provides `CurrentUserDep`, `check_ownership(...)` and `get_access_subject` (the caller for the central access check; see "Access control").
 
 * `shared/`: Base model/repository/service, pagination schemas (`schemas.py`), file storage, the `Actor` protocol, outbound integrations (`integrations/`) and utilities.
 
 * `core/`: Config, database + `UnitOfWork` (`database.py`), domain errors (`errors.py`) and RFC 9457 handlers (`error_handlers.py`), security, logging, middleware, client IP resolution. Imports nothing from `shared`/`modules`.
 
 * `container.py` / `api.py` / `models.py`: Composition root (DI wiring), router registry per API version (`/v1`, `/v2`), and model registry for Alembic.
-
-### Domain Service Structure (`services/<name>/`)
-
-Same layering as the identity service modules, but the service *is* the bounded context and its modules are its aggregates (e.g. `app/modules/acquisition_jobs/`):
-
-* `domain/`: `entities.py` (aggregate with behaviour methods and domain events), `value_objects.py`, `policies.py`, `events.py`, `exceptions.py` (extend `platform_kit.errors`). Plain Python: no FastAPI, Pydantic, SQLAlchemy or `app.config`.
-* `application/ports/` (abstract base classes; adapters and fakes inherit them explicitly) and `application/use_cases/` (one class per use case; receives a `Principal` and transport-neutral values). May import only `platform_kit.errors` and `platform_kit.auth` from platform-kit.
-* `infrastructure/`: SQLAlchemy models (the service's schema via `app/db.py`), `SqlAlchemy…Repository` and other adapters, each inheriting the port it implements; HTTP clients to other services.
-* `router.py`, `schemas.py`, `container.py`, `public.py` as in the identity service; `app/auth.py` resolves the caller from the bearer token.
-* Never import another service's code or read another service's schema; reference other aggregates by ID, call their API through a port, or consume their events. `tests/architecture/test_layers.py` enforces the layer rules.
 
 ### Naming conventions (all services)
 
@@ -184,11 +185,30 @@ The source code resides in the `web/src/` directory:
 ### Backend
 
 - **Async flow**: Use `async`/`await` for database operations and other asynchronous I/O.
+- **Access control**: Give every route an `operation_id` and grant it in `config/access-control.json`; never check roles in code (see "Access control").
 - **Rate limiting**: Apply the existing `@rate_limit` decorator to API endpoints according to their resource profile.
 - **UTC datetimes**: Save and process timestamps as timezone-aware UTC values.
 - **Transactions**: The request middleware owns the transaction. Application services and repositories must not commit. Register side effects that must only happen after a successful commit with `uow.after_commit(...)`.
 - **Errors**: Raise framework-agnostic application/domain errors from `app/core/errors.py`; the HTTP exception handlers convert them to RFC 9457 responses. Do not raise `HTTPException` from application or persistence code.
 - **Tests**: For backend tests, follow the `python-testing` skill and the existing unit, architecture, and integration test patterns.
+
+### Access control
+
+Who may call which endpoint is **data**, not code (see `docs/adr/0017-central-access-control.md`):
+`config/access-control.json` maps roles → privileges → `(service, operationId)`. One check,
+`platform_kit.access.require_access()`, runs on every router; anything not granted is refused.
+
+- **Every route** declares a stable camelCase `operation_id=` (never renamed), and every module router
+  applies the check: `APIRouter(prefix=..., tags=[...], dependencies=[require_access()])`. Startup and
+  `tests/architecture/test_access_control.py` fail otherwise.
+- **To open a new endpoint**, add its `operationId` to a privilege in `config/access-control.json` (and the
+  privilege to roles). Public endpoints go into a privilege of the `anonymous` role.
+- **Never** check a role name or add a permission constant in code. A rule inside a use case that is not an
+  endpoint (e.g. "may act on any owner's jobs") is a declared operation asked with `AccessGrant.allows(...)`.
+- **Ownership stays in code** (`check_ownership`, 404 for strangers): it is a business rule.
+- **Refusals:** 401 when not signed in (unless public), 403 `access_denied` when not granted.
+- **Tests:** use the `grant_access(*operation_ids)` / `deny_access()` fixtures (they replace the document,
+  the real check still runs); keep 401/403/404 assertions.
 
 ### Backend Request Lifecycle
 

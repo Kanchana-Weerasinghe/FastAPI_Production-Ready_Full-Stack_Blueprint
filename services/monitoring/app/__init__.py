@@ -1,0 +1,1 @@
+"""The monitoring domain service."""
