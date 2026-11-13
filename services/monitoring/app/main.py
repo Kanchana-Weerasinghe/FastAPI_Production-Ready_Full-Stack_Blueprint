@@ -10,11 +10,12 @@ from app.api import API_ROUTERS
 from app.container import Container
 from app.core.config import config
 from app.core.security import limiter
+from app.devtools.code_graphs import install_dev_docs
 from app.modules.auth.dependencies import get_access_subject
 
-# Routes outside access control (probes and the development-only docs). Every other route must carry
-# an operation_id and pass `require_access()`; the service refuses to start otherwise.
-ACCESS_EXEMPT_PATH_PREFIXES = ("/health", "/docs")
+# Routes outside access control (probes, the development-only docs and code-graph tools). Every other
+# route must carry an operation_id and pass `require_access()`; the service refuses to start otherwise.
+ACCESS_EXEMPT_PATH_PREFIXES = ("/health", "/docs", "/admin/code-graphs")
 
 setup_logging(
     service=config.SERVICE_NAME, version=config.APP_VERSION, environment=config.ENVIRONMENT, level=config.LOG_LEVEL
@@ -29,7 +30,10 @@ app = create_service_app(
     routers=API_ROUTERS,
     title="Monitoring API",
     description="The Monitoring domain service.",
+    docs_url=None,  # served below in development: Swagger UI with a "Graph" button per operation
 )
+if config.ENVIRONMENT == "development":
+    install_dev_docs(app, openapi_url=app.openapi_url or "/openapi.json")
 app.state.container = container
 app.state.limiter = limiter
 

@@ -596,6 +596,13 @@
         "title": "ValidationError",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "Access token issued by the identity service.",
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
@@ -699,6 +706,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get My Access",
         "tags": [
           "access"
@@ -734,6 +746,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Disable MFA",
         "tags": [
           "auth"
@@ -769,6 +786,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Enable MFA",
         "tags": [
           "auth"
@@ -791,6 +813,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Start MFA Setup",
         "tags": [
           "auth"
@@ -826,6 +853,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Complete MFA Signin",
         "tags": [
           "auth"
@@ -861,6 +893,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Change Password",
         "tags": [
           "auth"
@@ -901,6 +938,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Request Password Reset",
         "tags": [
           "auth"
@@ -936,6 +978,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Reset Password",
         "tags": [
           "auth"
@@ -951,6 +998,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Refresh Session",
         "tags": [
           "auth"
@@ -993,6 +1045,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "User Signin",
         "tags": [
           "auth"
@@ -1008,6 +1065,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "User Signout",
         "tags": [
           "auth"
@@ -1023,6 +1085,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Sign Out Everywhere",
         "tags": [
           "auth"
@@ -1063,6 +1130,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "User Signup",
         "tags": [
           "auth"
@@ -1098,6 +1170,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Verify Email",
         "tags": [
           "auth"
@@ -1118,6 +1195,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Resend Verification Email",
         "tags": [
           "auth"
@@ -1239,6 +1321,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Audit Logs (admin)",
         "tags": [
           "audit"
@@ -1254,6 +1341,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Delete Current User",
         "tags": [
           "users"
@@ -1274,6 +1366,11 @@
             "description": "Successful Response"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Get Current User",
         "tags": [
           "users"
@@ -1368,6 +1465,11 @@
             "description": "Validation Error"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "List Users (admin)",
         "tags": [
           "users"

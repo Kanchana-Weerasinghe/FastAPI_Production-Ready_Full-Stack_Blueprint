@@ -1,0 +1,7 @@
+# Code graphs for the monitoring service (the "Graph" button in /docs during development). Regenerate with:
+#   uv run codegraphs run --config codegraphs.toml
+src = "app"
+prefix = "app"
+out = "docs/code-graphs"
+title = "Monitoring service"
+exclude = []

@@ -16,8 +16,9 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, Security
 from fastapi.routing import APIRoute
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from platform_kit.access.lookup import AccessLookup
 from platform_kit.access.policy import AccessPolicy, AccessSubject
@@ -25,6 +26,11 @@ from platform_kit.errors import AccessDeniedError, AuthenticationError
 from platform_kit.logging import logger
 
 DEFAULT_EXEMPT_PATH_PREFIXES = ("/health",)
+
+# Declares `Authorization: Bearer <token>` in the OpenAPI document, so Swagger shows "Authorize" and
+# sends the token. Documentation only: auto_error=False never refuses a request; the service's
+# `get_access_subject` still verifies the token.
+bearer_scheme = HTTPBearer(auto_error=False, description="Access token issued by the identity service.")
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +70,7 @@ async def check_access(
     request: Request,
     subject: AccessSubject = Depends(get_access_subject),
     lookup: AccessLookup = Depends(get_access_lookup),
+    _bearer: HTTPAuthorizationCredentials | None = Security(bearer_scheme),  # Swagger "Authorize" only
 ) -> AccessGrant:
     route = request.scope.get("route")
     operation_id: str | None = getattr(route, "operation_id", None)

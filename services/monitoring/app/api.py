@@ -1,6 +1,7 @@
 """Router registry: every module router is mounted here under its API version."""
 
 from fastapi import APIRouter
+
 from app.modules.items.router import router as items_router
 
 api_v1 = APIRouter(prefix="/v1")

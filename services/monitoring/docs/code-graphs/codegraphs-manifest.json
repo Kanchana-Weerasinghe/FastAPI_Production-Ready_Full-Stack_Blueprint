@@ -1,0 +1,572 @@
+[
+  {
+    "id": "overview",
+    "label": "Overview",
+    "meta": {
+      "title": "Architecture overview",
+      "description": "How the scanned layers call each other. Arrow labels count distinct calls from one layer into another; thicker means more.",
+      "nodes": {},
+      "edges": {}
+    }
+  },
+  {
+    "id": "get-items",
+    "label": "GET /items/",
+    "meta": {
+      "title": "GET /items/",
+      "description": "End-to-end trace from the GET /items/ handler (app.modules.items.router:list_items).",
+      "nodes": {
+        "n0": {
+          "name": "rate_limit",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/security.py",
+          "line": 21,
+          "entry": false
+        },
+        "n1": {
+          "name": "ItemUseCases.list",
+          "module": "modules.items.application.use_cases.item_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/use_cases/item_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/use_cases/item_use_cases.py",
+          "line": 66,
+          "entry": false
+        },
+        "n2": {
+          "name": "list_items",
+          "module": "modules.items.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/router.py",
+          "line": 64,
+          "entry": true
+        },
+        "n3": {
+          "name": "ItemResponse.from_entity",
+          "module": "modules.items.schemas",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/schemas.py",
+          "line": 48,
+          "entry": false
+        }
+      },
+      "edges": {
+        "e0": [
+          "n2",
+          "n0",
+          true
+        ],
+        "e1": [
+          "n2",
+          "n1",
+          true
+        ],
+        "e2": [
+          "n2",
+          "n3",
+          false
+        ]
+      }
+    }
+  },
+  {
+    "id": "modules",
+    "label": "Modules",
+    "meta": {
+      "title": "Module map -- which file imports which",
+      "kind": "modules",
+      "description": "Every scanned file and the files it imports, grouped by layer and package. Click a file to see what it depends on and what depends on it.",
+      "nodes": {
+        "n0": {
+          "name": "api",
+          "module": "api",
+          "layer": "api",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/api.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/api.py",
+          "line": 1,
+          "entry": false
+        },
+        "n1": {
+          "name": "container",
+          "module": "container",
+          "layer": "container",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n2": {
+          "name": "config",
+          "module": "core.config",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/config.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/config.py",
+          "line": 1,
+          "entry": false
+        },
+        "n3": {
+          "name": "errors",
+          "module": "core.errors",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/errors.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/errors.py",
+          "line": 1,
+          "entry": false
+        },
+        "n4": {
+          "name": "logging",
+          "module": "core.logging",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/logging.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/logging.py",
+          "line": 1,
+          "entry": false
+        },
+        "n5": {
+          "name": "security",
+          "module": "core.security",
+          "layer": "core",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/security.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/core/security.py",
+          "line": 1,
+          "entry": false
+        },
+        "n6": {
+          "name": "db",
+          "module": "db",
+          "layer": "db",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/db.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/db.py",
+          "line": 1,
+          "entry": false
+        },
+        "n7": {
+          "name": "code_graphs",
+          "module": "devtools.code_graphs",
+          "layer": "devtools",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/devtools/code_graphs.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/devtools/code_graphs.py",
+          "line": 1,
+          "entry": false
+        },
+        "n8": {
+          "name": "main",
+          "module": "main",
+          "layer": "main",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/main.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/main.py",
+          "line": 1,
+          "entry": false
+        },
+        "n9": {
+          "name": "models",
+          "module": "models",
+          "layer": "models",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n10": {
+          "name": "dependencies",
+          "module": "modules.auth.dependencies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/auth/dependencies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/auth/dependencies.py",
+          "line": 1,
+          "entry": false
+        },
+        "n14": {
+          "name": "container",
+          "module": "modules.items.container",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/container.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/container.py",
+          "line": 1,
+          "entry": false
+        },
+        "n23": {
+          "name": "public",
+          "module": "modules.items.public",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/public.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/public.py",
+          "line": 1,
+          "entry": false
+        },
+        "n24": {
+          "name": "router",
+          "module": "modules.items.router",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/router.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/router.py",
+          "line": 1,
+          "entry": false
+        },
+        "n25": {
+          "name": "schemas",
+          "module": "modules.items.schemas",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/schemas.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/schemas.py",
+          "line": 1,
+          "entry": false
+        },
+        "n11": {
+          "name": "event_publisher",
+          "module": "modules.items.application.ports.event_publisher",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/ports/event_publisher.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/ports/event_publisher.py",
+          "line": 1,
+          "entry": false
+        },
+        "n12": {
+          "name": "item_repository",
+          "module": "modules.items.application.ports.item_repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/ports/item_repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/ports/item_repository.py",
+          "line": 1,
+          "entry": false
+        },
+        "n13": {
+          "name": "item_use_cases",
+          "module": "modules.items.application.use_cases.item_use_cases",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/use_cases/item_use_cases.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/application/use_cases/item_use_cases.py",
+          "line": 1,
+          "entry": false
+        },
+        "n15": {
+          "name": "entities",
+          "module": "modules.items.domain.entities",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/entities.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/entities.py",
+          "line": 1,
+          "entry": false
+        },
+        "n16": {
+          "name": "events",
+          "module": "modules.items.domain.events",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/events.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/events.py",
+          "line": 1,
+          "entry": false
+        },
+        "n17": {
+          "name": "exceptions",
+          "module": "modules.items.domain.exceptions",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/exceptions.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/exceptions.py",
+          "line": 1,
+          "entry": false
+        },
+        "n18": {
+          "name": "policies",
+          "module": "modules.items.domain.policies",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/policies.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/policies.py",
+          "line": 1,
+          "entry": false
+        },
+        "n19": {
+          "name": "value_objects",
+          "module": "modules.items.domain.value_objects",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/value_objects.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/domain/value_objects.py",
+          "line": 1,
+          "entry": false
+        },
+        "n20": {
+          "name": "logging_event_publisher",
+          "module": "modules.items.infrastructure.logging_event_publisher",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/logging_event_publisher.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/logging_event_publisher.py",
+          "line": 1,
+          "entry": false
+        },
+        "n21": {
+          "name": "models",
+          "module": "modules.items.infrastructure.persistence.models",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/persistence/models.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/persistence/models.py",
+          "line": 1,
+          "entry": false
+        },
+        "n22": {
+          "name": "sqlalchemy_item_repository",
+          "module": "modules.items.infrastructure.persistence.sqlalchemy_item_repository",
+          "layer": "modules",
+          "file": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/persistence/sqlalchemy_item_repository.py",
+          "abs": "D:/Innodata/API backend/fastapi-fullstack-clean-architecture/services/monitoring/app/modules/items/infrastructure/persistence/sqlalchemy_item_repository.py",
+          "line": 1,
+          "entry": false
+        }
+      },
+      "edges": {
+        "e0": [
+          "n0",
+          "n24",
+          false
+        ],
+        "e1": [
+          "n1",
+          "n2",
+          false
+        ],
+        "e2": [
+          "n1",
+          "n14",
+          false
+        ],
+        "e3": [
+          "n5",
+          "n2",
+          false
+        ],
+        "e4": [
+          "n6",
+          "n2",
+          false
+        ],
+        "e5": [
+          "n7",
+          "n3",
+          false
+        ],
+        "e6": [
+          "n8",
+          "n0",
+          false
+        ],
+        "e7": [
+          "n8",
+          "n1",
+          false
+        ],
+        "e8": [
+          "n8",
+          "n2",
+          false
+        ],
+        "e9": [
+          "n8",
+          "n5",
+          false
+        ],
+        "e10": [
+          "n8",
+          "n7",
+          false
+        ],
+        "e11": [
+          "n8",
+          "n10",
+          false
+        ],
+        "e12": [
+          "n9",
+          "n6",
+          false
+        ],
+        "e13": [
+          "n9",
+          "n21",
+          false
+        ],
+        "e14": [
+          "n10",
+          "n2",
+          false
+        ],
+        "e15": [
+          "n11",
+          "n16",
+          false
+        ],
+        "e16": [
+          "n12",
+          "n15",
+          false
+        ],
+        "e17": [
+          "n12",
+          "n19",
+          false
+        ],
+        "e18": [
+          "n13",
+          "n11",
+          false
+        ],
+        "e19": [
+          "n13",
+          "n12",
+          false
+        ],
+        "e20": [
+          "n13",
+          "n15",
+          false
+        ],
+        "e21": [
+          "n13",
+          "n19",
+          false
+        ],
+        "e22": [
+          "n14",
+          "n13",
+          false
+        ],
+        "e23": [
+          "n14",
+          "n20",
+          false
+        ],
+        "e24": [
+          "n14",
+          "n22",
+          false
+        ],
+        "e25": [
+          "n15",
+          "n16",
+          false
+        ],
+        "e26": [
+          "n15",
+          "n18",
+          false
+        ],
+        "e27": [
+          "n15",
+          "n19",
+          false
+        ],
+        "e28": [
+          "n18",
+          "n15",
+          false
+        ],
+        "e29": [
+          "n18",
+          "n17",
+          false
+        ],
+        "e30": [
+          "n18",
+          "n19",
+          false
+        ],
+        "e31": [
+          "n19",
+          "n17",
+          false
+        ],
+        "e32": [
+          "n20",
+          "n4",
+          false
+        ],
+        "e33": [
+          "n20",
+          "n11",
+          false
+        ],
+        "e34": [
+          "n20",
+          "n16",
+          false
+        ],
+        "e35": [
+          "n21",
+          "n6",
+          false
+        ],
+        "e36": [
+          "n22",
+          "n12",
+          false
+        ],
+        "e37": [
+          "n22",
+          "n15",
+          false
+        ],
+        "e38": [
+          "n22",
+          "n17",
+          false
+        ],
+        "e39": [
+          "n22",
+          "n19",
+          false
+        ],
+        "e40": [
+          "n22",
+          "n21",
+          false
+        ],
+        "e41": [
+          "n23",
+          "n13",
+          false
+        ],
+        "e42": [
+          "n23",
+          "n15",
+          false
+        ],
+        "e43": [
+          "n23",
+          "n19",
+          false
+        ],
+        "e44": [
+          "n24",
+          "n5",
+          false
+        ],
+        "e45": [
+          "n24",
+          "n13",
+          false
+        ],
+        "e46": [
+          "n24",
+          "n19",
+          false
+        ],
+        "e47": [
+          "n24",
+          "n25",
+          false
+        ],
+        "e48": [
+          "n25",
+          "n15",
+          false
+        ],
+        "e49": [
+          "n25",
+          "n19",
+          false
+        ]
+      }
+    }
+  }
+]

@@ -21,7 +21,7 @@ from platform_kit.access import require_access
 from platform_kit.http.pagination import PageInfo, Pagination
 
 from app.core.security import rate_limit
-from app.modules.items.application.use_cases import CreateItemCommand, UpdateItemCommand, ItemUseCases
+from app.modules.items.application.use_cases import CreateItemCommand, ItemUseCases, UpdateItemCommand
 from app.modules.items.domain.value_objects import ItemStatus
 from app.modules.items.schemas import ItemCreate, ItemList, ItemResponse, ItemUpdate
 
@@ -49,7 +49,7 @@ async def create_item(
     use_cases: ItemUseCases = Depends(Provide[USE_CASES]),
 ) -> ItemResponse:
     item = await use_cases.create(CreateItemCommand(name=body.name, code=body.code))
-    response.headers["Location"] = f"{request.url.path.rstrip('/')}/{ item.id }"
+    response.headers["Location"] = f"{request.url.path.rstrip('/')}/{item.id}"
     return ItemResponse.from_entity(item)
 
 

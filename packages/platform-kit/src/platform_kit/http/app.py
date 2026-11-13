@@ -21,8 +21,13 @@ def create_service_app(
     routers: Sequence[APIRouter],
     title: str,
     description: str = "",
+    docs_url: str | None = "/docs",
 ) -> FastAPI:
-    """Wires middleware, RFC 9457 handlers, health probes and the service's versioned routers."""
+    """
+    Wires middleware, RFC 9457 handlers, health probes and the service's versioned routers.
+
+    `docs_url=None` lets the service serve its own docs page (e.g. Swagger UI with code-graph buttons).
+    """
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
@@ -37,7 +42,7 @@ def create_service_app(
         version=settings.APP_VERSION,
         lifespan=lifespan,
         # Interactive docs only outside production; the OpenAPI contract is exported to a file.
-        docs_url=None if settings.ENVIRONMENT == "production" else "/docs",
+        docs_url=None if settings.ENVIRONMENT == "production" else docs_url,
         redoc_url=None,
     )
     for exc_type, handler in exception_handlers(settings.PROBLEM_TYPE_BASE_URI).items():

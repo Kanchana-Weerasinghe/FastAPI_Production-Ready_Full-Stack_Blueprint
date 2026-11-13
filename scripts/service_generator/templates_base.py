@@ -8,6 +8,11 @@ generate-source-code skills look for them: `app/core/config.py`, `app/core/error
 `db_session`, `fake_uow` and `isolated_app_transaction`. Placeholders are `{{name}}` tokens.
 '''
 
+from pathlib import Path
+
+# Swagger UI with a "Graph" button per operation (development only); copied as is, no tokens.
+_CODE_GRAPHS = (Path(__file__).parent / "assets" / "code_graphs.py").read_text(encoding="utf-8")
+
 BASE_FILES: dict[str, str] = {
     ".python-version": "3.12\n",
     ".env.example": r'''# Copy to `services/{{service}}/.env` for local development (never commit it).
@@ -246,9 +251,11 @@ dependencies = [
 
 [tool.uv.sources]
 platform-kit = { path = "../../packages/platform-kit", editable = true }
+codegraphs = { path = "../../../codegraphs", editable = true }
 
 [dependency-groups]
 dev = [
+    "codegraphs",
     "mypy>=1.20.1",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
@@ -425,6 +432,18 @@ def rate_limit(limit_value: str) -> Any:
     dependency.__qualname__ = f"rate_limit.<locals>.{func_name}"
     return Depends(limiter.limit(limit_value)(dependency))
 ''',
+    # --- app/devtools: development-only Swagger UI with code graphs -------------------------------
+    "app/devtools/__init__.py": r'''"""Local-development tooling mounted by the composition root; never enabled outside development."""
+''',
+    "app/devtools/code_graphs.py": _CODE_GRAPHS,
+    "codegraphs.toml": r'''# Code graphs for the {{service}} service (the "Graph" button in /docs during development). Regenerate with:
+#   uv run codegraphs run --config codegraphs.toml
+src = "app"
+prefix = "app"
+out = "docs/code-graphs"
+title = "{{service_title}} service"
+exclude = []
+''',
     # --- app --------------------------------------------------------------------------------
     "app/api.py": r'''"""Router registry: every module router is mounted here under its API version."""
 
@@ -484,11 +503,12 @@ from app.api import API_ROUTERS
 from app.container import Container
 from app.core.config import config
 from app.core.security import limiter
+from app.devtools.code_graphs import install_dev_docs
 from app.modules.auth.dependencies import get_access_subject
 
-# Routes outside access control (probes and the development-only docs). Every other route must carry
-# an operation_id and pass `require_access()`; the service refuses to start otherwise.
-ACCESS_EXEMPT_PATH_PREFIXES = ("/health", "/docs")
+# Routes outside access control (probes, the development-only docs and code-graph tools). Every other
+# route must carry an operation_id and pass `require_access()`; the service refuses to start otherwise.
+ACCESS_EXEMPT_PATH_PREFIXES = ("/health", "/docs", "/admin/code-graphs")
 
 setup_logging(
     service=config.SERVICE_NAME, version=config.APP_VERSION, environment=config.ENVIRONMENT, level=config.LOG_LEVEL
@@ -503,7 +523,10 @@ app = create_service_app(
     routers=API_ROUTERS,
     title="{{service_title}} API",
     description="The {{service_title}} domain service.",
+    docs_url=None,  # served below in development: Swagger UI with a "Graph" button per operation
 )
+if config.ENVIRONMENT == "development":
+    install_dev_docs(app, openapi_url=app.openapi_url or "/openapi.json")
 app.state.container = container
 app.state.limiter = limiter
 

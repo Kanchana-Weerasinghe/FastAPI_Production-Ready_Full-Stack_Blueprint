@@ -6,7 +6,7 @@ from here, never from application/ or infrastructure/. Other SERVICES never impo
 call `/v1/items` over HTTP.
 """
 
-from app.modules.items.application.use_cases import CreateItemCommand, UpdateItemCommand, ItemUseCases
+from app.modules.items.application.use_cases import CreateItemCommand, ItemUseCases, UpdateItemCommand
 from app.modules.items.domain.entities import Item
 from app.modules.items.domain.value_objects import ItemStatus
 

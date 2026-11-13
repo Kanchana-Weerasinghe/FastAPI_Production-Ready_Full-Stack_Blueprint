@@ -44,11 +44,7 @@ class SqlAlchemyItemRepository(ItemRepository):
         conditions = [] if status is None else [ItemModel.status == status.value]
         total = await self.session.scalar(select(func.count()).select_from(ItemModel).where(*conditions))
         rows = await self.session.scalars(
-            select(ItemModel)
-            .where(*conditions)
-            .order_by(ItemModel.name, ItemModel.id)
-            .offset(offset)
-            .limit(limit)
+            select(ItemModel).where(*conditions).order_by(ItemModel.name, ItemModel.id).offset(offset).limit(limit)
         )
         return ItemPage(items=[self._to_entity(row) for row in rows], total=total or 0)
 

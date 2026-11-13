@@ -47,7 +47,7 @@ async def test_full_lifecycle(client: ClientFactory, grant_access: Callable[...,
     assert created.status_code == 201, created.text
     item = created.json()
     assert (item["code"], item["status"]) == ("ITM-001", "active")
-    url = f"{BASE}/{ item['id'] }"
+    url = f"{BASE}/{item['id']}"
     assert created.headers["Location"] == url
 
     assert (await http.get(url)).status_code == 200  # get

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.items.application.use_cases import CreateItemCommand, UpdateItemCommand, ItemUseCases
+from app.modules.items.application.use_cases import CreateItemCommand, ItemUseCases, UpdateItemCommand
 from app.modules.items.domain.exceptions import InvalidItemState, ItemCodeTaken, ItemNotFound
 from app.modules.items.domain.value_objects import ItemStatus
 from tests.unit.items.fakes import FakeEventPublisher, FakeItemRepository
