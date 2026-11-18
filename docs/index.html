@@ -797,6 +797,7 @@
           <a href="#quick-start">Quick start · BR to working code</a>
           <a href="#delivery">Delivery process · BR to release</a>
           <a href="#claude-instructions">Claude instructions</a>
+          <a href="#scripts">Scripts · generators and conformance check</a>
           <span class="nav-group">Specify and test</span>
           <a href="#tdd">Testing · two suites, one spec</a>
           <a href="#example">Worked example · User entity</a>
@@ -811,6 +812,7 @@
           <a href="#service-trace">Trace a request through the files</a>
           <a href="#request-workflow">End-to-end request workflow</a>
           <a href="#service-extend">Extend a service or add one</a>
+          <a href="#anti-corruption">External systems · anti-corruption layer</a>
           <span class="nav-group">Production standards</span>
           <a href="#area-1">1 · Architecture</a>
           <a href="#area-2">2 · API contracts</a>
@@ -1294,6 +1296,152 @@ Then run the QA suite against a local server (`RATE_LIMIT_ENABLED=false`, seeded
         </section>
 
         <div class="part-heading" id="part-specify-and-test">Specify and test</div>
+        <section id="scripts">
+          <h2>Repository scripts · generators and the conformance check</h2>
+          <p class="lede">
+            The <code>scripts/</code> folder at the repository root holds four tools: three <strong>generators</strong>
+            that create code in the right shape, and one <strong>checker</strong> that tells a developer whether
+            hand-written code still follows the architecture, folder structure and coding standards. Run all of
+            them from the repository root.
+          </p>
+
+          <h3>What each script does</h3>
+          <div class="table-wrap"><table><thead><tr><th>Script</th><th>Use it to</th><th>What it creates or does</th></tr></thead><tbody>
+<tr><td><code>new_service.py</code></td><td>Start a <strong>real</strong> domain service</td><td>An empty service skeleton, with no business module, ready for <code>/generate-test-suite</code> and <code>/generate-source-code</code>: <code>app/core/</code> (config, errors, security with <code>rate_limit</code>, logging), <code>app/modules/auth/dependencies.py</code>, <code>main.py</code> on central access control, Alembic, Dockerfile, test fixtures (<code>client</code>, <code>grant_access</code>, <code>deny_access</code>, <code>db_session</code>, <code>fake_uow</code>), architecture tests. It also adds <code>deploy/db/roles-&lt;name&gt;.sql</code>, the Helm values file, docker-compose and pre-commit entries, then runs <code>uv lock</code>/<code>sync</code>, ruff and the OpenAPI export.</td></tr>
+<tr><td><code>new_service_demo.py</code></td><td><strong>Learn</strong> the architecture</td><td>The same skeleton plus one complete working demo module (value objects, entity with events, policy, port and SQLAlchemy adapter with optimistic locking, use cases, router with ETag and pagination, migration, privilege, unit and integration tests). <code>--add-module</code> adds another demo module to a generated service.</td></tr>
+<tr><td><code>new_module.py</code></td><td>Add a module <strong>by hand</strong> to an existing service</td><td>Every layer folder filled with a commented CRUD example (entity with <code>id</code>, <code>name</code>, unique <code>code</code>, status; create, list, get, update, archive, restore, delete), a module README, unit and integration tests and a migration chained to the head. It mounts the router, registers the model and container, and grants the seven operations to <code>user</code> and <code>admin</code>. Replace the example with the real rules.</td></tr>
+<tr><td><code>check_conformance.py</code></td><td><strong>Verify</strong> hand-written code</td><td>Static rule checks with a <code>path:line</code> for each finding, then ruff, <code>ruff format --check</code>, mypy and the architecture tests per service. PASS or FAIL per service; exit code 1 when not conformant.</td></tr>
+<tr><td><code>service_generator/</code></td><td>(internal)</td><td>The shared engine and templates of the three generators. Every change is staged in memory first, so <code>--dry-run</code> shows exactly what a real run would write.</td></tr>
+</tbody></table></div>
+
+          <h3>How to run the generators</h3>
+<pre><code># A real service (empty, filled by the skills from its specs)
+python scripts/new_service.py billing
+python scripts/new_service.py billing --dry-run            # preview only
+
+# A service with a working demo module, for learning
+python scripts/new_service_demo.py lab-monitoring --module samples
+python scripts/new_service_demo.py lab-monitoring --add-module notes
+
+# A new module in an existing service
+python scripts/new_module.py monitoring product
+python scripts/new_module.py monitoring news --singular news_item   # when the automatic singular is wrong</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>Option</th><th>Scripts</th><th>Effect</th></tr></thead><tbody>
+<tr><td><code>--dry-run</code></td><td>All three</td><td>Print what would be written; change nothing</td></tr>
+<tr><td><code>--skip-sync</code></td><td>All three</td><td>Skip <code>uv lock</code>/<code>sync</code>, ruff and the OpenAPI export</td></tr>
+<tr><td><code>--port</code></td><td><code>new_service.py</code>, <code>new_service_demo.py</code></td><td>Local port (default: the next free port from 8010)</td></tr>
+<tr><td><code>--module</code> / <code>--add-module</code></td><td><code>new_service_demo.py</code></td><td>Name the demo module / add one to an existing service</td></tr>
+<tr><td><code>--singular</code></td><td><code>new_service_demo.py</code>, <code>new_module.py</code></td><td>Override the automatic singular (e.g. <code>news</code> → <code>news_item</code>)</td></tr>
+</tbody></table></div>
+
+          <h3>How to run the conformance check</h3>
+<pre><code>python scripts/check_conformance.py                    # every service: rules + tools
+python scripts/check_conformance.py monitoring         # one service
+python scripts/check_conformance.py --changed          # only files changed vs master (your pull request)
+python scripts/check_conformance.py --static-only      # rules only: fast, no uv needed
+python scripts/check_conformance.py --list-rules       # every rule and its description</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody>
+<tr><td><code>services ...</code></td><td>Check only these services (default: every folder under <code>services/</code> with an <code>app/</code>)</td></tr>
+<tr><td><code>--static-only</code></td><td>Skip ruff, mypy and the architecture tests</td></tr>
+<tr><td><code>--no-mypy</code></td><td>Skip mypy, the slowest tool</td></tr>
+<tr><td><code>--changed [BASE]</code></td><td>Report only findings in files changed against <code>BASE</code> (default <code>master</code>), including uncommitted and untracked files</td></tr>
+<tr><td><code>--strict</code></td><td>Warnings fail the check too</td></tr>
+<tr><td><code>--verbose</code></td><td>Print the full tool output</td></tr>
+<tr><td><code>--list-rules</code></td><td>Print every rule ID, severity and description, then exit</td></tr>
+</tbody></table></div>
+          <p>Example output:</p>
+<pre><code>== monitoring  services/monitoring
+
+  LAY004 [error] application/ never imports web frameworks, ORM, Pydantic, HTTP clients, DI, infrastructure, ...
+    services/monitoring/app/modules/items/application/use_cases/item_use_cases.py:12  application imports httpx
+
+  API006 [error] Every route applies a rate limit (rate_limit(...) in its or the router's dependencies).
+    services/monitoring/app/modules/items/router.py:40  route 'create_item' has no rate_limit(...) dependency
+
+Summary
+  service         errors  warnings   tools
+  monitoring           2         0   ruff check ok, ruff format ok, mypy ok, architecture tests ok   FAIL</code></pre>
+
+          <h3>The two stages</h3>
+          <div class="table-wrap"><table><thead><tr><th>Stage</th><th>How</th><th>What</th></tr></thead><tbody>
+<tr><td><strong>1 · Static rules</strong></td><td>Reads the code without running it (Python standard library only)</td><td>Folder structure, layer and module boundaries, routes and access control, transactions, errors, UTC datetimes, naming (the table below)</td></tr>
+<tr><td><strong>2 · Tools</strong></td><td><code>uv run</code> in each service folder</td><td><code>ruff check</code> (lint, import order), <code>ruff format --check</code> (formatting), <code>mypy</code> (types), <code>pytest tests/architecture</code> (the existing architecture tests, run without Docker)</td></tr>
+</tbody></table></div>
+
+          <h3>What the conformance check covers</h3>
+          <div class="table-wrap"><table><thead><tr><th>Aspect</th><th>What it checks</th></tr></thead><tbody>
+<tr><td>Folder structure</td><td>Every business module has <code>domain/</code>, <code>application/ports/</code>, <code>application/use_cases/</code>, <code>infrastructure/persistence/</code> (each with <code>__init__.py</code>) and <code>public.py</code>, <code>router.py</code>, <code>schemas.py</code>, <code>container.py</code>; no <code>models.py</code>/<code>repository.py</code> at the module root; no stray files; a unit-test folder for the module</td></tr>
+<tr><td>Layer rules</td><td><code>domain/</code> imports no FastAPI, SQLAlchemy, Pydantic, httpx, DI, <code>app.core</code>/<code>app.shared</code> or other modules; <code>application/</code> imports no frameworks, ORM, infrastructure or schemas; <code>infrastructure/</code> no router or container; <code>core</code> → nothing outer; <code>shared</code> → no modules</td></tr>
+<tr><td>Module boundaries</td><td>Another module only through its <code>public.py</code>; nothing imports the composition root (<code>app.container</code>, <code>app.api</code>, <code>app.main</code>); no service imports another service's code</td></tr>
+<tr><td>Thin routers</td><td><code>router.py</code> imports no ORM and no infrastructure; it calls use cases</td></tr>
+<tr><td>Public API</td><td><code>public.py</code> only re-exports its own module's application/domain API</td></tr>
+<tr><td>Routes and access control</td><td><code>require_access()</code> on every router; a unique camelCase <code>operation_id</code> on every route, granted in <code>config/access-control.json</code>; stale grants reported; a <code>rate_limit(...)</code> on every route; handlers are <code>async def</code></td></tr>
+<tr><td>Transactions</td><td>No <code>commit()</code>/<code>rollback()</code> in modules or <code>shared</code>: the middleware owns the transaction</td></tr>
+<tr><td>Errors</td><td>No <code>HTTPException</code> outside the HTTP layer; raise the errors from <code>app/core/errors.py</code></td></tr>
+<tr><td>UTC datetimes</td><td>No <code>datetime.utcnow()</code>, and no <code>datetime.now()</code>/<code>fromtimestamp()</code> without a timezone</td></tr>
+<tr><td>Access in code</td><td>No role checks such as <code>user.role == "admin"</code></td></tr>
+<tr><td>Async safety</td><td>No blocking <code>time.sleep()</code> or <code>requests</code> in module code</td></tr>
+<tr><td>Logging</td><td>No <code>print()</code>; use the logger</td></tr>
+<tr><td>Naming</td><td>Ports are ABCs without a <code>Port</code> suffix; adapters are <code>SqlAlchemy&lt;X&gt;Repository</code> in <code>sqlalchemy_&lt;x&gt;_repository.py</code>; use-case files are not <code>service.py</code>/<code>utils.py</code>; module folders are snake_case</td></tr>
+</tbody></table></div>
+
+          <h3>Every rule</h3>
+          <div class="table-wrap"><table><thead><tr><th>Rule</th><th>Aspect</th><th>Severity</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>STR001</code></td><td>Folder structure</td><td>error</td><td>A business module has domain/, application/ports/, application/use_cases/, infrastructure/persistence/ (each with __init__.py).</td></tr>
+<tr><td><code>STR002</code></td><td>Folder structure</td><td>error</td><td>A business module has public.py, router.py, schemas.py and container.py at its root.</td></tr>
+<tr><td><code>STR003</code></td><td>Folder structure</td><td>error</td><td>No models.py / repository.py at a module root: persistence lives in infrastructure/persistence/.</td></tr>
+<tr><td><code>STR004</code></td><td>Folder structure</td><td>warning</td><td>Unexpected file at a module root; put code in its layer folder.</td></tr>
+<tr><td><code>STR005</code></td><td>Folder structure</td><td>warning</td><td>A business module has unit tests (a tests/unit/**/&lt;module&gt;/ folder).</td></tr>
+<tr><td><code>LAY001</code></td><td>Layers and boundaries</td><td>error</td><td>app/core imports nothing from app.shared, app.modules or the composition root.</td></tr>
+<tr><td><code>LAY002</code></td><td>Layers and boundaries</td><td>error</td><td>app/shared imports nothing from app.modules or the composition root.</td></tr>
+<tr><td><code>LAY003</code></td><td>Layers and boundaries</td><td>error</td><td>domain/ is plain Python: no web framework, ORM, Pydantic, HTTP client, DI, app.core/app.shared or other modules.</td></tr>
+<tr><td><code>LAY004</code></td><td>Layers and boundaries</td><td>error</td><td>application/ never imports web frameworks, ORM, Pydantic, HTTP clients, DI, infrastructure, schemas or ORM models.</td></tr>
+<tr><td><code>LAY005</code></td><td>Layers and boundaries</td><td>error</td><td>infrastructure/ never imports a router or container.</td></tr>
+<tr><td><code>LAY006</code></td><td>Layers and boundaries</td><td>error</td><td>Another module is used only through its public API (public.py; auth.dependencies for the caller).</td></tr>
+<tr><td><code>LAY007</code></td><td>Layers and boundaries</td><td>error</td><td>Modules never import the composition root (app.container, app.api, app.main).</td></tr>
+<tr><td><code>LAY008</code></td><td>Layers and boundaries</td><td>error</td><td>A service never imports another service&#x27;s code (use HTTP or events).</td></tr>
+<tr><td><code>LAY009</code></td><td>Layers and boundaries</td><td>error</td><td>router.py stays thin: no ORM or infrastructure imports; call a use case.</td></tr>
+<tr><td><code>PUB001</code></td><td>Public API</td><td>error</td><td>public.py only re-exports its own module&#x27;s application/domain API (no classes or functions).</td></tr>
+<tr><td><code>API001</code></td><td>Routes and access control</td><td>error</td><td>Every module APIRouter has dependencies=[require_access()].</td></tr>
+<tr><td><code>API002</code></td><td>Routes and access control</td><td>error</td><td>Every route declares a camelCase operation_id.</td></tr>
+<tr><td><code>API003</code></td><td>Routes and access control</td><td>error</td><td>operation_id is unique within the service.</td></tr>
+<tr><td><code>API004</code></td><td>Routes and access control</td><td>error</td><td>Every operation_id is granted in config/access-control.json for its service.</td></tr>
+<tr><td><code>API005</code></td><td>Routes and access control</td><td>warning</td><td>config/access-control.json grants an operation_id no route declares (stale entry).</td></tr>
+<tr><td><code>API006</code></td><td>Routes and access control</td><td>error</td><td>Every route applies a rate limit (rate_limit(...) in its or the router&#x27;s dependencies).</td></tr>
+<tr><td><code>API007</code></td><td>Routes and access control</td><td>warning</td><td>Route handlers are async def.</td></tr>
+<tr><td><code>COD001</code></td><td>Coding standards</td><td>error</td><td>No HTTPException outside the HTTP layer: raise errors from app/core/errors.py.</td></tr>
+<tr><td><code>COD002</code></td><td>Coding standards</td><td>warning</td><td>Routers raise application errors rather than HTTPException.</td></tr>
+<tr><td><code>COD003</code></td><td>Coding standards</td><td>error</td><td>Services and repositories never commit/rollback: the request middleware owns the transaction.</td></tr>
+<tr><td><code>COD004</code></td><td>Coding standards</td><td>error</td><td>Timestamps are timezone-aware UTC: no datetime.utcnow(), datetime.now() / fromtimestamp() without tz.</td></tr>
+<tr><td><code>COD005</code></td><td>Coding standards</td><td>error</td><td>Never check a role in code: grant operations in config/access-control.json.</td></tr>
+<tr><td><code>COD006</code></td><td>Coding standards</td><td>warning</td><td>No print() in application code: use the structured logger.</td></tr>
+<tr><td><code>COD007</code></td><td>Coding standards</td><td>error</td><td>No blocking time.sleep() / requests in async application code.</td></tr>
+<tr><td><code>NAM001</code></td><td>Naming</td><td>warning</td><td>Ports are ABCs named after their role (e.g. UserRepository(ABC)).</td></tr>
+<tr><td><code>NAM002</code></td><td>Naming</td><td>warning</td><td>Database adapters are sqlalchemy_&lt;entity&gt;_repository.py with class SqlAlchemy&lt;Entity&gt;Repository.</td></tr>
+<tr><td><code>NAM003</code></td><td>Naming</td><td>warning</td><td>Use-case files live in application/use_cases/ and are named *_use_cases.py or after one use case.</td></tr>
+<tr><td><code>NAM004</code></td><td>Naming</td><td>warning</td><td>Module folders are snake_case.</td></tr>
+<tr><td><code>TOOL</code></td><td>Tools</td><td>error</td><td>ruff check, ruff format --check, mypy and the architecture tests pass.</td></tr>
+</tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Severity</th><th>Effect</th></tr></thead><tbody>
+<tr><td>error</td><td>The check fails (exit code 1)</td></tr>
+<tr><td>warning</td><td>Reported; fails only with <code>--strict</code></td></tr>
+</tbody></table></div>
+
+          <h3>When it runs</h3>
+          <div class="table-wrap"><table><thead><tr><th>When</th><th>How</th></tr></thead><tbody>
+<tr><td>Before a pull request</td><td>The developer runs <code>python scripts/check_conformance.py --changed</code></td></tr>
+<tr><td>On <code>git push</code></td><td>The pre-commit <code>conformance</code> hook runs <code>--static-only</code> (after <code>uvx pre-commit install --hook-type pre-push</code>, once per clone)</td></tr>
+<tr><td>In CI (recommended)</td><td>Run <code>python scripts/check_conformance.py</code> and require it to pass before a merge; a local hook can be skipped with <code>--no-verify</code></td></tr>
+</tbody></table></div>
+          <div class="callout warning">
+            <strong>What it cannot check:</strong> whether a business rule is in the right place (an entity method
+            versus a policy versus a use case), whether names describe the business, or whether an external field name
+            leaks into a use case as a plain string. Code review still decides those; the
+            <a href="#entity-vs-service">identification guide</a> and the
+            <a href="#anti-corruption">anti-corruption example</a> help.
+          </div>
+        </section>
+
         <section id="tdd">
           <h2>Testing · two suites, one spec (the <code>User</code> example)</h2>
           <p class="lede">
@@ -3524,6 +3672,202 @@ Cookies: x-path-token=&lt;access JWT&gt;, csrf_token=abc   Header: X-CSRF-Token:
             <li>Add it to <code>docker-compose.yml</code>, pre-commit and the docs (README, AGENTS, API_FLOW, DATABASE_DESIGN).</li>
             <li>If it needs another domain's data, add a port in <code>application/ports/</code> and an adapter using <code>platform_kit.http.client.ServiceClient</code>; never read the other schema.</li>
           </ol>
+        </section>
+
+        <section id="anti-corruption">
+          <h2>Using a messy external system without polluting the solution</h2>
+          <p class="lede">
+            Worked example: item creation takes the description and category from an external legacy system and
+            merges them with the data the user enters. The legacy system's field names and codes reach
+            <strong>one file</strong> only, so the rest of the module never sees them.
+          </p>
+
+          <h3>The scenario</h3>
+          <div class="table-wrap"><table><thead><tr><th>Field</th><th>Filled by</th></tr></thead><tbody>
+<tr><td>Item code</td><td>Your UI</td></tr>
+<tr><td>Item name</td><td>Your UI</td></tr>
+<tr><td>Is active</td><td>Your UI</td></tr>
+<tr><td>Item description</td><td><strong>External system</strong></td></tr>
+<tr><td>Item category</td><td><strong>External system</strong></td></tr>
+</tbody></table></div>
+<pre><code>UI sends            { "code": "ITM-001", "name": "Blue pen", "isActive": true }
+External returns    { "ITM_CD": "ITM-001 ", "ITM_DESC": "  BLUE PEN - INK  ", "CAT_CD": "07" }   ← messy
+Saved item          code="ITM-001", name="Blue pen", is_active=True,
+                    description="Blue pen - ink", category="Stationery"                         ← clean</code></pre>
+
+          <h3>An anti-corruption layer has three jobs</h3>
+          <div class="table-wrap"><table><thead><tr><th>Job</th><th>Meaning</th><th>Where it happens</th></tr></thead><tbody>
+<tr><td><strong>1 · Block</strong></td><td>Messy data does not pass the border</td><td>The adapter is the only file that calls the external API</td></tr>
+<tr><td><strong>2 · Translate</strong></td><td>Their words become your words</td><td>The adapter turns <code>ITM_DESC</code> / <code>CAT_CD</code> into <code>description</code> / <code>category</code></td></tr>
+<tr><td><strong>3 · Hide</strong></td><td>The rest of the app does not know the external system exists</td><td>The use case talks only to the port (the question)</td></tr>
+</tbody></table></div>
+<pre><code>  EXTERNAL WORLD (messy)           │  ANTI-CORRUPTION LAYER  │        YOUR WORLD (clean)
+                                   │                         │
+ {"ITM_DESC":"  BLUE PEN - INK  ", │  adapter:               │   ItemDetails(
+  "CAT_CD":"07"}          ────────▶│  1. block               │──▶   description="Blue pen - ink",
+                                   │  2. translate           │      category="Stationery")
+                                   │  3. hide (via the port) │
+                                   │                         │   → use case → Item → database</code></pre>
+
+          <h3>Step by step</h3>
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <h3>Entity: add the two fields (<code>items/domain/entities.py</code>)</h3>
+<pre><code>@dataclass
+class Item:
+    id: UUID
+    code: str
+    name: str
+    is_active: bool
+    description: str      # ← from the external system
+    category: str         # ← from the external system</code></pre>
+              <p>Plain Python. The item does not know where the values come from.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <h3>Port: the question, in your words (<code>items/application/ports/item_details_provider.py</code>)</h3>
+<pre><code>@dataclass(frozen=True)
+class ItemDetails:
+    description: str
+    category: str
+
+class ItemDetailsProvider(ABC):
+    @abstractmethod
+    async def get_details(self, code: str) -> ItemDetails:
+        """Give me the description and category for this item code."""</code></pre>
+              <p>The port says <em>what</em> the use case needs, not <em>where</em> it comes from.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <h3>Adapter: call the external API and clean the data (<code>items/infrastructure/http_item_details_provider.py</code>)</h3>
+<pre><code>CATEGORY_NAMES = {"07": "Stationery", "12": "Furniture"}
+
+class HttpItemDetailsProvider(ItemDetailsProvider):
+    def __init__(self, http: httpx.AsyncClient) -> None:
+        self.http = http
+
+    async def get_details(self, code: str) -> ItemDetails:
+        response = await self.http.get(f"/items/{code}")       # 1 · block: the only external call
+        raw = response.json()                                    #     messy data stays in this method
+        return ItemDetails(                                      # 2 · translate
+            description=raw["ITM_DESC"].strip().capitalize(),    # "  BLUE PEN - INK  " → "Blue pen - ink"
+            category=CATEGORY_NAMES[raw["CAT_CD"]],              # "07" → "Stationery"
+        )</code></pre>
+              <p>
+                <strong>The only file that sees <code>ITM_DESC</code> and <code>CAT_CD</code>.</strong>
+                In real code also map the external errors to your own (404 → a domain error such as
+                <code>ItemNotInCatalogue</code>; timeout or unreadable data → a <code>ServiceUnavailableError</code>
+                subclass, 503), so a raw external error never reaches the client.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <h3>Wiring: connect the question to the answer (<code>items/container.py</code>)</h3>
+<pre><code>details_provider = providers.Factory(HttpItemDetailsProvider, http=legacy_http_client)
+use_cases = providers.Factory(ItemUseCases, repository=repository, events=events, details=details_provider)</code></pre>
+              <p>The only place that knows which adapter answers the port.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">5</div>
+            <div>
+              <h3>Use case: merge the two sources (<code>items/application/use_cases/item_use_cases.py</code>)</h3>
+<pre><code>async def create(self, command: CreateItemCommand) -> Item:
+    details = await self.details.get_details(command.code)   # 3 · hide: asks the port, gets clean data
+    item = Item(
+        id=uuid4(),
+        code=command.code,                 # from the UI
+        name=command.name,                 # from the UI
+        is_active=command.is_active,       # from the UI
+        description=details.description,   # from the external system, already clean
+        category=details.category,         # from the external system, already clean
+    )
+    await self.repository.add(item)
+    return item</code></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">6</div>
+            <div>
+              <h3>Router: unchanged (<code>items/router.py</code>)</h3>
+<pre><code>@router.post("/", operation_id="createItem", dependencies=WRITE_LIMIT)
+@inject
+async def create_item(body: ItemCreate, use_cases: ItemUseCases = Depends(Provide[USE_CASES])) -> ItemResponse:
+    item = await use_cases.create(CreateItemCommand(code=body.code, name=body.name, is_active=body.is_active))
+    return ItemResponse.from_entity(item)</code></pre>
+              <p>The router calls the use case only; it does not know an external system exists.</p>
+            </div>
+          </div>
+
+          <h3>The request, end to end</h3>
+<pre><code>UI ── {"code":"ITM-001","name":"Blue pen","isActive":true}
+ ▼
+router.py ──────── passes code, name, isActive
+ ▼
+use case ──── "details for ITM-001?" ──▶ port (the question)
+ ▲                                          │
+ │                                          ▼
+ │                               adapter: calls the external API
+ │                                 gets  {"ITM_DESC":"  BLUE PEN - INK  ","CAT_CD":"07"}
+ │                                 cleans it
+ │◀── ItemDetails(description="Blue pen - ink", category="Stationery")
+ │
+ merges UI fields + external fields → Item → saved
+ ▼
+UI ◀─ 201 {"code":"ITM-001","name":"Blue pen","isActive":true,
+           "description":"Blue pen - ink","category":"Stationery"}</code></pre>
+
+          <h3>Who sees the messy data</h3>
+          <div class="table-wrap"><table><thead><tr><th>File</th><th>Sees <code>ITM_DESC</code> / <code>CAT_CD</code>?</th></tr></thead><tbody>
+<tr><td><code>router.py</code>, <code>schemas.py</code></td><td>No</td></tr>
+<tr><td>Use case</td><td>No</td></tr>
+<tr><td>Entity (<code>domain/</code>)</td><td>No</td></tr>
+<tr><td>Port (<code>application/ports/</code>)</td><td>No</td></tr>
+<tr><td>Unit tests (<code>FakeItemDetailsProvider</code> returns <code>ItemDetails("Blue pen - ink", "Stationery")</code>)</td><td>No</td></tr>
+<tr><td><strong>Adapter (<code>infrastructure/http_item_details_provider.py</code>)</strong></td><td><strong>Yes, only here</strong></td></tr>
+</tbody></table></div>
+
+          <h3>Without and with the layer</h3>
+<pre><code># Without: use case POLLUTED ✗
+raw = (await httpx.get(f"http://legacy/items/{code}")).json()
+item = Item(..., description=raw["ITM_DESC"].strip(), category="Stationery" if raw["CAT_CD"] == "07" else ...)
+
+# With: use case CLEAN ✓
+details = await self.details.get_details(code)
+item = Item(..., description=details.description, category=details.category)</code></pre>
+          <div class="table-wrap"><table><thead><tr><th>Change</th><th>Without the layer</th><th>With the layer</th></tr></thead><tbody>
+<tr><td>External system renames <code>CAT_CD</code> to <code>CATEGORY</code></td><td>Find and fix every file that uses it</td><td>1 line in the adapter</td></tr>
+<tr><td>External system adds category <code>"15"</code></td><td>Search use cases and domain</td><td>1 entry in <code>CATEGORY_NAMES</code></td></tr>
+<tr><td>Replace the legacy system</td><td>Rewrite the use cases</td><td>New adapter + 1 line in <code>container.py</code></td></tr>
+<tr><td>Test item creation</td><td>Needs the real external system</td><td>A fake returning <code>ItemDetails</code></td></tr>
+</tbody></table></div>
+
+          <h3>Later: the external system is no longer needed</h3>
+          <div class="table-wrap"><table><thead><tr><th>Scenario</th><th>What changes</th><th>Places</th><th>Domain or database touched?</th></tr></thead><tbody>
+<tr><td><strong>A · Swap the source</strong> (new system, own table, default)</td><td>New adapter implementing <code>ItemDetailsProvider</code>; 1 line in <code>container.py</code></td><td>2</td><td>No</td></tr>
+<tr><td><strong>B · Remove the lookup</strong> (the UI sends description and category)</td><td><code>ItemCreate</code> + router + <code>CreateItemCommand</code> gain the two fields; the use case reads them from the command; remove the provider from <code>__init__</code> and <code>container.py</code>; delete the port, adapter and fake; update tests and <code>docs/API_FLOW.md</code></td><td>~9 (mostly deletions)</td><td>No</td></tr>
+</tbody></table></div>
+
+          <h3>Where the guard rails catch mistakes</h3>
+          <p><code>python scripts/check_conformance.py</code> reports these as errors:</p>
+          <div class="table-wrap"><table><thead><tr><th>Mistake</th><th>Rule</th></tr></thead><tbody>
+<tr><td><code>import httpx</code> (or the adapter) in the use case</td><td>LAY004</td></tr>
+<tr><td><code>pydantic</code>, <code>httpx</code> or another module's code in <code>domain/</code></td><td>LAY003</td></tr>
+<tr><td>Router imports the adapter</td><td>LAY009</td></tr>
+<tr><td><code>requests.get(...)</code> (blocking) instead of <code>httpx.AsyncClient</code></td><td>COD007</td></tr>
+</tbody></table></div>
+          <div class="callout warning">
+            <strong>Not checked automatically:</strong> an external field name or code (for example the string
+            <code>"CAT_CD"</code> or <code>"07"</code>) written by hand in a use case. Catch it in code review: external
+            names belong in the adapter only.
+          </div>
         </section>
 
         <div class="part-heading" id="part-production-standards">Production standards</div>

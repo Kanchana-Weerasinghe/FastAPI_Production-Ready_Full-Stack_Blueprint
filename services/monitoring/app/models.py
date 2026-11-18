@@ -2,5 +2,6 @@
 
 from app.db import Base
 from app.modules.items.infrastructure.persistence.models import ItemModel  # noqa: F401
+from app.modules.product.infrastructure.persistence.models import ProductModel  # noqa: F401
 
 __all__ = ["Base"]

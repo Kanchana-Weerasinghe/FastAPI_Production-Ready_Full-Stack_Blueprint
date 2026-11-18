@@ -73,6 +73,14 @@ repos:
         files: ^packages/platform-kit/
         pass_filenames: false
 
+      - id: conformance
+        name: architecture & coding-standard conformance
+        entry: python scripts/check_conformance.py --static-only
+        language: system
+        files: ^(services/|config/access-control\.json$)
+        pass_filenames: false
+        stages: [pre-push]
+
       - id: prettier
         name: prettier
         entry: pnpm --dir web format

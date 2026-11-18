@@ -66,6 +66,14 @@ then run `uv lock`/`uv sync`, ruff and the OpenAPI export.
 
 In the service: `uv run task test` (needs Docker), `uv run task test-br`, `uv run task check-access`.
 
+### Conformance check (hand-written code)
+
+From the repository root, before a pull request: `python scripts/check_conformance.py [service ...]`.
+It reports `path:line` violations of the folder structure, layer and module boundaries, routes and access control,
+transactions, errors, UTC datetimes and naming, then runs ruff, `ruff format --check`, mypy and the architecture
+tests. Flags: `--static-only` (fast, no uv), `--no-mypy`, `--changed [BASE]` (only files changed vs master),
+`--strict` (warnings fail), `--list-rules`. Exit code 1 = not conformant. The pre-push hook runs `--static-only`.
+
 ### Shared package (`packages/platform-kit/`)
 
 * `uv sync`, `uv run task check`, `uv run task type-check`, `uv run task test`. Identity depends on it: run identity's tests too.
