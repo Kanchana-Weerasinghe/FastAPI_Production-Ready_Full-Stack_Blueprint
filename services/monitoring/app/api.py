@@ -3,8 +3,10 @@
 from fastapi import APIRouter
 
 from app.modules.items.router import router as items_router
+from app.modules.product.router import router as product_router
 
 api_v1 = APIRouter(prefix="/v1")
 api_v1.include_router(items_router)
+api_v1.include_router(product_router)
 
 API_ROUTERS = [api_v1]

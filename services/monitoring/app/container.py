@@ -3,6 +3,7 @@ from platform_kit.database import Database, UnitOfWork
 
 from app.core.config import config
 from app.modules.items.container import ItemsContainer
+from app.modules.product.container import ProductContainer
 
 
 class Container(containers.DeclarativeContainer):
@@ -21,3 +22,5 @@ class Container(containers.DeclarativeContainer):
     uow = providers.Factory(UnitOfWork, db=db)
 
     items = providers.Container(ItemsContainer, db=db, uow=uow)
+
+    product = providers.Container(ProductContainer, db=db, uow=uow)

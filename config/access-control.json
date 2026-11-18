@@ -65,6 +65,21 @@
           "deleteItem"
         ]
       }
+    },
+    "monitoringProduct": {
+      "name": "Monitoring: product",
+      "description": "Create, read, update, archive, restore and delete product.",
+      "endpoints": {
+        "monitoring": [
+          "createProduct",
+          "listProduct",
+          "getProduct",
+          "updateProduct",
+          "archiveProduct",
+          "restoreProduct",
+          "deleteProduct"
+        ]
+      }
     }
   },
   "roles": {
@@ -73,13 +88,15 @@
     ],
     "user": [
       "ownAccount",
-      "monitoringItems"
+      "monitoringItems",
+      "monitoringProduct"
     ],
     "admin": [
       "ownAccount",
       "userAdministration",
       "auditRead",
-      "monitoringItems"
+      "monitoringItems",
+      "monitoringProduct"
     ]
   }
 }
